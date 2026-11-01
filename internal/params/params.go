@@ -36,6 +36,7 @@ const (
 	KeyRentalMinDPEClass      = "rental_min_dpe_class"
 	KeyMobilityTerm           = "mobility_term_months"
 	KeySupportingDocsMonths   = "regularisation_supporting_docs_months"
+	KeyReelLockYears          = "reel_option_lock_years"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date

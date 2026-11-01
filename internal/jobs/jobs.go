@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,6 +78,9 @@ type Job struct {
 	AfterCommit func(ctx context.Context, o Owner, result any) any
 	// ValidPeriod checks a period given by a caller instead of Period(now).
 	ValidPeriod func(p string) error
+	// Check, when set, runs first in the platform scope; an error fails the
+	// whole run before any owner is processed (tax.annual's line-map check).
+	Check func(ctx context.Context, o Owner) error
 }
 
 // Options are the options of a triggered run.
@@ -117,6 +121,10 @@ func WeekKey(t time.Time) string {
 	y, w := t.In(Paris()).ISOWeek()
 	return fmt.Sprintf("%04d-W%02d", y, w)
 }
+
+// PreviousYearKey returns the key YYYY of the year before t in Europe/Paris
+// (tax.annual drafts the previous income year).
+func PreviousYearKey(t time.Time) string { return strconv.Itoa(t.In(Paris()).Year() - 1) }
 
 // MonthKey returns the key YYYY-MM of t in Europe/Paris.
 func MonthKey(t time.Time) string { return t.In(Paris()).Format("2006-01") }
@@ -277,6 +285,15 @@ func (r *Runner) unit(ctx context.Context, j Job, run Run, opts Options, today p
 func (r *Runner) execute(ctx context.Context, j Job, run Run, opts Options, today period.Date) (map[string]any, Status) {
 	summary := map[string]any{}
 	failures, units := 0, 0
+	if j.Check != nil {
+		o := Owner{DryRun: opts.DryRun, Period: run.Period, Today: today, RunID: run.ID, ActorSub: opts.ActorSub}
+		err := r.DB.InScope(ctx, db.Scope{Role: "job", ActorSub: opts.ActorSub}, func(ctx context.Context) error { return j.Check(ctx, o) })
+		if err != nil {
+			slog.ErrorContext(ctx, "job check failed", "job", j.Name, "period", run.Period, "error", err)
+			summary["check"] = err.Error()
+			return summary, StatusFailed
+		}
+	}
 	if j.Platform != nil && opts.Owner == nil {
 		units++
 		pr := r.unit(ctx, j, run, opts, today, nil)

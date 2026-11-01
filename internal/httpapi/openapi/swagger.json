@@ -4638,6 +4638,268 @@
                 }
             }
         },
+        "/tax/summaries": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tax"
+                ],
+                "summary": "List the scope's tax summaries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "income year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-tax_View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Without a regime, (re)computes the year as a draft with micro-foncier and régime réel side by side; with a regime, issues it: RF-… PDF and CSV of the lines archived, summary frozen. A step-up route (fresh MFA authentication).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tax"
+                ],
+                "summary": "Draft or issue an income year's tax summary",
+                "parameters": [
+                    {
+                        "description": "year and regime",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/tax.IssueInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tax.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/tax/summaries/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tax"
+                ],
+                "summary": "Get a tax summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "summary id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tax.View"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/tax/summaries/{id}/lines.csv": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "One row per owner, asset and line with its source ids, then totals, flags and supporting documents. An export: step-up required, recorded in the audit trail.",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "tax"
+                ],
+                "summary": "Export a tax summary's lines as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "summary id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/tenants": {
             "get": {
                 "security": [
@@ -6271,6 +6533,26 @@
                 }
             }
         },
+        "httpx.List-tax_View": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.View"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "jobs.Run": {
             "type": "object",
             "properties": {
@@ -7699,6 +7981,271 @@
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "tax.AssetLines": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "furnished": {
+                    "type": "boolean"
+                },
+                "gross_receipts_cents": {
+                    "description": "GrossReceiptsCents is the rent received for a furnished asset.",
+                    "type": "integer"
+                },
+                "lines": {
+                    "description": "Lines holds the 2044 lines of an unfurnished asset, ordered by line.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.LineAmount"
+                    }
+                },
+                "net_cents": {
+                    "description": "NetCents is income − expenses for an unfurnished asset.",
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.Deficit": {
+            "type": "object",
+            "properties": {
+                "remaining_cents": {
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.Flag": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                }
+            }
+        },
+        "tax.Inputs": {
+            "type": "object",
+            "properties": {
+                "charges": {
+                    "type": "integer"
+                },
+                "draft_charges": {
+                    "type": "integer"
+                },
+                "payments": {
+                    "type": "integer"
+                },
+                "prior_year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.IssueInput": {
+            "type": "object",
+            "properties": {
+                "regime": {
+                    "type": "string",
+                    "enum": [
+                        "micro",
+                        "reel"
+                    ]
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.LineAmount": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "line": {
+                    "type": "string"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "tax.Micro": {
+            "type": "object",
+            "properties": {
+                "allowance_cents": {
+                    "type": "integer"
+                },
+                "eligible": {
+                    "type": "boolean"
+                },
+                "gross_cents": {
+                    "type": "integer"
+                },
+                "taxable_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.OwnerSummary": {
+            "type": "object",
+            "properties": {
+                "assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.AssetLines"
+                    }
+                },
+                "furnished_gross_receipts_cents": {
+                    "type": "integer"
+                },
+                "micro": {
+                    "$ref": "#/definitions/tax.Micro"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "reel": {
+                    "$ref": "#/definitions/tax.Reel"
+                },
+                "totals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.LineAmount"
+                    }
+                }
+            }
+        },
+        "tax.Reel": {
+            "type": "object",
+            "properties": {
+                "carried_forward": {
+                    "description": "CarriedForward are the deficits left for later years, oldest first.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.Deficit"
+                    }
+                },
+                "expired": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.Deficit"
+                    }
+                },
+                "global_imputable_cents": {
+                    "description": "GlobalImputableCents is the deficit set against global income.",
+                    "type": "integer"
+                },
+                "income_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "net_cents": {
+                    "type": "integer"
+                },
+                "other_expenses_cents": {
+                    "type": "integer"
+                },
+                "prior_used": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.Deficit"
+                    }
+                },
+                "taxable_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.Summary": {
+            "type": "object",
+            "properties": {
+                "flags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.Flag"
+                    }
+                },
+                "millesime": {
+                    "type": "integer"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.OwnerSummary"
+                    }
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.View": {
+            "type": "object",
+            "properties": {
+                "computed_at": {
+                    "type": "string"
+                },
+                "csv_document_id": {
+                    "type": "string"
+                },
+                "deficits_after": {
+                    "description": "Deficits are the deficits left for later years, by owner.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/tax.Deficit"
+                        }
+                    }
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inputs": {
+                    "$ref": "#/definitions/tax.Inputs"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "regime": {
+                    "type": "string",
+                    "enum": [
+                        "micro",
+                        "reel"
+                    ]
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "issued"
+                    ]
+                },
+                "summary": {
+                    "$ref": "#/definitions/tax.Summary"
+                },
+                "tax_year": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "integer"
                 }
             }
         }
