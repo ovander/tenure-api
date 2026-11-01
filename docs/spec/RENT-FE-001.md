@@ -102,7 +102,7 @@ The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own r
 
 - Structure: `src/{app,features/<module>,components,stores,api,i18n}`; one feature folder per backend module with its routes, views and store.
 - State: Pinia 2.3 stores per feature (`useLeaseStore`, `useBillingStore`…) holding server data by id and the active scope; no global caching beyond the current view; optimistic updates only for matching payments.
-- API client: generated from `/api/v1/openapi.json` (openapi-typescript + a thin fetch wrapper) with ETag handling and problem-detail parsing; the token comes from Socrate (OIDC code flow with PKCE, silent refresh); scope header set by the store.
+- API client: generated from `/api/v1/openapi.json` (openapi-typescript + a thin fetch wrapper) with ETag handling and problem-detail parsing; no token in the client: the browser calls same-origin `/api/v1` with the BFF session cookie and sends `X-CSRF-Token` (from `GET /bff/session`) on every unsafe request; scope header set by the store.
 - Routing: vue-router with route guards per role; every list filter and wizard step is in the query string.
 - PWA: vite-plugin-pwa, installable, offline shell only (no offline writes); documents open in a new tab from signed URLs.
 - i18n: French default, English optional, selected in the user profile and persisted on the backend (\`PUT /me\` language); own dictionary module (`t('billing.issue')`) with FR and EN JSON files, no vue-i18n; number and date formatting through `Intl`.
@@ -110,9 +110,9 @@ The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own r
 - Testing: Vitest unit tests on stores and formatters, component tests on the DocumentCard and wizard steps, Playwright smoke on the four key flows against a seeded backend in CI.
 - Performance budget: first load under 1 MB gzipped, route-level code splitting per feature, DataTable virtual scroll above 200 rows.
 
-**Security in the client (RENT-SPEC-022, day 1)**: tokens held in memory only (no localStorage), silent refresh through the OIDC iframe or refresh token rotation as Socrate allows; step-up prompts rendered as a Dialog that re-opens Socrate before tax issue, grants, parameters and exports; CSP-compatible build (no inline scripts, hashed Vite preload); every document download goes through the short-lived signed URL and is logged server-side; an « Audit » tab on asset and lease hubs lists the audit events for that entity with actor, time and before/after diff (S03 and S05).
+**Security in the client (RENT-SPEC-022, day 1)**: no token ever reaches the browser: tenure's Backend-for-Frontend holds and refreshes them (RENT-BE-001 §4), the app sees only `GET /bff/session` (who is signed in, CSRF token); a 401 sends the user to `/bff/login?return_to=…`; step-up prompts rendered as a Dialog that navigates to `/bff/login?step_up=1&return_to=…` before tax issue, grants, parameters and exports; CSP-compatible build (no inline scripts, hashed Vite preload); every document download goes through the short-lived signed URL and is logged server-side; an « Audit » tab on asset and lease hubs lists the audit events for that entity with actor, time and before/after diff (S03 and S05).
 
-**Identity is Socrate only (RENT-SPEC-006)**: the app has no login form, no registration and no password reset screen; « Se connecter » redirects to Socrate and returns through the OIDC callback; profile, MFA enrolment and password changes link out to Socrate’s account pages; the tenant portal in phase 4 uses the same flow with its own Socrate client. The OIDC client lives in one module (`app/auth`) built on backendkit’s published client contract; no other module reads or stores a token.
+**Identity is Socrate only (RENT-SPEC-006)**: the app has no login form, no registration and no password reset screen; « Se connecter » navigates to `/bff/login`, which redirects to Socrate and returns through the BFF callback; « Se déconnecter » posts `/bff/logout` with the CSRF token; profile, MFA enrolment and password changes link out to Socrate’s account pages; the tenant portal in phase 4 uses the same flow with its own Socrate client. The session module (`app/auth`) reads `/bff/session`, keeps the CSRF token in memory and adds it to unsafe requests; the app holds no OIDC client, client id or token.
 
 ## 8. Open decisions and changelog
 
@@ -131,3 +131,4 @@ The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own r
 | 2026-11-01 | 0.5 | French default, English optional per user; language setting on profile |
 | 2026-11-01 | 0.6 | Own repository ovander/tenure-web; bundle released and embedded by tenure-api |
 | 2026-11-01 | 1.0 | FE-OD-01 to 03 decided (tabs, inline pdf.js viewer, tablet-only in phase 1); baseline for the phase 1 implementation plan |
+| 2026-11-01 | 1.1 | Login through tenure's Backend-for-Frontend: no OIDC client or token in the app, session cookie and CSRF token |

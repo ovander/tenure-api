@@ -311,7 +311,7 @@ func TestScenario(t *testing.T) {
 		if r.Status != 200 || !strings.HasPrefix(string(r.Body), "id,occurred_at") || !strings.Contains(string(r.Body), "lease.activate") {
 			t.Fatalf("export: %d %s", r.Status, r.Body)
 		}
-		if n := superCount(t, "SELECT count(*) FROM audit_events WHERE action = 'audit.export'"); n != 1 {
+		if n := superCount(t, "SELECT count(*) FROM audit_events WHERE action = 'audit.export' AND owner_id = $1", ownerA.ID); n != 1 {
 			t.Errorf("export events: %d", n)
 		}
 		runner := env.app.Runner

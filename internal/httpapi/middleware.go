@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	bffkit "github.com/ovander/backendkit/bff"
 	"github.com/ovander/backendkit/ctxutil"
 
 	"github.com/ovander/tenure-api/internal/auth"
@@ -86,6 +87,17 @@ func recoverer(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
+}
+
+// attribute puts the resolved client address on the request, so the BFF's
+// calls to Socrate (code exchange, refresh, revoke) name the browser rather
+// than the server (backendkit bff.WithClientAttribution).
+func attribute(trusted []*net.IPNet) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, bffkit.WithClientAttribution(r, clientIP(r, trusted)))
+		})
+	}
 }
 
 // clientIP returns the client address: the peer, or, when the peer is a

@@ -397,7 +397,7 @@ From the first release every business change is recorded in an append-only, hash
 | --- | --- |
 | Authentication | Socrate OIDC with PKCE; MFA mandatory for owner and admin roles; access tokens 15 min, refresh 8 h, revocable; step-up re-authentication before issuing a tax summary, changing grants or parameters, defined as auth\_time at most 5 minutes old and mfa present in amr; a token without auth\_time is refused for these routes |
 | Authorisation | RLS on every owner table, API role without BYPASSRLS, grants table reviewed in the audit log, deny-by-default routes |
-| Transport and headers | TLS 1.2+ only via Caddy, HSTS, CSP without inline scripts, no tokens in localStorage, SameSite cookies if used |
+| Transport and headers | TLS 1.2+ only via Caddy, HSTS, CSP without inline scripts; no token ever reaches the browser: a Backend-for-Frontend in tenure holds them server-side and the browser gets only a `__Host-`, HttpOnly, SameSite=Strict session cookie, with a CSRF token on every unsafe request |
 | Data at rest | Encrypted PostgreSQL volume and bucket (SSE), encrypted backups, keys managed by the hosting provider’s KMS, rotation yearly |
 | Residency | All data and backups hosted in the EU, provider DPA signed, no third-party processor for tenant data in phase 1 |
 | Uploads | Allowed types PDF, images, CSV/OFX; size caps; antivirus scan before archiving; never served inline from the API |
@@ -451,3 +451,4 @@ From the first release every business change is recorded in an append-only, hash
 | 2026-11-01 | 1.0 | All open decisions OD-01 to OD-09 decided; phase 1 slice order and dev environment added to the roadmap; corpus frozen as the phase 1 baseline |
 | 2026-11-01 | 1.1 | Implementation feedback (OPEN-QUESTIONS Q-02, Q-07, Q-08, Q-12): 2044 line map corrected to the real form, provisional charges excluded from income, IRL cap moved to legal\_params, step-up defined by auth\_time and amr |
 | 2026-11-01 | 1.2 | Implementation feedback (OPEN-QUESTIONS Q-27, Q-28, Q-29, Q-31, Q-32): 222 per local, rent control as three dated rules (irl\_cap, zone ceiling, relocation rule), 229/230 non-recoverable shares, parameters keyed by income year, consistent ownership shares per lease |
+| 2026-11-01 | 1.3 | Browser login through a Backend-for-Frontend (backendkit bff): no token in the browser, session cookie and CSRF (RENT-SPEC-022) |

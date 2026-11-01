@@ -98,6 +98,15 @@ Socrate issues the OIDC token, backendkit validates it and populates the request
 | tenant (phase 4) | lease\_tenants + Socrate sub | Own lease documents and requests only, through the portal scope |
 | admin | Socrate realm role | Params, job triggers, grants; no business data outside own ownership |
 
+**Browsers through a Backend-for-Frontend.** A browser never holds an OAuth token (backendkit `docs/CLIENT-INTEGRATION.md` §7.1). tenure is Socrate's confidential client (`TENURE_SOCRATE_CLIENT_ID`, `TENURE_SOCRATE_CLIENT_SECRET`) and serves, outside `/api/v1` and without a token:
+
+- `GET /bff/login?return_to=&step_up=1` runs authorization code + PKCE with a state and a browser binding; with step-up it asks for a fresh authentication (Q-85);
+- `GET /bff/callback` exchanges the code server-side;
+- `GET /bff/session` returns who is signed in and the CSRF token, never a token;
+- `POST /bff/logout` needs the CSRF token, revokes the refresh token and deletes the session.
+
+Sessions and pending logins live in PostgreSQL (`bff_store_sessions`, `bff_store_pending_logins`), encrypted under `TENURE_SESSION_KEY`; a session ends after 30 minutes idle and 8 hours at most. The browser holds only the `__Host-tenure_session` cookie (HttpOnly, SameSite=Strict, Secure). On `/api/v1`, a request carrying that cookie and no `Authorization` header is turned into a bearer in process, in front of `internal/auth`: an unsafe method needs `X-CSRF-Token` (403 `bff/csrf-failed`), the access token is refreshed when about to expire, and a refresh Socrate rejects ends the session (401 `auth/session-expired`). `internal/auth` then validates the token as for any bearer, so RLS, roles, step-up and audit are unchanged; machine clients keep sending bearers. Token calls to Socrate carry the resolved client address (client attribution).
+
 A caller with several scopes (own portfolio plus a grant) selects the active scope with the `X-Owner-Scope` header; the default is their own. Every request is logged with subject, scope, route and outcome.
 
 **Imposed, not chosen**: Socrate and backendkit are a platform constraint (RENT-SPEC-006). In code this means: `internal/auth` wraps backendkit and is the only package that reads a token; no handler or service imports a JWT library; there is no `users` table, no password column, no API-key table and no local login route; `owners.socrate_sub` is the only link between a person and their data; machine access (remote job triggers, phase 4 integrations) uses Socrate client-credential clients mapped to the admin or a dedicated integration role; MFA, step-up (`acr`) and session policies are configured in Socrate and consumed by backendkit; backendkit is pinned in `go.mod` and upgraded through the normal PR flow; a CI test fails the build if any route is reachable without a valid Socrate token.
@@ -177,6 +186,7 @@ Every service write emits one audit event in the same transaction through `audit
 - Audit emission: the service layer calls `audit.Record` after the write and before commit; the repository forbids direct writes from handlers; a missing audit call fails the integration test suite (every mutating endpoint is listed in `testdata/audited_routes.txt`).
 - Chain: `hash = sha256(prev_hash ‖ canonical JSON)` computed in Go, not in SQL, with an advisory lock per owner to serialise inserts; `audit.verify` job weekly, `audit.head` job daily writes `audit_chain_heads` to `<owner_id>/audit/<date>.json` under object lock.
 - Read access to audit events: owner and accountant through `GET /audit/events?entity=&from=&to=`; export as CSV with the chain hashes.
+- Browser sessions: the BFF of §4; no token in the browser, `__Host-` HttpOnly SameSite=Strict cookie, CSRF token on unsafe methods, encrypted server-side sessions (Q-86).
 - Authentication: backendkit validates tokens and exposes `auth_time` and `amr`; routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most 5 minutes old and `mfa` in `amr`, otherwise 401 with `type: auth/step-up-required`; a token without `auth_time` is refused on those routes; MFA enforced by Socrate policy for owner and admin realms.
 - Headers (Caddy): HSTS 1 year, CSP `default-src 'self'` with hashed script allowances, `X-Content-Type-Options`, `Referrer-Policy`, frame denial; API refuses non-JSON content types.
 - Rate limiting: Chi middleware, 60 write requests/min per subject, 600 reads/min, 10 failed auth/15 min per IP before lockout; limits logged and alerted.
@@ -239,5 +249,6 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-01 | 1.8 | BFF (Q-85, Q-86): browser login through backendkit bff in tenure, /bff routes, session tables (migration 000006), TENURE\_SOCRATE\_CLIENT\_ID/SECRET, TENURE\_PUBLIC\_URL, TENURE\_SESSION\_KEY |
 | 2026-11-01 | 1.7 | Slice 6 (Q-77 to Q-84): charges in cents with the syndic split and draft status, reconciliation lines per lease, regularisation\_postings, charges.reconcile period key, supporting-documents parameter |
 | 2026-11-01 | 1.6 | Slice 5 (Q-67 to Q-76): upload pipeline, asset\_diagnostics, lease\_documents, inventories, guarantee rules, contract blockers and routes, CA prefix, diagnostics and DPE class parameters, retention clock of lease documents |

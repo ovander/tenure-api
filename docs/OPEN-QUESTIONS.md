@@ -626,3 +626,25 @@ when in draft or allocated (dry run: computes only), and issuing stays an owner 
 instalments, provision proposal and settlement, while the charges used are listed on the
 reconciliation (`charge_ids`) and in each statement.
 
+## Raised by the BFF
+
+**Q-85 Step-up through the BFF — Open (BFF), Socrate to confirm.** The step_up routes need
+`auth_time` at most 5 minutes old and `mfa` in `amr` (Q-02). With the BFF, the browser cannot ask
+Socrate for that itself. Provisional:
+- `/bff/login?step_up=1` adds the standard OIDC `prompt=login` and `max_age=0`;
+- the new session replaces the old one;
+- whether Socrate honours both parameters is to be confirmed; until then, the API still refuses a
+  token that is not fresh, so the route fails closed.
+
+**Q-86 Session storage and logins — Open (BFF).** Provisional:
+- sessions and pending logins are kept by backendkit's PostgreSQL stores in two tables of
+  migration 000006, encrypted with AES-256-GCM under `TENURE_SESSION_KEY`, and created by the
+  migration so the stores run no DDL;
+- the tables have no `owner_id` and no RLS: a session belongs to a Socrate identity before any
+  scope is chosen. Only `tenure_api` holds rights on them, and `tenure_jobs` none;
+- a session ends after 30 minutes idle and 8 hours at most (RENT-SPEC-022: refresh 8 h);
+- logins and logouts are logged (slog, subject only), not audit events: Socrate audits sign-ins,
+  and the owner audit chain starts with a scope;
+- logout revokes the refresh token and ends the tenure session; it does not end the user's
+  Socrate SSO session, so the next login may not ask for a password.
+

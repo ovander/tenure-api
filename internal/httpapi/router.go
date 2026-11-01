@@ -25,6 +25,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/document"
@@ -57,6 +58,9 @@ type Deps struct {
 	// limited to one a second (RENT-BE-001 §8b); zero keeps 60. Only the
 	// integration suite raises it, to set up many records quickly.
 	WriteBurst int
+	// BFF serves /bff and turns a browser session into a bearer in front of
+	// internal/auth; nil serves bearer clients only.
+	BFF *bff.Server
 }
 
 // Guard is the authorisation a route requires on top of a valid token.
@@ -187,7 +191,7 @@ func NewRouter(d Deps) (http.Handler, error) {
 
 	r := chi.NewRouter()
 	// The body cap is set per route (bodyLimit): 1 MiB, except uploads.
-	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders)
+	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders, attribute(d.TrustedProxies))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { problem.Write(w, r, problem.NotFound, "", "", nil) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		problem.Write(w, r, problem.MethodNotAllowed, "", "", nil)
@@ -210,8 +214,17 @@ func NewRouter(d Deps) (http.Handler, error) {
 		_, _ = w.Write([]byte(`{"status":"ready"}`))
 	})
 
+	sessions := func(next http.Handler) http.Handler { return next }
+	if d.BFF != nil {
+		sessions = d.BFF.Authenticate
+		r.Group(func(g chi.Router) {
+			g.Use(httpware.BodyLimit(DefaultBodyLimit), reads.Handler)
+			d.BFF.Mount(g)
+		})
+	}
+
 	r.Route("/api/v1", func(api chi.Router) {
-		api.Use(lockout.handler, d.Auth.Authenticate, identify, problemOn429, byMethod(reads.Handler, writes.Handler))
+		api.Use(lockout.handler, sessions, d.Auth.Authenticate, identify, problemOn429, byMethod(reads.Handler, writes.Handler))
 		api.NotFound(func(w http.ResponseWriter, r *http.Request) { problem.Write(w, r, problem.NotFound, "", "", nil) })
 		for _, rt := range Routes(d) {
 			var h http.Handler = rt.Handler

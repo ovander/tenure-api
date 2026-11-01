@@ -14,6 +14,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/db"
@@ -41,7 +42,9 @@ type Deps struct {
 	TrustedProxies []*net.IPNet
 	// WriteBurst raises the per-subject write burst (integration suite only).
 	WriteBurst int
-	Now        func() time.Time
+	// BFF serves browser sessions (nil: bearer clients only).
+	BFF *bff.Server
+	Now func() time.Time
 }
 
 // App is the assembled service.
@@ -90,6 +93,7 @@ func New(d Deps) (*App, error) {
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
 		WriteBurst:     d.WriteBurst,
+		BFF:            d.BFF,
 	})
 	if err != nil {
 		return nil, err
