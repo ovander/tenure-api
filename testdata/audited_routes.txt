@@ -21,6 +21,12 @@ POST /leases/{id}/amendments
 POST /leases/{id}/inventories
 POST /documents
 POST /leases/{id}/revision +
+POST /charges
+POST /charges/import/syndic
+PUT /charges/{id}
+POST /reconciliations
+POST /reconciliations/{id}/transitions +
+PUT /reconciliations/{id}/lines/{lineId}
 POST /billing/runs +
 POST /billing/documents/{id}/cancel +
 PUT /params/irl/{quarter}
