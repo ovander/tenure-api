@@ -201,12 +201,13 @@ variant; documents are French only.
 ## Slice 6 — Charges ledger and reconciliation
 
 - **Spec**: RENT-SPEC-007 (whole process, states, rules), RENT-BE-001 §3 charge, §5
-  `charges.reconcile`.
+  `charges.reconcile`. Provisional readings: Q-76 to Q-84.
 - **Pkg**: `internal/charge` (repository, service and handler; syndic import with column mapping
   into draft charges; reconciliation state machine `draft → allocated → issued → settled`);
   billing applies the regularisation line, instalments and carry-over; provision update;
   `templates/regularisation/v1`.
-- **Tables** `000005_charges.sql`: `charges`, `reconciliations`, `reconciliation_lines`.
+- **Tables** `000005_charges.sql`: `charges`, `reconciliations`, `reconciliation_lines`,
+  `regularisation_postings` (Q-79); parameter `regularisation_supporting_docs_months`.
 - **API**: `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic`,
   `GET/POST /reconciliations`, `GET /reconciliations/{id}`,
   `POST /reconciliations/{id}/transitions`, `PUT /reconciliations/{id}/lines/{lineId}`.
