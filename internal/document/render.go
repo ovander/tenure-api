@@ -55,11 +55,51 @@ func PeriodFR(p period.Period) string { return fmt.Sprintf("%s %d", frMonths[p.M
 // Index100 formats an index in hundredths as « 146,68 ».
 func Index100(v int64) string { return fmt.Sprintf("%d,%02d", v/100, v%100) }
 
+// MonthFR names a month (1 to 12) in French.
+func MonthFR(m int) string {
+	if m < 1 || m > 12 {
+		return ""
+	}
+	return frMonths[m-1]
+}
+
+// SurfaceFR formats a surface in hundredths of m² as « 45,20 m² ».
+func SurfaceFR(h int64) string { return fmt.Sprintf("%d,%02d m²", h/100, h%100) }
+
+// QuarterFR formats an IRL quarter « 2025-Q2 » as « 2e trimestre 2025 ».
+func QuarterFR(q string) string {
+	y, n, ok := strings.Cut(q, "-Q")
+	if !ok {
+		return q
+	}
+	if n == "1" {
+		return "1er trimestre " + y
+	}
+	return n + "e trimestre " + y
+}
+
 var funcs = template.FuncMap{
 	"euros":       Euros,
 	"date":        DateFR,
 	"periodLabel": PeriodFR,
 	"index100":    Index100,
+	"month":       MonthFR,
+	"surface":     SurfaceFR,
+	"quarter":     QuarterFR,
+	"years":       func(months int) int { return months / 12 },
+	"plural":      func(n int) bool { return n > 1 },
+	"deref": func(c *money.Cents) money.Cents {
+		if c == nil {
+			return 0
+		}
+		return *c
+	},
+	"derefDate": func(d *period.Date) period.Date {
+		if d == nil {
+			return period.Date{}
+		}
+		return *d
+	},
 }
 
 // Renderer renders the embedded templates.

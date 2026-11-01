@@ -31,6 +31,10 @@ const (
 	KeyRentControlZoneCeiling = "rent_control.zone_ceiling"
 	KeyRentControlRelocation  = "rent_control.relocation_rule"
 	KeyForm2044LineMap        = "form_2044_line_map"
+	KeyDepositWarningBox      = "deposit_warning_months.box"
+	KeyDiagnostics            = "diagnostics"
+	KeyRentalMinDPEClass      = "rental_min_dpe_class"
+	KeyMobilityTerm           = "mobility_term_months"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -220,6 +224,43 @@ type RelocationRule struct {
 func (s Set) RelocationRule(asOf period.Date) (RelocationRule, error) {
 	var r RelocationRule
 	err := s.Decode(KeyRentControlRelocation, asOf, &r)
+	return r, err
+}
+
+// Diagnostics is the diagnostics rule (Q-23): the kinds a lease needs by
+// asset family ("dwelling", "box"), the validity of each kind in months (0:
+// no expiry), and the date before which a DPE is void whatever its age.
+type Diagnostics struct {
+	Required       map[string][]string `json:"required"`
+	ValidityMonths map[string]int      `json:"validity_months"`
+	DPEMinDoneOn   period.Date         `json:"dpe_min_done_on"`
+}
+
+// Diagnostics returns the diagnostics rule in force on asOf.
+func (s Set) Diagnostics(asOf period.Date) (Diagnostics, error) {
+	var d Diagnostics
+	err := s.Decode(KeyDiagnostics, asOf, &d)
+	return d, err
+}
+
+// MinDPEClass returns the worst DPE class a dwelling may have to be let on
+// asOf (« A » best, « G » worst).
+func (s Set) MinDPEClass(asOf period.Date) (string, error) {
+	var c string
+	err := s.Decode(KeyRentalMinDPEClass, asOf, &c)
+	return c, err
+}
+
+// Range is an inclusive integer range.
+type Range struct {
+	Min int `json:"min"`
+	Max int `json:"max"`
+}
+
+// MobilityTerm returns the allowed term of a bail mobilité, in months.
+func (s Set) MobilityTerm(asOf period.Date) (Range, error) {
+	var r Range
+	err := s.Decode(KeyMobilityTerm, asOf, &r)
 	return r, err
 }
 

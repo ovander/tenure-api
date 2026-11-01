@@ -71,6 +71,9 @@ type Config struct {
 	S3           S3
 	SMTP         SMTP
 	PDFEngineURL string // gotenberg
+	// ClamAVAddr is the clamd sidecar (host:port) scanning uploads; required
+	// to serve, since an upload without a scan is refused.
+	ClamAVAddr string
 	// IRLSourceURL is the INSEE BDM series of the IRL (irl.fetch).
 	IRLSourceURL string
 	// TrustedProxies are the reverse proxies (Caddy) whose X-Forwarded-For is
@@ -141,6 +144,12 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 		errs = append(errs, errors.New("TENURE_SMTP_FROM must be an e-mail address"))
 	}
 	c.PDFEngineURL = get("TENURE_PDF_ENGINE_URL", docs)
+	c.ClamAVAddr = get("TENURE_CLAMAV_ADDR", need&NeedAPI != 0)
+	if c.ClamAVAddr != "" {
+		if _, port, err := net.SplitHostPort(c.ClamAVAddr); err != nil || port == "" || strings.Contains(c.ClamAVAddr, "://") {
+			errs = append(errs, errors.New("TENURE_CLAMAV_ADDR must be host:port"))
+		}
+	}
 	c.IRLSourceURL = get("TENURE_IRL_SOURCE_URL", false)
 	if c.IRLSourceURL == "" {
 		c.IRLSourceURL = DefaultIRLSource

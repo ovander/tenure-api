@@ -169,6 +169,19 @@ func setup(m *testing.M) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("bucket: %w", err)
 	}
+	// The antivirus sidecar starts on the signatures bundled in its image.
+	clamav, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
+		ContainerRequest: testcontainers.ContainerRequest{Image: "clamav/clamav:1.4.3", ExposedPorts: []string{"3310/tcp"},
+			WaitingFor: wait.ForAll(wait.ForLog("socket found, clamd started"), wait.ForListeningPort("3310/tcp")).
+				WithDeadline(5 * time.Minute)}})
+	if err != nil {
+		return 0, fmt.Errorf("clamav: %w", err)
+	}
+	defer func() { _ = testcontainers.TerminateContainer(clamav) }()
+	clamAddr, err := clamav.PortEndpoint(ctx, "3310/tcp", "")
+	if err != nil {
+		return 0, err
+	}
 	if env.smtp, err = smtptest.Start(); err != nil {
 		return 0, err
 	}
@@ -199,7 +212,8 @@ func setup(m *testing.M) (int, error) {
 		return 0, err
 	}
 	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL},
-		Mailer: notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
+		Scanner: document.Clamd{Addr: clamAddr},
+		Mailer:  notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
 		Ready: func(ctx context.Context) error { return api.Ping(ctx) }}
 	if env.app, err = app.New(env.deps); err != nil {
 		return 0, err

@@ -33,6 +33,7 @@ type Deps struct {
 	Auth           *auth.Middleware
 	Store          document.Store
 	PDF            document.PDFEngine
+	Scanner        document.Scanner
 	Mailer         notify.Mailer
 	INSEE          params.INSEE
 	Ready          func(context.Context) error
@@ -54,9 +55,9 @@ func New(d Deps) (*App, error) {
 	}
 	newID := func() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 	pf := portfolio.Service{DB: d.API, Now: d.Now, NewID: newID}
-	ls := lease.Service{DB: d.API, Portfolio: pf, Now: d.Now, NewID: newID}
-	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer,
-		Issuer: document.Issuer{PDF: d.PDF, Store: d.Store, Now: d.Now, NewID: newID}}
+	issuer := document.Issuer{PDF: d.PDF, Store: d.Store, Now: d.Now, NewID: newID}
+	ls := lease.Service{DB: d.API, Portfolio: pf, Issuer: issuer, Now: d.Now, NewID: newID}
+	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer, Issuer: issuer}
 	reg := map[string]jobs.Job{}
 	for _, j := range []jobs.Job{
 		jobs.AuditVerify(),
@@ -70,14 +71,15 @@ func New(d Deps) (*App, error) {
 	}
 	runner := &jobs.Runner{DB: d.Jobs, Jobs: reg, Now: d.Now}
 	h, err := httpapi.NewRouter(httpapi.Deps{
-		Auth:           d.Auth,
-		Portfolio:      portfolio.Handler{Service: pf},
-		Lease:          lease.Handler{Service: ls},
-		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
-		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
-		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
-		Billing:        billing.Handler{Service: bs, Runner: runner},
-		Documents:      document.Handler{Service: document.Service{DB: d.API, Store: d.Store, Now: d.Now}},
+		Auth:      d.Auth,
+		Portfolio: portfolio.Handler{Service: pf},
+		Lease:     lease.Handler{Service: ls},
+		Params:    params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
+		Audit:     audit.Handler{Service: audit.Service{DB: d.API}},
+		Jobs:      jobs.Handler{DB: d.API, Runner: runner},
+		Billing:   billing.Handler{Service: bs, Runner: runner},
+		Documents: document.Handler{Service: document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner,
+			Now: d.Now, NewID: newID}},
 		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,

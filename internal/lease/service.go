@@ -14,6 +14,7 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
@@ -36,22 +37,26 @@ type RentPart struct {
 
 // Input is the body of POST and PUT /leases.
 type Input struct {
-	Kind           Kind            `json:"kind" enums:"unfurnished,furnished,mobility,box"`
-	AssetIDs       []uuid.UUID     `json:"asset_ids"`
-	Tenants        []TenantLink    `json:"tenants"`
-	StartOn        period.Date     `json:"start_on" swaggertype:"string" format:"date"`
-	EndOn          *period.Date    `json:"end_on" swaggertype:"string" format:"date"`
-	TermMonths     int             `json:"term_months"`
-	RentCents      int64           `json:"rent_cents"`
-	ProvisionCents int64           `json:"provision_cents"`
-	DepositCents   int64           `json:"deposit_cents"`
-	DueDay         int             `json:"due_day"`
-	IRLRefQuarter  string          `json:"irl_ref_quarter" example:"2025-Q2"`
-	IRLRefValue    int64           `json:"irl_ref_value" example:"14668"`
-	RevisionMonth  int             `json:"revision_month"`
-	RentExemption  *RentExemption  `json:"rent_exemption" enums:"works,under_valued"`
-	RentBreakdown  []RentPart      `json:"rent_breakdown"`
-	Clauses        json.RawMessage `json:"clauses" swaggertype:"array,object"`
+	Kind           Kind           `json:"kind" enums:"unfurnished,furnished,mobility,box"`
+	AssetIDs       []uuid.UUID    `json:"asset_ids"`
+	Tenants        []TenantLink   `json:"tenants"`
+	StartOn        period.Date    `json:"start_on" swaggertype:"string" format:"date"`
+	EndOn          *period.Date   `json:"end_on" swaggertype:"string" format:"date"`
+	TermMonths     int            `json:"term_months"`
+	RentCents      int64          `json:"rent_cents"`
+	ProvisionCents int64          `json:"provision_cents"`
+	DepositCents   int64          `json:"deposit_cents"`
+	DueDay         int            `json:"due_day"`
+	IRLRefQuarter  string         `json:"irl_ref_quarter" example:"2025-Q2"`
+	IRLRefValue    int64          `json:"irl_ref_value" example:"14668"`
+	RevisionMonth  int            `json:"revision_month"`
+	RentExemption  *RentExemption `json:"rent_exemption" enums:"works,under_valued"`
+	RentBreakdown  []RentPart     `json:"rent_breakdown"`
+	// Clauses are special clauses picked by code from the vetted list:
+	// [{"code": "boiler_servicing"}] (RENT-SPEC-008).
+	Clauses json.RawMessage `json:"clauses" swaggertype:"array,object"`
+	// MobilityReason is required to generate a mobility lease's contract.
+	MobilityReason *MobilityReason `json:"mobility_reason" enums:"vocational_training,higher_education,apprenticeship,internship,civic_service,job_transfer,temporary_assignment"`
 }
 
 // View is a lease as the API returns it.
@@ -94,7 +99,10 @@ const (
 )
 
 // GuaranteeInput is the body of POST /leases/{id}/guarantees and PUT
-// /guarantees/{id}. Combination rules and documents arrive in slice 5.
+// /guarantees/{id}. The guarantor object reads name, address, legal_person
+// and solidary for a surety, visa_number for Visale, insurer and policy for
+// a rent insurance; the combination rules apply on every write
+// (RENT-SPEC-008).
 type GuaranteeInput struct {
 	Kind        GuaranteeKind   `json:"kind" enums:"deposit,surety,visale,insurance"`
 	Guarantor   json.RawMessage `json:"guarantor" swaggertype:"object"`
@@ -122,6 +130,7 @@ type Service struct {
 	Repo      Repository
 	Portfolio portfolio.Service
 	Params    params.Repository
+	Issuer    document.Issuer
 	Now       func() time.Time
 	NewID     func() uuid.UUID
 }
@@ -154,6 +163,10 @@ func view(st stored) View {
 	if l.RentExemption != nil {
 		e := RentExemption(*l.RentExemption)
 		v.RentExemption = &e
+	}
+	if l.MobilityReason != nil {
+		m := MobilityReason(*l.MobilityReason)
+		v.MobilityReason = &m
 	}
 	if len(l.RentBreakdown) > 0 {
 		_ = json.Unmarshal(l.RentBreakdown, &v.RentBreakdown)
@@ -230,6 +243,18 @@ func validateInput(in *Input) invariant.Fields {
 	} else if !json.Valid(in.Clauses) {
 		f.Add("clauses", "Les clauses doivent être un JSON valide.")
 	}
+	if in.MobilityReason != nil {
+		known := false
+		for _, r := range MobilityReasons {
+			known = known || r == *in.MobilityReason
+		}
+		if !known {
+			f.Add("mobility_reason", "Motif de bail mobilité inconnu.")
+		}
+		if in.Kind != KindMobility {
+			f.Add("mobility_reason", "Un motif ne s’indique que pour un bail mobilité.")
+		}
+	}
 	return f
 }
 
@@ -292,29 +317,7 @@ func (s Service) domain(ctx context.Context, id uuid.UUID, in Input, state State
 // with the previous lease of a controlled-zone asset for the relocation rule.
 // The first broken rule is returned.
 func (s Service) check(ctx context.Context, l Lease, id uuid.UUID, assetIDs []uuid.UUID) error {
-	ps, err := s.Params.Load(ctx)
-	if err != nil {
-		return err
-	}
-	c := Check{Event: EventCreation, AsOf: l.StartOn}
-	if l.ControlledZone() {
-		prev, ok, err := s.Repo.PreviousLease(ctx, assetIDs, id, l.StartOn.Time())
-		if err != nil {
-			return err
-		}
-		if ok {
-			q, _ := strconv.Atoi(prev.IRLRefQuarter[len(prev.IRLRefQuarter)-1:])
-			latest, found, err := s.Params.LatestIRLOfQuarter(ctx, q)
-			if err != nil {
-				return err
-			}
-			if !found {
-				return invariant.New(TypeRelocationIndex, prev.IRLRefQuarter)
-			}
-			c.Previous = &Previous{RentCents: money.Cents(prev.RentCents), IRLRefValue: prev.IRLRefValue, IRLLatestValue: latest.Value}
-		}
-	}
-	errs, err := Validate(l, c, ps)
+	errs, err := s.rules(ctx, l, id, assetIDs)
 	if err != nil {
 		return err
 	}
@@ -322,6 +325,33 @@ func (s Service) check(ctx context.Context, l Lease, id uuid.UUID, assetIDs []uu
 		return errs[0]
 	}
 	return nil
+}
+
+// rules returns every lease rule a creation breaks.
+func (s Service) rules(ctx context.Context, l Lease, id uuid.UUID, assetIDs []uuid.UUID) ([]*invariant.Error, error) {
+	ps, err := s.Params.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c := Check{Event: EventCreation, AsOf: l.StartOn}
+	if l.ControlledZone() {
+		prev, ok, err := s.Repo.PreviousLease(ctx, assetIDs, id, l.StartOn.Time())
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			q, _ := strconv.Atoi(prev.IRLRefQuarter[len(prev.IRLRefQuarter)-1:])
+			latest, found, err := s.Params.LatestIRLOfQuarter(ctx, q)
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				return []*invariant.Error{invariant.New(TypeRelocationIndex, prev.IRLRefQuarter)}, nil
+			}
+			c.Previous = &Previous{RentCents: money.Cents(prev.RentCents), IRLRefValue: prev.IRLRefValue, IRLLatestValue: latest.Value}
+		}
+	}
+	return Validate(l, c, ps)
 }
 
 func rowFrom(id, owner uuid.UUID, in Input) (stored, error) {
@@ -335,6 +365,10 @@ func rowFrom(id, owner uuid.UUID, in Input) (stored, error) {
 	if in.RentExemption != nil {
 		e := string(*in.RentExemption)
 		l.RentExemption = &e
+	}
+	if in.MobilityReason != nil {
+		m := string(*in.MobilityReason)
+		l.MobilityReason = &m
 	}
 	if len(in.RentBreakdown) > 0 {
 		b, err := json.Marshal(in.RentBreakdown)
@@ -473,8 +507,10 @@ func (s Service) Update(ctx context.Context, p *auth.Principal, requestID string
 
 // Transition moves a lease along its lifecycle (RENT-SPEC-002) after the
 // blockers of the action:
-//   - activate: one current lease per asset (assets locked), every lease rule;
-//     the document blockers (signed contract, entry inventory) arrive in slice 5 (Q-22);
+//   - activate: one current lease per asset (assets locked), every blocker of
+//     contract generation as of today (lease rules, guarantees, diagnostics),
+//     a contract of the current lease version and guarantees, its signed copy
+//     and the entry inventory (RENT-SPEC-008, Q-22);
 //   - notice: an end date on or after the start;
 //   - end: the end date of the notice;
 //   - close: every deposit settled.
@@ -508,12 +544,20 @@ func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID st
 			if len(others) > 0 {
 				return invariant.New(TypeOneActivePerAsset, others[0].String())
 			}
-			l, _, err := s.domain(ctx, id, before.Input, StateActive)
+			f, err := s.facts(ctx, sc, id, false)
 			if err != nil {
 				return err
 			}
-			if err := s.check(ctx, l, id, ids); err != nil {
+			gen, err := s.generationBlockers(ctx, f)
+			if err != nil {
 				return err
+			}
+			act, err := s.activationBlockers(ctx, f)
+			if err != nil {
+				return err
+			}
+			if all := append(gen, act...); len(all) > 0 {
+				return all[0]
 			}
 		case ActionNotice:
 			if in.EndOn == nil || in.EndOn.Before(period.FromTime(cur.lease.StartOn)) {
@@ -595,7 +639,36 @@ func validateGuarantee(in *GuaranteeInput) invariant.Fields {
 	if in.ValidFrom != nil && in.ValidTo != nil && in.ValidTo.Before(*in.ValidFrom) {
 		f.Add("valid_to", "La fin de validité précède son début.")
 	}
+	if in.Kind == GuaranteeSurety {
+		if g := guarantorOf(in.Guarantor); g.Name == "" || g.Address == "" {
+			f.Add("guarantor", "Une caution doit avoir un nom et une adresse.")
+		}
+	}
 	return f
+}
+
+// checkGuarantee applies the combination rules to the lease's guarantees
+// with g added, or replacing the guarantee replaced (RENT-SPEC-008).
+func (s Service) checkGuarantee(ctx context.Context, sc db.Scope, leaseID uuid.UUID, replaced *uuid.UUID, g guaranteeRow, checkDeposit bool) error {
+	f, err := s.facts(ctx, sc, leaseID, false)
+	if err != nil {
+		return err
+	}
+	var rows []guaranteeRow
+	for _, x := range f.guarantees {
+		if replaced == nil || x.ID != *replaced {
+			rows = append(rows, x)
+		}
+	}
+	rows = append(rows, g)
+	errs, err := CheckGuarantees(f.lease, guaranteeFacts(rows), studentsOnly(f.tenants), checkDeposit, f.ps)
+	if err != nil {
+		return err
+	}
+	if len(errs) > 0 {
+		return errs[0]
+	}
+	return nil
 }
 
 func guaranteeRowFrom(in GuaranteeInput) guaranteeRow {
@@ -649,8 +722,11 @@ func (s Service) CreateGuarantee(ctx context.Context, p *auth.Principal, request
 		if State(l.lease.State) == StateClosed {
 			return invariant.New(TypeGuaranteeClosed, leaseID.String())
 		}
-		now := s.now()
 		g := guaranteeRowFrom(in)
+		if err := s.checkGuarantee(ctx, sc, leaseID, nil, g, in.Kind == GuaranteeDeposit); err != nil {
+			return err
+		}
+		now := s.now()
 		g.ID, g.OwnerID, g.LeaseID, g.Version = s.NewID(), sc.OwnerID, leaseID, 1
 		g.CreatedAt, g.CreatedBy, g.UpdatedAt, g.UpdatedBy = now, p.Sub, now, p.Sub
 		if err := s.Repo.InsertGuarantee(ctx, g); err != nil {
@@ -689,6 +765,12 @@ func (s Service) UpdateGuarantee(ctx context.Context, p *auth.Principal, request
 		}
 		before := guaranteeView(cur, auth.RoleOwner)
 		g := guaranteeRowFrom(in)
+		// A deposit already held is checked again only when it grows: a rent
+		// change never changes it (RENT-SPEC-008).
+		grows := in.Kind == GuaranteeDeposit && (cur.Kind != string(GuaranteeDeposit) || in.AmountCents > cur.AmountCents)
+		if err := s.checkGuarantee(ctx, sc, cur.LeaseID, &id, g, grows); err != nil {
+			return err
+		}
 		g.ID, g.OwnerID, g.LeaseID, g.DocumentID, g.Version = id, cur.OwnerID, cur.LeaseID, cur.DocumentID, version+1
 		g.CreatedAt, g.CreatedBy, g.UpdatedAt, g.UpdatedBy = cur.CreatedAt, cur.CreatedBy, s.now(), p.Sub
 		if err := s.Repo.UpdateGuarantee(ctx, g, version); err != nil {

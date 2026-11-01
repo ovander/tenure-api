@@ -43,6 +43,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | Scheduler | robfig/cron in process, `job_runs` as the lock (BE-OD-01) |
 | Object store | minio-go: Scaleway fr-par in production (OD-04, BE-OD-03); RustFS in docker-compose and the integration suite while no MinIO image can be pulled (Q-38) |
 | PDF | gotenberg over HTTP, HTML → PDF/A-2b (OD-03, BE-OD-02) |
+| Antivirus | ClamAV sidecar (clamd INSTREAM over TCP, `TENURE_CLAMAV_ADDR`); every upload is scanned, fail closed (§8b, Q-67) |
 | Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`) |
 | Logs | `log/slog` JSON; backendkit's logrus entry is configured to JSON as well |
 | Lint | golangci-lint v2.14.0 built with Go 1.27.3 (includes staticcheck), govulncheck, gitleaks |
@@ -157,7 +158,7 @@ testdata/params/<year>.json    legal parameter fixtures, the seed of legal_param
   (inputs, parameter set, expected lines). A parameter change for year N+1 must never move a
   year-N golden. Regenerate only with the documented `-update` flag, and review the diff.
 - State machines (lease, reconciliation) are tested exhaustively: every state × every transition.
-- Integration tests run PostgreSQL 17, the S3 store (RustFS, Q-38) and gotenberg through
+- Integration tests run PostgreSQL 17, the S3 store (RustFS, Q-38), gotenberg and ClamAV through
   testcontainers, with an in-process SMTP server (`notify/smtptest`).
 - Never weaken a gate: no skipped or deleted test, no `t.Skip` or `//nolint` without a one-line
   reason, no required check removed.

@@ -85,6 +85,9 @@ func Routes(d Deps) []Route {
 		{"POST", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.CreateAsset)},
 		{"GET", "/assets/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetAsset)},
 		{"PUT", "/assets/{id}", GuardScopeOwnerW, false, h(d.Portfolio.UpdateAsset)},
+		{"GET", "/assets/{id}/diagnostics", GuardScopeOwnerW, false, h(d.Portfolio.ListDiagnostics)},
+		{"POST", "/assets/{id}/diagnostics", GuardScopeOwnerW, false, h(d.Portfolio.CreateDiagnostic)},
+		{"PUT", "/diagnostics/{id}", GuardScopeOwnerW, false, h(d.Portfolio.UpdateDiagnostic)},
 		{"GET", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.ListTenants)},
 		{"POST", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.CreateTenant)},
 		{"GET", "/tenants/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetTenant)},
@@ -97,6 +100,13 @@ func Routes(d Deps) []Route {
 		{"GET", "/leases/{id}/guarantees", GuardScopeOwnerW, false, h(d.Lease.ListGuarantees)},
 		{"POST", "/leases/{id}/guarantees", GuardScopeOwnerW, false, h(d.Lease.CreateGuarantee)},
 		{"PUT", "/guarantees/{id}", GuardScopeOwnerW, false, h(d.Lease.UpdateGuarantee)},
+		{"POST", "/guarantees/{id}/document", GuardScopeOwnerW, false, h(d.Lease.GuaranteeDocument)},
+		{"POST", "/leases/{id}/contract", GuardScopeOwnerW, false, h(d.Lease.GenerateContract)},
+		{"GET", "/leases/{id}/blockers", GuardScopeOwnerW, false, h(d.Lease.Blockers)},
+		{"GET", "/leases/{id}/documents", GuardScopeOwnerW, false, h(d.Lease.ListLeaseDocuments)},
+		{"POST", "/leases/{id}/amendments", GuardScopeOwnerW, false, h(d.Lease.Amend)},
+		{"GET", "/leases/{id}/inventories", GuardScopeOwnerW, false, h(d.Lease.ListInventories)},
+		{"POST", "/leases/{id}/inventories", GuardScopeOwnerW, false, h(d.Lease.CreateInventory)},
 		{"POST", "/leases/{id}/revision", GuardScopeOwnerW, false, h(d.Billing.Revise)},
 		{"GET", "/leases/{id}/arrears", GuardScopeOwnerW, false, h(d.Billing.Arrears)},
 		{"GET", "/payments", GuardScopeOwnerW, false, h(d.Payments.List)},
@@ -112,6 +122,7 @@ func Routes(d Deps) []Route {
 		{"GET", "/documents", GuardScopeOwnerW, false, h(d.Documents.List)},
 		{"GET", "/documents/{id}", GuardScopeOwnerW, false, h(d.Documents.Get)},
 		{"GET", "/documents/{id}/content", GuardScopeOwnerW, false, h(d.Documents.Content)},
+		{"POST", "/documents", GuardScopeOwnerW, false, h(d.Documents.Upload)},
 		{"GET", "/params", GuardAuthenticated, false, h(d.Params.List)},
 		{"GET", "/params/irl", GuardAuthenticated, false, h(d.Params.IRLSeries)},
 		{"PUT", "/params/irl/{quarter}", GuardAdmin, true, h(d.Params.PutIRL)},
@@ -123,6 +134,18 @@ func Routes(d Deps) []Route {
 		{"POST", "/jobs/{name}/trigger", GuardAuthenticated, false, h(d.Jobs.Trigger)},
 		{"GET", "/openapi.json", GuardAuthenticated, false, serveOpenAPI},
 	}
+}
+
+// DefaultBodyLimit caps every request body but the upload's.
+const DefaultBodyLimit = 1 << 20
+
+// bodyLimit returns the body cap of a route: the upload route takes a 25 MB
+// file, every other route 1 MiB of JSON.
+func bodyLimit(rt Route) int64 {
+	if rt.Method == http.MethodPost && rt.Pattern == "/documents" {
+		return document.UploadBodyLimit
+	}
+	return DefaultBodyLimit
 }
 
 func serveOpenAPI(w http.ResponseWriter, _ *http.Request) {
@@ -143,7 +166,8 @@ func NewRouter(d Deps) (http.Handler, error) {
 	lockout := newFailedAuthLimiter(10, 15*time.Minute, d.TrustedProxies)
 
 	r := chi.NewRouter()
-	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders, httpware.BodyLimit(1<<20))
+	// The body cap is set per route (bodyLimit): 1 MiB, except uploads.
+	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { problem.Write(w, r, problem.NotFound, "", "", nil) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		problem.Write(w, r, problem.MethodNotAllowed, "", "", nil)
@@ -182,7 +206,7 @@ func NewRouter(d Deps) (http.Handler, error) {
 			if rt.StepUp {
 				h = d.Auth.StepUp(h)
 			}
-			api.Method(rt.Method, rt.Pattern, h)
+			api.With(httpware.BodyLimit(bodyLimit(rt))).Method(rt.Method, rt.Pattern, h)
 		}
 	})
 	return r, nil

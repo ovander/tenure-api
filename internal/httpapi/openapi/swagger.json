@@ -309,6 +309,158 @@
                 }
             }
         },
+        "/assets/{id}/diagnostics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "List an asset's diagnostics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/portfolio.DiagnosticView"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "One record per kind; a kind the asset does not need is declared with not_required_reason (Q-23).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Record an asset's diagnostic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "diagnostic",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.DiagnosticInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.DiagnosticView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/audit/events": {
             "get": {
                 "security": [
@@ -919,6 +1071,112 @@
                 }
             }
         },
+        "/diagnostics/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Update a diagnostic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "diagnostic id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "diagnostic",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.DiagnosticInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.DiagnosticView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/documents": {
             "get": {
                 "security": [
@@ -1011,6 +1269,120 @@
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "multipart/form-data, the form fields first and the file last. The file streams to quarantine, its type is sniffed (PDF, JPEG, PNG; CSV or OFX by extension), the antivirus scans it, and only a clean file is archived under compliance lock. 25 MB at most. A signed copy names the generated document it signs.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "document"
+                ],
+                "summary": "Upload a document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contract, amendment, deposit, surety, inventory, supporting or other",
+                        "name": "class",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "asset_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "lease_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "period YYYY-MM",
+                        "name": "period",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "the generated document this file signs",
+                        "name": "signs_document_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "the file, last part",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/document.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -1238,6 +1610,82 @@
                     },
                     "428": {
                         "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/guarantees/{id}/document": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The deposit receipt (DG) of a deposit held, or the acte de cautionnement (CA) of a surety, one per guarantor (RENT-SPEC-008).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Generate a guarantee's document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "guarantee id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.DocumentView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -1709,6 +2157,106 @@
                 }
             }
         },
+        "/leases/{id}/amendments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A rent change outside IRL (the deposit held never changes), a new tenant or an added box; issues the numbered amendment AV-… (RENT-SPEC-008).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Amend a current lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "amendment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.AmendmentInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.AmendmentResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/leases/{id}/arrears": {
             "get": {
                 "security": [
@@ -1744,6 +2292,194 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/billing.ArrearsView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/blockers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generation and activation blockers of a draft lease, and the warnings of any lease (RENT-SPEC-008 owner view).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "List what blocks a lease's contract and activation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lease.BlockersView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/contract": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "CT-\u003casset\u003e-\u003cYYYY\u003e-\u003cseq\u003e, from the lease, its assets, owner, tenants, guarantees and diagnostics (RENT-SPEC-008). Refused with the type of the first blocker; GET /leases/{id}/blockers lists them all.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Generate the contract of a draft lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.DocumentView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/documents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "List the documents generated from a lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/lease.DocumentView"
+                            }
                         }
                     },
                     "401": {
@@ -1872,6 +2608,158 @@
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/lease.GuaranteeView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/inventories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "List a lease's inventories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/lease.InventoryView"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "From its uploaded document (class inventory, this lease); recorded once.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Record a lease's entry or exit inventory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "inventory",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.InventoryInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.InventoryView"
                         }
                     },
                     "400": {
@@ -3712,6 +4600,10 @@
                 "amendment",
                 "deposit",
                 "tax_summary",
+                "inventory",
+                "supporting",
+                "other",
+                "surety",
                 "cancellation"
             ],
             "x-enum-varnames": [
@@ -3723,6 +4615,10 @@
                 "ClassAmendment",
                 "ClassDeposit",
                 "ClassTaxSummary",
+                "ClassInventory",
+                "ClassSupporting",
+                "ClassOther",
+                "ClassSurety",
                 "ClassCancellation"
             ]
         },
@@ -3764,6 +4660,9 @@
                 "class": {
                     "$ref": "#/definitions/document.Class"
                 },
+                "content_type": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3773,18 +4672,32 @@
                 "lease_id": {
                     "type": "string"
                 },
+                "original_name": {
+                    "type": "string"
+                },
                 "period": {
                     "type": "string"
                 },
                 "retain_until": {
+                    "description": "RetainUntil is unset while the retention clock has not started (a\nlease document before the lease ends, Q-68): never eligible for deletion.",
                     "type": "string",
                     "format": "date"
                 },
                 "sha256": {
                     "type": "string"
                 },
+                "signs_document_id": {
+                    "type": "string"
+                },
                 "size_bytes": {
                     "type": "integer"
+                },
+                "source": {
+                    "type": "string",
+                    "enum": [
+                        "generated",
+                        "upload"
+                    ]
                 },
                 "template_version": {
                     "type": "string"
@@ -4044,6 +4957,142 @@
                 "ActionClose"
             ]
         },
+        "lease.AmendmentInput": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "description": "AssetID is the box added.",
+                    "type": "string"
+                },
+                "effective_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "kind": {
+                    "enum": [
+                        "rent",
+                        "tenant_add",
+                        "asset_add"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.AmendmentKind"
+                        }
+                    ]
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "rent_cents": {
+                    "description": "RentCents is the new rent: required for rent, optional for asset_add.",
+                    "type": "integer"
+                },
+                "tenant": {
+                    "$ref": "#/definitions/lease.TenantLink"
+                }
+            }
+        },
+        "lease.AmendmentKind": {
+            "type": "string",
+            "enum": [
+                "rent",
+                "tenant_add",
+                "asset_add"
+            ],
+            "x-enum-varnames": [
+                "AmendRent",
+                "AmendTenantAdd",
+                "AmendAssetAdd"
+            ]
+        },
+        "lease.AmendmentResult": {
+            "type": "object",
+            "properties": {
+                "amendment": {
+                    "$ref": "#/definitions/lease.DocumentView"
+                },
+                "lease": {
+                    "$ref": "#/definitions/lease.View"
+                }
+            }
+        },
+        "lease.Blocker": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "lease/diagnostic-expired"
+                }
+            }
+        },
+        "lease.BlockersView": {
+            "type": "object",
+            "properties": {
+                "activation": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.Blocker"
+                    }
+                },
+                "generation": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.Blocker"
+                    }
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.Blocker"
+                    }
+                }
+            }
+        },
+        "lease.DocumentView": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "type": "string"
+                },
+                "guarantee_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "contract",
+                        "amendment",
+                        "deposit_receipt",
+                        "surety_act"
+                    ]
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "lease_version": {
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "string",
+                    "example": "CT-0190A1B2-2026-0001"
+                },
+                "sha256": {
+                    "type": "string"
+                }
+            }
+        },
         "lease.GuaranteeInput": {
             "type": "object",
             "properties": {
@@ -4192,6 +5241,7 @@
                     }
                 },
                 "clauses": {
+                    "description": "Clauses are special clauses picked by code from the vetted list:\n[{\"code\": \"boiler_servicing\"}] (RENT-SPEC-008).",
                     "type": "array",
                     "items": {
                         "type": "object"
@@ -4225,6 +5275,23 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/lease.Kind"
+                        }
+                    ]
+                },
+                "mobility_reason": {
+                    "description": "MobilityReason is required to generate a mobility lease's contract.",
+                    "enum": [
+                        "vocational_training",
+                        "higher_education",
+                        "apprenticeship",
+                        "internship",
+                        "civic_service",
+                        "job_transfer",
+                        "temporary_assignment"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.MobilityReason"
                         }
                     ]
                 },
@@ -4269,6 +5336,69 @@
                 }
             }
         },
+        "lease.InventoryInput": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "description": "DocumentID is the uploaded état des lieux (class inventory, this lease).",
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "items": {
+                    "description": "Items are structured from phase 2; free JSON array until then.",
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "entry",
+                        "exit"
+                    ]
+                }
+            }
+        },
+        "lease.InventoryView": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "description": "DocumentID is the uploaded état des lieux (class inventory, this lease).",
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "items": {
+                    "description": "Items are structured from phase 2; free JSON array until then.",
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "entry",
+                        "exit"
+                    ]
+                },
+                "lease_id": {
+                    "type": "string"
+                }
+            }
+        },
         "lease.Kind": {
             "type": "string",
             "enum": [
@@ -4282,6 +5412,27 @@
                 "KindFurnished",
                 "KindMobility",
                 "KindBox"
+            ]
+        },
+        "lease.MobilityReason": {
+            "type": "string",
+            "enum": [
+                "vocational_training",
+                "higher_education",
+                "apprenticeship",
+                "internship",
+                "civic_service",
+                "job_transfer",
+                "temporary_assignment"
+            ],
+            "x-enum-varnames": [
+                "ReasonVocationalTraining",
+                "ReasonHigherEducation",
+                "ReasonApprenticeship",
+                "ReasonInternship",
+                "ReasonCivicService",
+                "ReasonJobTransfer",
+                "ReasonTemporaryAssignment"
             ]
         },
         "lease.RentExemption": {
@@ -4370,6 +5521,7 @@
                     }
                 },
                 "clauses": {
+                    "description": "Clauses are special clauses picked by code from the vetted list:\n[{\"code\": \"boiler_servicing\"}] (RENT-SPEC-008).",
                     "type": "array",
                     "items": {
                         "type": "object"
@@ -4409,6 +5561,23 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/lease.Kind"
+                        }
+                    ]
+                },
+                "mobility_reason": {
+                    "description": "MobilityReason is required to generate a mobility lease's contract.",
+                    "enum": [
+                        "vocational_training",
+                        "higher_education",
+                        "apprenticeship",
+                        "internship",
+                        "civic_service",
+                        "job_transfer",
+                        "temporary_assignment"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.MobilityReason"
                         }
                     ]
                 },
@@ -4805,6 +5974,120 @@
                 }
             }
         },
+        "portfolio.DiagnosticInput": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "kind": {
+                    "enum": [
+                        "dpe",
+                        "erp",
+                        "electricity",
+                        "gas",
+                        "lead",
+                        "asbestos"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.DiagnosticKind"
+                        }
+                    ]
+                },
+                "not_required_reason": {
+                    "type": "string"
+                },
+                "result": {
+                    "description": "Result is the energy class (A to G) for a DPE, free text otherwise.",
+                    "type": "string",
+                    "example": "D"
+                },
+                "valid_until": {
+                    "description": "ValidUntil, when the report states one; the lease uses the earlier of\nit and the legal validity in legal_params.",
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
+        "portfolio.DiagnosticKind": {
+            "type": "string",
+            "enum": [
+                "dpe",
+                "erp",
+                "electricity",
+                "gas",
+                "lead",
+                "asbestos"
+            ],
+            "x-enum-varnames": [
+                "DiagnosticDPE",
+                "DiagnosticERP",
+                "DiagnosticElectricity",
+                "DiagnosticGas",
+                "DiagnosticLead",
+                "DiagnosticAsbestos"
+            ]
+        },
+        "portfolio.DiagnosticView": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "enum": [
+                        "dpe",
+                        "erp",
+                        "electricity",
+                        "gas",
+                        "lead",
+                        "asbestos"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.DiagnosticKind"
+                        }
+                    ]
+                },
+                "not_required_reason": {
+                    "type": "string"
+                },
+                "result": {
+                    "description": "Result is the energy class (A to G) for a DPE, free text otherwise.",
+                    "type": "string",
+                    "example": "D"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "valid_until": {
+                    "description": "ValidUntil, when the report states one; the lease uses the earlier of\nit and the legal validity in legal_params.",
+                    "type": "string",
+                    "format": "date"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "portfolio.MeView": {
             "type": "object",
             "properties": {
@@ -4830,6 +6113,19 @@
                     "type": "string"
                 }
             }
+        },
+        "portfolio.Occupation": {
+            "type": "string",
+            "enum": [
+                "student",
+                "apprentice",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "OccupationStudent",
+                "OccupationApprentice",
+                "OccupationOther"
+            ]
         },
         "portfolio.OwnerInput": {
             "type": "object",
@@ -4915,6 +6211,19 @@
                         "type": "string"
                     }
                 },
+                "occupation": {
+                    "description": "Occupation records a student or apprentice, who may have a surety\nalongside a rent insurance (loi 89-462 art. 22-1).",
+                    "enum": [
+                        "student",
+                        "apprentice",
+                        "other"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.Occupation"
+                        }
+                    ]
+                },
                 "phone": {
                     "type": "string"
                 }
@@ -4944,6 +6253,19 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "occupation": {
+                    "description": "Occupation records a student or apprentice, who may have a surety\nalongside a rent insurance (loi 89-462 art. 22-1).",
+                    "enum": [
+                        "student",
+                        "apprentice",
+                        "other"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.Occupation"
+                        }
+                    ]
                 },
                 "phone": {
                     "type": "string"

@@ -86,6 +86,7 @@ func TestBilling(t *testing.T) {
 		"tenants": []map[string]any{{"tenant_id": tenant.ID}}, "start_on": "2025-03-15", "term_months": 36, "rent_cents": 85000,
 		"provision_cents": 9000, "deposit_cents": 85000, "due_day": 5, "irl_ref_quarter": "2024-Q4", "irl_ref_value": 14464, "revision_month": 3}})
 	r.json(t, &lse)
+	readyToActivate(t, tokC, lse.ID)
 	if r := call(t, "POST", "/leases/"+lse.ID+"/transitions", req{tok: tokC, body: map[string]any{"action": "activate"}}); r.Status != 200 {
 		t.Fatalf("activate: %d %s", r.Status, r.Body)
 	}
@@ -324,7 +325,10 @@ func TestBilling(t *testing.T) {
 		call(t, "POST", "/leases", req{tok: tokC, body: map[string]any{"kind": "unfurnished", "asset_ids": []string{a2.ID},
 			"tenants": []map[string]any{{"tenant_id": tenant.ID}}, "start_on": "2024-07-01", "term_months": 36, "rent_cents": 70000,
 			"due_day": 5, "irl_ref_quarter": "2024-Q2", "irl_ref_value": 14517, "revision_month": 7}}).json(t, &l2)
-		call(t, "POST", "/leases/"+l2.ID+"/transitions", req{tok: tokC, body: map[string]any{"action": "activate"}})
+		readyToActivate(t, tokC, l2.ID)
+		if r := call(t, "POST", "/leases/"+l2.ID+"/transitions", req{tok: tokC, body: map[string]any{"action": "activate"}}); r.Status != 200 {
+			t.Fatalf("activate: %d %s", r.Status, r.Body)
+		}
 		audited(t, seen, "POST /leases/{id}/revision", 200, func() resp {
 			return call(t, "POST", "/leases/"+l2.ID+"/revision", req{tok: tokC, body: map[string]any{}})
 		})

@@ -31,6 +31,7 @@ type leaseRow struct {
 	RentExemption  *string         `gorm:"column:rent_exemption"`
 	RentBreakdown  json.RawMessage `gorm:"column:rent_breakdown;type:jsonb"`
 	Clauses        json.RawMessage `gorm:"column:clauses;type:jsonb"`
+	MobilityReason *string         `gorm:"column:mobility_reason"`
 	Version        int             `gorm:"column:version"`
 	CreatedAt      time.Time       `gorm:"column:created_at"`
 	CreatedBy      string          `gorm:"column:created_by"`
@@ -208,7 +209,7 @@ func (Repository) Update(ctx context.Context, s stored, version int) error {
 		"rent_cents": l.RentCents, "provision_cents": l.ProvisionCents, "deposit_cents": l.DepositCents,
 		"due_day": l.DueDay, "irl_ref_quarter": l.IRLRefQuarter, "irl_ref_value": l.IRLRefValue,
 		"revision_month": l.RevisionMonth, "rent_exemption": l.RentExemption, "rent_breakdown": l.RentBreakdown,
-		"clauses": l.Clauses, "version": version + 1, "updated_at": l.UpdatedAt, "updated_by": l.UpdatedBy,
+		"clauses": l.Clauses, "mobility_reason": l.MobilityReason, "version": version + 1, "updated_at": l.UpdatedAt, "updated_by": l.UpdatedBy,
 	})
 	if res.Error != nil {
 		return res.Error

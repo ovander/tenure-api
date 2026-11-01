@@ -1,5 +1,6 @@
 # Local development services (RENT-SPEC roadmap, dev environment): PostgreSQL 17,
-# an S3-compatible archive (RustFS, Q-38), gotenberg (HTML → PDF) and Mailpit. Socrate runs
+# an S3-compatible archive (RustFS, Q-38), gotenberg (HTML → PDF), the ClamAV
+# antivirus that scans uploads, and Mailpit. Socrate runs
 # separately. Every password here is a dev-only placeholder; never reuse one.
 #
 #   docker compose -f docker-compose.dev.yml up -d
@@ -61,6 +62,12 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8.21
     ports: ["127.0.0.1:3000:3000"]
+
+  # Scans every upload before it reaches the archive (RENT-BE-001 §8b); starts
+  # on the signatures bundled in the image, then updates them.
+  clamav:
+    image: clamav/clamav:1.4.3
+    ports: ["127.0.0.1:3310:3310"]
 
 volumes:
   pgdata:

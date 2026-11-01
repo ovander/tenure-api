@@ -3,6 +3,8 @@ package document
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +25,17 @@ type Store interface {
 	PresignGet(ctx context.Context, key, version string, ttl time.Duration, params url.Values) (*url.URL, error)
 	// CheckLock reports whether the bucket enforces object lock (/readyz).
 	CheckLock(ctx context.Context) error
+	// PutQuarantine streams r, of unknown size, under key without retention,
+	// so it can be deleted after the scan; it returns the object version.
+	PutQuarantine(ctx context.Context, key string, r io.Reader) (string, error)
+	// Open reads one version of key.
+	Open(ctx context.Context, key, version string) (io.ReadCloser, error)
+	// CopyLocked copies one version of src to dst with compliance retention
+	// until retainUntil, verifies the copy hashes to sha256hex, and returns
+	// the version of dst.
+	CopyLocked(ctx context.Context, src, srcVersion, dst, contentType, sha256hex string, retainUntil time.Time) (string, error)
+	// Delete removes one version of key (a quarantined upload).
+	Delete(ctx context.Context, key, version string) error
 }
 
 // S3 is the Store over an S3-compatible bucket with versioning and object lock
@@ -66,6 +79,54 @@ func (s *S3) Put(ctx context.Context, key string, data []byte, contentType, sha2
 		return "", fmt.Errorf("%w: %s", ErrChecksum, key)
 	}
 	return info.VersionID, nil
+}
+
+// PutQuarantine implements Store.
+func (s *S3) PutQuarantine(ctx context.Context, key string, r io.Reader) (string, error) {
+	info, err := s.Client.PutObject(ctx, s.Bucket, key, r, -1, minio.PutObjectOptions{
+		ContentType: "application/octet-stream", PartSize: 5 << 20})
+	if err != nil {
+		return "", fmt.Errorf("document: quarantine %s: %w", key, err)
+	}
+	return info.VersionID, nil
+}
+
+// Open implements Store.
+func (s *S3) Open(ctx context.Context, key, version string) (io.ReadCloser, error) {
+	obj, err := s.Client.GetObject(ctx, s.Bucket, key, minio.GetObjectOptions{VersionID: version})
+	if err != nil {
+		return nil, fmt.Errorf("document: open %s: %w", key, err)
+	}
+	return obj, nil
+}
+
+// CopyLocked implements Store.
+func (s *S3) CopyLocked(ctx context.Context, src, srcVersion, dst, contentType, sha256hex string, retainUntil time.Time) (string, error) {
+	info, err := s.Client.CopyObject(ctx, minio.CopyDestOptions{Bucket: s.Bucket, Object: dst,
+		Mode: minio.Compliance, RetainUntilDate: retainUntil.UTC(), ReplaceMetadata: true,
+		UserMetadata: map[string]string{"sha256": sha256hex, "Content-Type": contentType}},
+		minio.CopySrcOptions{Bucket: s.Bucket, Object: src, VersionID: srcVersion})
+	if err != nil {
+		return "", fmt.Errorf("document: archive %s: %w", dst, err)
+	}
+	obj, err := s.Open(ctx, dst, info.VersionID)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = obj.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, obj); err != nil {
+		return "", fmt.Errorf("document: verify %s: %w", dst, err)
+	}
+	if hex.EncodeToString(h.Sum(nil)) != sha256hex {
+		return "", fmt.Errorf("%w: %s", ErrChecksum, dst)
+	}
+	return info.VersionID, nil
+}
+
+// Delete implements Store.
+func (s *S3) Delete(ctx context.Context, key, version string) error {
+	return s.Client.RemoveObject(ctx, s.Bucket, key, minio.RemoveObjectOptions{VersionID: version})
 }
 
 // PresignGet implements Store.
