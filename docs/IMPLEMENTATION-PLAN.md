@@ -177,15 +177,19 @@ variant; documents are French only.
 
 - **Spec**: RENT-SPEC-008 (contract, annexes, amendments, guarantee rules), RENT-SPEC-022
   (uploads), RENT-BE-001 §3 lease contract, amendments, inventories, `POST /documents`, §8b
-  uploads.
+  uploads. Provisional readings: Q-22, Q-23, Q-26, Q-67 to Q-76.
 - **Pkg**: lease contract service (variants: unfurnished, furnished, mobility, box alone);
   guarantee combination rules; deposit cap from params (Q-26); activation blockers (signed copy,
   entry inventory, DPE and diagnostics, Q-22, Q-23); upload pipeline (quarantine prefix, ClamAV
   sidecar, MIME sniffing, 25 MB); templates `contract/v1`, `amendment/v1`, `deposit_receipt/v1`,
   `surety/v1`.
-- **Tables** `000004_contracts.sql`: `inventories`, `asset_diagnostics` (Q-23).
+- **Tables** `000004_contracts.sql`: `inventories`, `asset_diagnostics` (Q-23), `lease_documents`
+  (Q-69); upload columns on `documents`, `tenants.occupation`, `leases.mobility_reason`; parameters
+  `diagnostics`, `rental_min_dpe_class`, `mobility_term_months`, `deposit_warning_months.box`.
 - **API**: `POST /leases/{id}/contract`, `POST /leases/{id}/amendments`,
-  `POST /leases/{id}/inventories`, `POST /documents`.
+  `GET/POST /leases/{id}/inventories`, `POST /documents`; added (Q-75):
+  `GET /leases/{id}/blockers`, `GET /leases/{id}/documents`, `POST /guarantees/{id}/document`,
+  `GET/POST /assets/{id}/diagnostics`, `PUT /diagnostics/{id}`.
 - **Jobs**: none.
 - **Tests**: each blocker blocks generation or activation with its problem `type`; a surety
   with insurance is refused unless the tenant is a student or apprentice; a deposit above the

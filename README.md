@@ -17,8 +17,8 @@ Phase 1 — Foundation. Not yet usable.
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CLAUDE.md](CLAUDE.md). Security reports: [SECURITY.md](SECURITY.md).
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d      # PostgreSQL 17, archive, gotenberg, Mailpit
-docker compose -f docker-compose.dev.yml run --rm archive-init   # once: bucket with object lock
+docker compose -f docker-compose.dev.yml up -d      # PostgreSQL 17, archive, gotenberg, ClamAV, Mailpit
+docker compose -f docker-compose.dev.yml run --rm archive-init   # once: bucket with object lock, no default retention
 cp .env.example .env                                # then set the Socrate values
 set -a; . ./.env; set +a
 go run ./cmd/tenure migrate up

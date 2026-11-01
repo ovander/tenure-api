@@ -144,10 +144,14 @@ builds the state machine with a blocker interface and implements the blockers th
 documents. Slice 5 adds the document blockers. No release reaches real data before the phase 1
 gate.
 Slice 2: activation checks one current lease per asset (assets locked `FOR UPDATE`) and every lease rule; closing requires every deposit settled.
+Slice 5: activation also requires every contract-generation blocker cleared as of the activation date, a
+contract generated from the current lease version and guarantees (Q-69), its signed copy uploaded,
+and the entry inventory recorded (Q-70).
 
 **Q-23 Diagnostics — Open (slice 5).** Generation is blocked by "a diagnostic past its validity,
 no DPE", but the data model only has `assets.dpe_class`. Provisional: an `asset_diagnostics`
 table (kind, done_on, valid_until, document_id), with validity periods in `legal_params`.
+Slice 5: implemented, with the required set and the rules of Q-73.
 
 **Q-24 Delivery status — Open (slice 3).** "Delivery status stored per document" has no table.
 Provisional: a `document_deliveries` table (document_id, recipient, channel, status, at), under
@@ -160,6 +164,8 @@ uses a JSON formatter with the same field names.
 **Q-26 Box-only lease deposit — Open (slice 5).** A box let on its own is not governed by the loi
 de 1989, so `deposit_max_months` does not apply to it. Provisional: there is no legal cap. A
 warning is shown above 2 months of rent.
+Slice 5: the 2 months are `deposit_warning_months.box` in `legal_params` (a product rule, marked so
+in its source); `GET /leases/{id}/blockers` lists the warning, which never blocks.
 
 ## Raised by the 2026-11-01 decisions
 
@@ -419,3 +425,129 @@ amounts. This neither overstates nor understates line 211.
 payments, arrears and receipts (RENT-FE-001 §5, "billing month, payments: read"). Only the owner
 records, edits or matches a payment.
 
+## Raised by slice 5
+
+**Q-67 Upload pipeline — Open (slice 5).** RENT-BE-001 §8b names a quarantine prefix, a ClamAV
+sidecar, server-side MIME sniffing and 25 MB. Provisional:
+- the quarantine is the prefix `quarantine/<owner_id>/` of the archive bucket. Its objects carry no
+  retention, so the bucket must have no default retention rule: every archived object sets its own
+  compliance lock. Each quarantined object is deleted after the scan, whatever the outcome;
+- the antivirus scans before the type check, so every infected file is logged: a warning log and a
+  `document.reject` audit event in its own transaction. The upload is refused with
+  `document/infected`;
+- no answer from the scanner refuses the upload with 503 `document/scan-unavailable` (fail
+  closed). `/readyz` pings the scanner, and `TENURE_CLAMAV_ADDR` is required to serve;
+- accepted types, by content: PDF, JPEG, PNG. A text file is accepted only as `.csv` or `.ofx`.
+  No HEIC, WebP or office formats in phase 1. The client's declared type is never used;
+- uploads share the `documents` table: `source` = upload, no number, the sniffed `content_type`,
+  the cleaned `original_name` (metadata only, never a key), and `signs_document_id` for a signed
+  copy. The archive key is `<owner_id>/<class>/<YYYY>/<id>.<ext>`;
+- the owner uploads the classes contract, amendment, deposit, surety, inventory, supporting and
+  other. The generated billing and tax classes are refused (`document/class-not-uploadable`);
+- the form fields come first and the file last, so the body streams without buffering. The
+  upload route alone takes 25 MB plus 64 KiB; every other route keeps 1 MiB. The server's read
+  and write timeouts rise to 2 and 3 minutes for that route's sake.
+
+**Q-68 Retention clock of lease documents and uploads — Open (slice 8).** RENT-SPEC-005 starts the
+10 years of leases, amendments, inventories and deposit documents at the lease end, and those of
+supporting documents at the tax year of the charge; both are unknown when the file is archived.
+Provisional: the object lock is set at issue or upload plus `archive_retention_years`, a floor;
+`documents.retain_until` stays unset, so the document is never eligible for deletion. When the
+clock starts, `archive.retention` (slice 8) sets `retain_until` and extends the lock; the
+immutability trigger will then need an exception for that one column. The dates of billing
+documents are unchanged.
+
+**Q-69 Lease documents and the current contract — Open (slice 5).** The spec stores contracts,
+amendments and guarantee documents only as archived documents. Provisional: a `lease_documents`
+table, immutable like `billing_documents`, records each one with its number, kind, the lease
+version it was generated from, its guarantee and its input snapshot. A contract is current while
+the lease version and a fingerprint of the lease's guarantees match its snapshot. Editing the
+draft or a guarantee therefore needs a new contract before activation. Attaching a generated DG
+or CA to a guarantee does not. The signed copy is an upload whose `signs_document_id` points at
+the generated contract.
+
+**Q-70 Inventories — Open (slice 5).** Provisional:
+- one entry and one exit inventory per lease, each recorded from an uploaded document of class
+  inventory of that lease, once and never changed;
+- the entry inventory is recorded on a draft or active lease, the exit one on a lease under
+  notice or ended;
+- `items` is free JSON until the structured inventory of phase 2 (RENT-SPEC-009);
+- `GET /leases/{id}/inventories` is added for the lease page.
+
+**Q-71 Amendments — Open (slice 5).** RENT-SPEC-008 lists a new tenant, a rent change outside IRL
+and an added box. Provisional:
+- an amendment applies only to an active lease or one under notice, and its effective date is
+  not before the lease start;
+- the lease rules are checked as for a renewal on the effective date (zone ceiling, consistent
+  ownership shares);
+- the change applies at once, so the next rent call issued uses it;
+- a rent amendment never changes the deposit or the deposit guarantee, and the cap is not
+  re-checked;
+- an added asset must be a box of the portfolio, under no other current lease;
+- the amendment AV-… is numbered on the principal asset, and its signed copy may be uploaded but
+  is not required.
+
+**Q-72 Guarantee rules — Open (slice 5), one point Needs answer.** Provisional:
+- a guarantee is in force while held or valid;
+- a surety and a rent insurance in force together are refused unless every tenant of the lease
+  is a student or an apprentice (`tenants.occupation`, loi 89-462 art. 22-1);
+- Visale with a surety is refused (RENT-SPEC-008: Visale replaces a surety);
+- the deposits in force together must not exceed `deposit_max_months` × the rent excluding
+  charges. This is checked at the lease save, when a deposit guarantee is created and when it
+  grows, but never after a rent change;
+- a surety needs the guarantor's name and address. The guarantor object reads name, address,
+  legal_person and solidary (default true) for a surety, visa_number for Visale, and insurer and
+  policy for an insurance.
+
+**Needs answer:** Visale combined with a rent insurance is allowed for now. The spec is silent, and
+Action Logement's conditions may forbid it.
+
+The 2024 fixture holds only the lease keys a lease starting in 2024 reads (the deposit caps, the
+mobility term and the box warning).
+
+**Q-73 Required diagnostics — Open (slice 5), needs legal review.** Which diagnostics a let
+dwelling needs depends on its construction year, its installations' age and its zone, none of
+which Tenure records. Provisional, in `legal_params` `diagnostics`:
+- a dwelling needs a DPE, an état des risques, electricity, gas, lead and asbestos, unless the
+  owner declares a kind not required, with a reason;
+- a box needs the état des risques;
+- a diagnostic is valid until the earlier of the date its report states and its legal validity
+  (DPE 10 years, ERP 6 months, electricity and gas 6 years, lead 6 years, asbestos no expiry); a
+  DPE made before 1 July 2021 is void;
+- validity is checked on the day of generation and again on the day of activation;
+- the DPE class used is the worse of `assets.dpe_class` and the DPE's result, and a class worse
+  than `rental_min_dpe_class` (F from 2025, loi Climat et résilience) blocks.
+
+The lead diagnostic's unlimited validity when no lead is found is not modelled: the owner
+re-records it or declares it not required.
+
+**Q-74 Contract content and annexes — Open (slice 5), needs legal review.**
+- The contract/v1 template follows the structure of the décret 2015-587 model for unfurnished,
+  furnished and mobility leases, and a code-civil lease for a box let alone.
+- The statutory annexes are listed by reference: the information notice of the arrêté of
+  29 May 2015, and the décrets 87-712 and 87-713. Their verbatim texts are to be added in
+  contract/v2 after legal review, before the phase 1 gate.
+- The diagnostics file is listed from `asset_diagnostics`. The copropriété extract is listed for
+  an apartment.
+- The vetted special clauses are boiler_servicing, chimney_sweeping, garden_upkeep and
+  insurance_certificate (`[{"code": …}]`); any other clause blocks generation.
+- The surety act reproduces art. 22-1 and leaves room for the guarantor's own handwritten mention
+  (C. civ. art. 2297).
+- Signature stays wet or external (OD-08).
+
+**Q-75 Routes and numbers beyond RENT-BE-001 §3 — Open (slice 5).** Added for the owner view and
+the guarantees:
+- `GET /leases/{id}/blockers`, which lists the generation and activation blockers and the warnings,
+  with their problem types and titles;
+- `GET /leases/{id}/documents` and `GET /leases/{id}/inventories`;
+- `POST /guarantees/{id}/document`, which issues a DG for a deposit held or a CA for a surety;
+- `GET/POST /assets/{id}/diagnostics` and `PUT /diagnostics/{id}`.
+
+The acte de cautionnement is numbered with a new prefix CA (class surety).
+
+**Q-76 Mobility lease — Open (slice 5).** Provisional:
+- `leases.mobility_reason` (the seven reasons of art. 25-12) is required to generate the contract;
+- the term must be within `mobility_term_months` and the deposit must be zero, both checked at
+  save;
+- the contract states the charges as a monthly flat rate (art. 25-18), so slice 6 must keep
+  mobility leases out of the regularisation.
