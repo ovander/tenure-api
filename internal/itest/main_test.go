@@ -32,16 +32,22 @@ import (
 	tcpg "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/ovander/tenure-api/internal/audit"
+	"github.com/minio/minio-go/v7"
+
+	"github.com/ovander/tenure-api/internal/app"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
-	"github.com/ovander/tenure-api/internal/httpapi"
-	"github.com/ovander/tenure-api/internal/jobs"
-	"github.com/ovander/tenure-api/internal/lease"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/migrate"
+	"github.com/ovander/tenure-api/internal/notify"
+	"github.com/ovander/tenure-api/internal/notify/smtptest"
 	"github.com/ovander/tenure-api/internal/params"
-	"github.com/ovander/tenure-api/internal/portfolio"
 )
+
+// Illustrative IRL values served by the fake INSEE endpoint, not a reference.
+const inseeSample = `<?xml version="1.0" encoding="UTF-8"?><message:StructureSpecificData xmlns:message="m"><message:DataSet>
+<Series IDBANK="001515333"><Obs TIME_PERIOD="2025-Q4" OBS_VALUE="146.10"/><Obs TIME_PERIOD="2025-Q2" OBS_VALUE="146.68"/>
+<Obs TIME_PERIOD="2024-Q4" OBS_VALUE="144.64"/></Series></message:DataSet></message:StructureSpecificData>`
 
 const (
 	issuer   = "https://socrate.itest"
@@ -54,11 +60,20 @@ const (
 var env struct {
 	super   *sql.DB // superuser: assertions and fixtures only
 	apiURL  string  // tenure_api DSN
+	apiDB   *db.DB
 	jobsDB  *db.DB
 	server  *httptest.Server
 	key     *rsa.PrivateKey
 	baseDSN string
+	app     *app.App
+	deps    app.Deps
+	s3      *minio.Client
+	store   *document.S3
+	smtp    *smtptest.Server
+	insee   *httptest.Server
 }
+
+const bucket = "tenure-itest"
 
 func dsn(base, user, pw string) string {
 	u, _ := url.Parse(base)
@@ -117,6 +132,52 @@ func setup(m *testing.M) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	env.apiDB = api
+	gotenberg, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
+		ContainerRequest: testcontainers.ContainerRequest{Image: "gotenberg/gotenberg:8.21", ExposedPorts: []string{"3000/tcp"},
+			WaitingFor: wait.ForHTTP("/health").WithPort("3000/tcp").WithStartupTimeout(120 * time.Second)}})
+	if err != nil {
+		return 0, fmt.Errorf("gotenberg: %w", err)
+	}
+	defer func() { _ = testcontainers.TerminateContainer(gotenberg) }()
+	pdfURL, err := gotenberg.PortEndpoint(ctx, "3000/tcp", "http")
+	if err != nil {
+		return 0, err
+	}
+	rustfs, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
+		ContainerRequest: testcontainers.ContainerRequest{Image: "rustfs/rustfs:1.0.3", ExposedPorts: []string{"9000/tcp"},
+			Env:        map[string]string{"RUSTFS_ACCESS_KEY": "itest-access", "RUSTFS_SECRET_KEY": "itest-secret-key"},
+			WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(90 * time.Second)}})
+	if err != nil {
+		return 0, fmt.Errorf("rustfs: %w", err)
+	}
+	defer func() { _ = testcontainers.TerminateContainer(rustfs) }()
+	s3Host, err := rustfs.PortEndpoint(ctx, "9000/tcp", "")
+	if err != nil {
+		return 0, err
+	}
+	if env.store, err = document.NewS3(s3Host, "us-east-1", bucket, "itest-access", "itest-secret-key", false); err != nil {
+		return 0, err
+	}
+	env.s3 = env.store.Client
+	for i := 0; ; i++ {
+		if err = env.s3.MakeBucket(ctx, bucket, minio.MakeBucketOptions{ObjectLocking: true}); err == nil || i == 20 {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("bucket: %w", err)
+	}
+	if env.smtp, err = smtptest.Start(); err != nil {
+		return 0, err
+	}
+	defer func() { _ = env.smtp.Close() }()
+	env.insee = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(inseeSample))
+	}))
+	defer env.insee.Close()
 	if env.jobsDB, err = db.Open(ctx, dsn(base, "tenure_jobs", rolePW)); err != nil {
 		return 0, err
 	}
@@ -137,16 +198,13 @@ func setup(m *testing.M) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	pf := portfolio.NewService(api)
-	h, err := httpapi.NewRouter(httpapi.Deps{
-		Auth: authMW, Portfolio: portfolio.Handler{Service: pf}, Lease: lease.Handler{Service: lease.NewService(api, pf)},
-		Params: params.Handler{Service: params.Service{DB: api, Now: time.Now}}, Audit: audit.Handler{Service: audit.Service{DB: api}},
-		Jobs: jobs.Handler{DB: api}, Ready: func(ctx context.Context) error { return api.Ping(ctx) },
-	})
-	if err != nil {
+	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL},
+		Mailer: notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
+		Ready: func(ctx context.Context) error { return api.Ping(ctx) }}
+	if env.app, err = app.New(env.deps); err != nil {
 		return 0, err
 	}
-	env.server = httptest.NewServer(h)
+	env.server = httptest.NewServer(env.app.Handler)
 	defer env.server.Close()
 	return m.Run(), nil
 }
