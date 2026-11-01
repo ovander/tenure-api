@@ -36,6 +36,12 @@ type Store interface {
 	CopyLocked(ctx context.Context, src, srcVersion, dst, contentType, sha256hex string, retainUntil time.Time) (string, error)
 	// Delete removes one version of key (a quarantined upload).
 	Delete(ctx context.Context, key, version string) error
+	// PutUnlocked streams r under key without retention (an export, a copy
+	// of archived documents) and returns the object version.
+	PutUnlocked(ctx context.Context, key, contentType string, r io.Reader) (string, error)
+	// ExtendRetention moves one version's compliance lock to until; a
+	// compliance lock can only be extended, never shortened.
+	ExtendRetention(ctx context.Context, key, version string, until time.Time) error
 }
 
 // S3 is the Store over an S3-compatible bucket with versioning and object lock
@@ -83,12 +89,27 @@ func (s *S3) Put(ctx context.Context, key string, data []byte, contentType, sha2
 
 // PutQuarantine implements Store.
 func (s *S3) PutQuarantine(ctx context.Context, key string, r io.Reader) (string, error) {
-	info, err := s.Client.PutObject(ctx, s.Bucket, key, r, -1, minio.PutObjectOptions{
-		ContentType: "application/octet-stream", PartSize: 5 << 20})
+	return s.PutUnlocked(ctx, key, "application/octet-stream", r)
+}
+
+// PutUnlocked implements Store.
+func (s *S3) PutUnlocked(ctx context.Context, key, contentType string, r io.Reader) (string, error) {
+	info, err := s.Client.PutObject(ctx, s.Bucket, key, r, -1, minio.PutObjectOptions{ContentType: contentType, PartSize: 5 << 20})
 	if err != nil {
-		return "", fmt.Errorf("document: quarantine %s: %w", key, err)
+		return "", fmt.Errorf("document: put %s: %w", key, err)
 	}
 	return info.VersionID, nil
+}
+
+// ExtendRetention implements Store.
+func (s *S3) ExtendRetention(ctx context.Context, key, version string, until time.Time) error {
+	mode := minio.Compliance
+	u := until.UTC()
+	if err := s.Client.PutObjectRetention(ctx, s.Bucket, key, minio.PutObjectRetentionOptions{
+		Mode: &mode, RetainUntilDate: &u, VersionID: version}); err != nil {
+		return fmt.Errorf("document: retention %s: %w", key, err)
+	}
+	return nil
 }
 
 // Open implements Store.

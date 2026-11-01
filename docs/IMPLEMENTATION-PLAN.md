@@ -248,8 +248,10 @@ variant; documents are French only.
 - **Pkg**: document browse and filters; async ZIP export with an index CSV; grants service
   (Q-05); RGPD `GET /me/export`; `docs/rgpd/` register; `deploy/` (Caddyfile, systemd unit,
   backups, runbooks); release workflow (SBOM, bundle pinned in `web/VERSION`, embedded).
-- **Tables** `000007_exports.sql`: `export_jobs` if the async state needs a table (otherwise
-  `job_runs`).
+- **Tables** `000008_archive.sql` (000007 went to tax): `export_jobs` (the async state, Q-91);
+  `documents.retain_until` may be set once by `tenure_jobs` (Q-95).
+- **Split**: 8a is the API and jobs (exports, grants, RGPD export, retention, verify); 8b is
+  deploy, the RGPD register and the release workflow.
 - **API**: `GET /documents` (asset, year, class, number), `POST /documents/export`
   (`step_up`), `GET/POST /grants`, `DELETE /grants/{id}` (`step_up`, Q-05), `GET /me/export`.
 - **Jobs**: `archive.retention` (lists, deletes nothing), `archive.verify` (re-hashes a sample).

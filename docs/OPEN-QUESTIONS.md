@@ -686,3 +686,43 @@ scope, while its income splits between every owner by share. Provisional:
 - the labels of the 2044 lines are in the versioned template, as French text;
 - the réel option's lock-in is `reel_option_lock_years` (3, CGI art. 32-4).
 
+## Raised by slice 8
+
+**Q-91 Exports — Open (slice 8).** RENT-BE-001 says "async" but not where the state lives. Provisional:
+- the state is a table, `export_jobs`, not `job_runs`: an export belongs to a person, not a period;
+- `POST /documents/export` takes a year or an asset (both or neither is 422), records the
+  request (`document.export`), answers 202 and builds the ZIP after the commit;
+- the ZIP holds `index.csv` (file, id, class, source, links, period, issued\_at, sha256, size,
+  retain\_until) and every document of the scope the caller may read; each object is re-hashed
+  on the way and a mismatch fails the export;
+- an accountant's export holds the financial classes only (no contracts, guarantees or IDs);
+- the ZIP is stored at `<owner_id>/exports/<id>.zip` without an object lock: it is a copy, not
+  an archive; the outcome is audited (`document.export.ready` or `.failed`);
+- `GET /documents/exports/{id}` gives the state, then a 10-minute signed link (`document.download`);
+  the requester and the scope's owner may read it.
+
+**Q-92 Grants — Open (slice 8).** Provisional:
+- the owner grants by the grantee's Socrate subject, which the grantee reads on their `/me`;
+  no invitation by e-mail in phase 1 (it would need a Socrate lookup);
+- one live grant per grantee and owner; granting oneself is refused;
+- `POST /grants` and `DELETE /grants/{id}` are step\_up; a revoke sets `revoked_at` and the
+  grantee's next request is 403.
+
+**Q-93 RGPD export — Open (slice 8).** Provisional: `GET /me/export` (step\_up) returns, as JSON,
+the caller's owner profile, the grants they gave and the grants they received; it is audited as
+`me.export` in their chain when they own a profile. A tenant's data is exported on request
+through their owner, not by this route; the business data of a portfolio is the ZIP export.
+
+**Q-94 archive.verify sample — Open (slice 8).** The spec says "a sample". Provisional: 50
+documents chosen at random each week across owners (an operational value, not a legal
+constant, so it stays in code); any mismatch fails the run, which raises the alert.
+
+**Q-95 When retention starts — Open (slice 8).** RENT-SPEC-005 starts the 10 years of lease
+documents at the end of the lease, and of supporting documents at the end of the exercise.
+Provisional:
+- `archive.retention` sets `retain_until` once (the only change the documents trigger allows) for
+  lease-bound documents of ended or closed leases, from `end_on`, and for supporting documents of
+  charges, from 31 December of the latest exercise year;
+- the object lock set at issue (from the issue date) is extended to that date, never shortened:
+  when the lock already runs later, `retain_until` takes the lock's date;
+- documents past `retain_until` are listed for review; nothing is deleted in phase 1.

@@ -385,3 +385,94 @@ func (h Handler) UpdateDiagnostic(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.Resource(w, http.StatusOK, v.Version, v)
 }
+
+// ListGrants godoc
+//
+//	@Summary		List the scope's grants
+//	@Description	Revoked grants included: a grant is revoked, never deleted. A grantee sees only their own.
+//	@Tags			portfolio
+//	@Produce		json
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		GrantView
+//	@Failure		401,403			{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/grants [get]
+func (h Handler) ListGrants(w http.ResponseWriter, r *http.Request) {
+	v, err := h.Service.Grants(r.Context(), caller(r), httpx.RequestID(r))
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// CreateGrant godoc
+//
+//	@Summary		Give a Socrate subject read access to the portfolio
+//	@Description	As co-owner (reads everything) or accountant (financial data, no tenant contact data). A step-up route.
+//	@Tags			portfolio
+//	@Accept			json
+//	@Produce		json
+//	@Param			body			body		GrantInput	true	"grant"
+//	@Param			X-Owner-Scope	header		string		false	"owner scope"
+//	@Success		201				{object}	GrantView
+//	@Failure		400,401,403,409,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/grants [post]
+func (h Handler) CreateGrant(w http.ResponseWriter, r *http.Request) {
+	var in GrantInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.CreateGrant(r.Context(), caller(r), httpx.RequestID(r), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, v)
+}
+
+// RevokeGrant godoc
+//
+//	@Summary		Revoke a grant
+//	@Description	Sets revoked_at; the grantee's next request no longer reaches the scope. A step-up route.
+//	@Tags			portfolio
+//	@Produce		json
+//	@Param			id				path		string	true	"grant id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	GrantView
+//	@Failure		401,403,404,409	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/grants/{id} [delete]
+func (h Handler) RevokeGrant(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.RevokeGrant(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// ExportMe godoc
+//
+//	@Summary		Export the caller's personal data (RGPD)
+//	@Description	The owner profile and the grants given and received. A step-up route, recorded in the audit trail.
+//	@Tags			portfolio
+//	@Produce		json
+//	@Success		200	{object}	DataExport
+//	@Failure		401	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/me/export [get]
+func (h Handler) ExportMe(w http.ResponseWriter, r *http.Request) {
+	v, err := h.Service.Export(r.Context(), caller(r), httpx.RequestID(r))
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Disposition", `attachment; filename="tenure-mes-donnees.json"`)
+	httpx.JSON(w, http.StatusOK, v)
+}
