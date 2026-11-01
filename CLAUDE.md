@@ -44,7 +44,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | Object store | minio-go: Scaleway fr-par in production (OD-04, BE-OD-03); RustFS in docker-compose and the integration suite while no MinIO image can be pulled (Q-38) |
 | PDF | gotenberg over HTTP, HTML → PDF/A-2b (OD-03, BE-OD-02) |
 | Antivirus | ClamAV sidecar (clamd INSTREAM over TCP, `TENURE_CLAMAV_ADDR`); every upload is scanned, fail closed (§8b, Q-67) |
-| Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`) |
+| Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`); browsers through a BFF (`backendkit/bff`), never holding a token |
 | Logs | `log/slog` JSON; backendkit's logrus entry is configured to JSON as well |
 | Lint | golangci-lint v2.14.0 built with Go 1.27.3 (includes staticcheck), govulncheck, gitleaks |
 | Build | `-ldflags "-X …version=… -X …commit=… -X …date=…"` version stamping |
@@ -59,6 +59,7 @@ Socrate issuer, audience or JWKS URL.
 cmd/tenure            serve | migrate | job <name> subcommands
 internal/<module>     portfolio lease billing charge payment tax document params
 internal/auth         the only package that reads a token (wraps backendkit)
+internal/bff          browser sessions (backendkit bff): /bff routes, session → bearer; stores tokens, never parses them
 internal/audit        audit.Record, hash chain, chain heads
 internal/jobs         scheduler, job_runs lock, per-owner iteration
 internal/httpapi      Chi routers, middleware, problem details, swag
@@ -119,14 +120,18 @@ testdata/params/<year>.json    legal parameter fixtures, the seed of legal_param
 - `internal/auth` wraps `backendkit/jwtauth` and is the only package that reads a token. No other
   package imports a JWT library or parses `Authorization`.
 - **There is no `users` table, no password column, no API-key table, no magic link and no local
-  login route.** `owners.socrate_sub` is the only link between a person and their data. Machines
+  login route** (`/bff/login` only redirects to Socrate). `owners.socrate_sub` is the only link between a person and their data. Machines
   use Socrate client-credential tokens. A feature that cannot be built on Socrate is an open
   question, never a local workaround.
 - Owner, co-owner and accountant come from `owners` / `owner_grants`, never from a token claim;
   `admin` comes from the Socrate role claim. `X-Owner-Scope` selects among the caller's scopes
   (default: their own); an unknown or ungranted scope is 403.
-- Deny by default: every route requires a valid token except `/healthz` and `/readyz`; a CI test
-  walks the router and fails if any other route answers without one.
+- Deny by default: every route requires a valid token except `/healthz`, `/readyz` and the BFF's
+  `/bff/*` (login, callback, session, logout); a CI test walks the router and fails if any
+  `/api/v1` route answers without one.
+- Browsers never hold a token (RENT-BE-001 §4): tenure is Socrate's confidential client, the
+  session is a `__Host-` HttpOnly SameSite=Strict cookie, unsafe requests carry `X-CSRF-Token`,
+  and `internal/bff` turns the session into a bearer in front of `internal/auth`.
 - Routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most
   5 minutes old and `mfa` in `amr` (read through `internal/auth`'s accessor over backendkit's
   `ctxutil`), otherwise 401 `type: auth/step-up-required`; a missing `auth_time` is refused.
