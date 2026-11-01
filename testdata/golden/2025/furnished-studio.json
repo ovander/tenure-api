@@ -1,0 +1,384 @@
+{
+  "case": "furnished-studio",
+  "description": "Furnished studio S1, lease from 1 September 2024: two full monthly fees and the 2025 tax year, which gives gross receipts only (OD-01); its repair charge is not on form 2044.",
+  "leases": [
+    {
+      "id": "L2",
+      "kind": "furnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "S1",
+          "kind": "apartment",
+          "furnished": true,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2024-09-01",
+      "end_on": "",
+      "term_months": 12,
+      "rent_cents": 62000,
+      "provision_cents": 5000,
+      "deposit_cents": 124000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q2",
+      "irl_ref_value": 14517,
+      "revision_month": 9
+    }
+  ],
+  "charges": [
+    {
+      "id": "rep",
+      "asset_id": "S1",
+      "category": "repairs",
+      "amount_cents": 15000,
+      "charged_on": "2025-05-02",
+      "paid_on": "2025-05-02",
+      "recoverable_bp": 0,
+      "document_id": "doc-rep"
+    }
+  ],
+  "payments": [
+    {
+      "id": "p01",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-01-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p01",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p01",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-02-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p02",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p02",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p03",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-03-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p03",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p03",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-04-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p04",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p04",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-05-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p05",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p05",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p06",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-06-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p06",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p06",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p07",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-07-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p07",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p07",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p08",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-08-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p08",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p08",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p09",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-09-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p09",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p09",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-10-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p10",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p10",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p11",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-11-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p11",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p11",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    },
+    {
+      "id": "p12",
+      "lease_id": "L2",
+      "asset_id": "S1",
+      "paid_on": "2025-12-03",
+      "amount_cents": 67000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p12",
+          "line": "rent",
+          "amount_cents": 62000
+        },
+        {
+          "billing_document_id": "AL-p12",
+          "line": "provision",
+          "amount_cents": 5000
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "S1",
+      "furnished": true,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 10000
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "fee 2025-01",
+      "fee": {
+        "lease_id": "L2",
+        "period": "2025-01"
+      },
+      "expected": {
+        "lease_id": "L2",
+        "period": "2025-01",
+        "occupied_days": 31,
+        "days_in_period": 31,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 62000,
+            "base_cents": 62000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 5000,
+            "base_cents": 5000
+          }
+        ],
+        "total_cents": 67000,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "fee 2025-02",
+      "fee": {
+        "lease_id": "L2",
+        "period": "2025-02"
+      },
+      "expected": {
+        "lease_id": "L2",
+        "period": "2025-02",
+        "occupied_days": 28,
+        "days_in_period": 28,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 62000,
+            "base_cents": 62000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 5000,
+            "base_cents": 5000
+          }
+        ],
+        "total_cents": 67000,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "tax 2025",
+      "tax": {
+        "year": 2025
+      },
+      "expected": {
+        "year": 2025,
+        "millesime": 2026,
+        "owners": [
+          {
+            "owner_id": "O1",
+            "assets": [
+              {
+                "asset_id": "S1",
+                "furnished": true,
+                "net_cents": 0,
+                "gross_receipts_cents": 744000
+              }
+            ],
+            "totals": null,
+            "micro": {
+              "eligible": true,
+              "gross_cents": 0,
+              "allowance_cents": 0,
+              "taxable_cents": 0
+            },
+            "reel": {
+              "income_cents": 0,
+              "interest_cents": 0,
+              "other_expenses_cents": 0,
+              "net_cents": 0,
+              "prior_used": null,
+              "taxable_cents": 0,
+              "global_imputable_cents": 0,
+              "carried_forward": null,
+              "expired": null
+            },
+            "furnished_gross_receipts_cents": 744000
+          }
+        ],
+        "flags": null
+      }
+    }
+  ]
+}

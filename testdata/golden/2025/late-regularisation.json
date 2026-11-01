@@ -1,0 +1,213 @@
+{
+  "case": "late-regularisation",
+  "description": "Exercise 2023 of A2, statement issued 10 March 2025, more than 12 months after the exercise closed: the outgoing tenant (120 days) and the incoming one (214 days) share 1 950,00 € of recoverable charges pro rata temporis, May was vacant, positive balances are spread over 12 instalments, and the first instalment appears on the April 2025 fee.",
+  "leases": [
+    {
+      "id": "OLD",
+      "kind": "unfurnished",
+      "state": "closed",
+      "assets": [
+        {
+          "id": "A2",
+          "kind": "apartment",
+          "furnished": false,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2022-05-01",
+      "end_on": "2023-04-30",
+      "term_months": 36,
+      "rent_cents": 72000,
+      "provision_cents": 12000,
+      "deposit_cents": 72000,
+      "due_day": 5,
+      "irl_ref_quarter": "2021-Q2",
+      "irl_ref_value": 13180,
+      "revision_month": 5
+    },
+    {
+      "id": "NEW",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A2",
+          "kind": "apartment",
+          "furnished": false,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2023-06-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 78000,
+      "provision_cents": 12000,
+      "deposit_cents": 78000,
+      "due_day": 5,
+      "irl_ref_quarter": "2022-Q4",
+      "irl_ref_value": 13752,
+      "revision_month": 6
+    }
+  ],
+  "charges": [
+    {
+      "id": "st-rec",
+      "asset_id": "A2",
+      "category": "copro_statement",
+      "amount_cents": 180000,
+      "charged_on": "2023-12-31",
+      "paid_on": "2024-02-15",
+      "recoverable_bp": 10000,
+      "document_id": "doc-st-rec"
+    },
+    {
+      "id": "st-non",
+      "asset_id": "A2",
+      "category": "copro_statement",
+      "amount_cents": 60000,
+      "charged_on": "2023-12-31",
+      "paid_on": "2024-02-15",
+      "recoverable_bp": 0,
+      "document_id": "doc-st-non"
+    },
+    {
+      "id": "teom23",
+      "asset_id": "A2",
+      "category": "teom",
+      "amount_cents": 15000,
+      "charged_on": "2023-10-15",
+      "paid_on": "2023-10-15",
+      "recoverable_bp": 10000,
+      "document_id": "doc-teom23"
+    },
+    {
+      "id": "prov23",
+      "asset_id": "A2",
+      "category": "copro_provision",
+      "amount_cents": 50000,
+      "charged_on": "2023-01-02",
+      "paid_on": "2023-01-02",
+      "recoverable_bp": 6000,
+      "document_id": "doc-prov23"
+    }
+  ],
+  "steps": [
+    {
+      "name": "allocate 2023",
+      "allocate": {
+        "exercise": {
+          "asset_id": "A2",
+          "start": "2023-01-01",
+          "end": "2023-12-31",
+          "issued_on": "2025-03-10"
+        },
+        "provisions": {
+          "NEW": 84000,
+          "OLD": 48000
+        }
+      },
+      "expected": {
+        "asset_id": "A2",
+        "exercise_days": 365,
+        "recoverable_cents": 195000,
+        "non_recoverable_cents": 60000,
+        "vacancy_days": 31,
+        "vacancy_cents": 16563,
+        "lines": [
+          {
+            "lease_id": "OLD",
+            "days": 120,
+            "allocated_cents": 64109,
+            "provisions_cents": 48000,
+            "balance_cents": 16109,
+            "spread": true,
+            "instalments": [
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1342,
+              1347
+            ],
+            "new_provision_cents": 0
+          },
+          {
+            "lease_id": "NEW",
+            "days": 214,
+            "allocated_cents": 114328,
+            "provisions_cents": 84000,
+            "balance_cents": 30328,
+            "spread": true,
+            "instalments": [
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2527,
+              2531
+            ],
+            "new_provision_cents": 16300
+          }
+        ],
+        "charge_ids": [
+          "st-non",
+          "st-rec",
+          "teom23"
+        ]
+      }
+    },
+    {
+      "name": "fee 2025-04 with instalment 1/12",
+      "fee": {
+        "lease_id": "NEW",
+        "period": "2025-04",
+        "regularisation": {
+          "reference": "RG-A2-2025-1",
+          "amount_cents": 2527,
+          "instalment": 1,
+          "of": 12
+        }
+      },
+      "expected": {
+        "lease_id": "NEW",
+        "period": "2025-04",
+        "occupied_days": 30,
+        "days_in_period": 30,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 78000,
+            "base_cents": 78000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 12000,
+            "base_cents": 12000
+          },
+          {
+            "kind": "regularisation",
+            "amount_cents": 2527,
+            "reference": "RG-A2-2025-1",
+            "instalment": 1,
+            "of": 12
+          }
+        ],
+        "total_cents": 92527,
+        "carry_over_cents": 0
+      }
+    }
+  ]
+}
