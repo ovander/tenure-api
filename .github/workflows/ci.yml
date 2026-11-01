@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: read
+  # gitleaks-action lists the pull request's commits to scan them.
+  pull-requests: read
 
 jobs:
   # One job named ci: it is the required status check on main, so steps are
