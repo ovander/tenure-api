@@ -20,12 +20,6 @@ import (
 	"github.com/ovander/tenure-api/internal/period"
 )
 
-// KindReceipt and KindPartialReceipt are the receipt kinds.
-const (
-	KindReceipt        Kind = "receipt"
-	KindPartialReceipt Kind = "partial_receipt"
-)
-
 // ReceiptTemplate is the template version of receipts.
 const ReceiptTemplate = "v1"
 

@@ -3538,18 +3538,18 @@
         "billing.Kind": {
             "type": "string",
             "enum": [
-                "receipt",
-                "partial_receipt",
                 "rent_call",
                 "revision_notice",
-                "cancellation"
+                "cancellation",
+                "receipt",
+                "partial_receipt"
             ],
             "x-enum-varnames": [
-                "KindReceipt",
-                "KindPartialReceipt",
                 "KindRentCall",
                 "KindRevisionNotice",
-                "KindCancellation"
+                "KindCancellation",
+                "KindReceipt",
+                "KindPartialReceipt"
             ]
         },
         "billing.Line": {

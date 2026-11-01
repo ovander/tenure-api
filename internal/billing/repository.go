@@ -21,6 +21,8 @@ const (
 	KindRentCall       Kind = "rent_call"
 	KindRevisionNotice Kind = "revision_notice"
 	KindCancellation   Kind = "cancellation"
+	KindReceipt        Kind = "receipt"
+	KindPartialReceipt Kind = "partial_receipt"
 )
 
 type docRow struct {
