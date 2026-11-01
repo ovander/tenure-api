@@ -32,6 +32,7 @@ func TestPayments(t *testing.T) {
 		call(t, "POST", "/leases", req{tok: tokE, body: map[string]any{"kind": "unfurnished", "asset_ids": []string{asset},
 			"tenants": []map[string]any{{"tenant_id": tenant}}, "start_on": "2025-01-01", "term_months": 36, "rent_cents": 80000,
 			"provision_cents": 10000, "due_day": 5, "irl_ref_quarter": "2024-Q3", "irl_ref_value": 14451, "revision_month": 1}}).json(t, dst)
+		readyToActivate(t, tokE, dst.ID)
 		if r := call(t, "POST", "/leases/"+dst.ID+"/transitions", req{tok: tokE, body: map[string]any{"action": "activate"}}); r.Status != 200 {
 			t.Fatalf("activate: %d %s", r.Status, r.Body)
 		}

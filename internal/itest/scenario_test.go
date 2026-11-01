@@ -152,6 +152,7 @@ func TestScenario(t *testing.T) {
 		audited(t, seen, "PUT /guarantees/{id}", 200, func() resp {
 			return call(t, "PUT", "/guarantees/"+guar.ID, req{tok: tokA, ifMatch: `W/"1"`, body: map[string]any{"kind": "deposit", "amount_cents": 86000, "status": "held"}})
 		})
+		readyToActivate(t, tokA, lse.ID)
 		audited(t, seen, "POST /leases/{id}/transitions", 200, func() resp {
 			return call(t, "POST", "/leases/"+lse.ID+"/transitions", req{tok: tokA, body: map[string]any{"action": "activate"}})
 		})

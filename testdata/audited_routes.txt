@@ -6,6 +6,8 @@
 PUT /me
 POST /assets
 PUT /assets/{id}
+POST /assets/{id}/diagnostics
+PUT /diagnostics/{id}
 POST /tenants
 PUT /tenants/{id}
 POST /leases
@@ -13,6 +15,11 @@ PUT /leases/{id}
 POST /leases/{id}/transitions
 POST /leases/{id}/guarantees
 PUT /guarantees/{id}
+POST /guarantees/{id}/document
+POST /leases/{id}/contract
+POST /leases/{id}/amendments
+POST /leases/{id}/inventories
+POST /documents
 POST /leases/{id}/revision +
 POST /billing/runs +
 POST /billing/documents/{id}/cancel +
