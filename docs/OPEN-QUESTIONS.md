@@ -84,7 +84,7 @@ the cent.
 **Q-12 IRL cap source — Answered 2026-11-01.** Two dated parameters in `legal_params`:
 `irl_cap` (national, applies to every lease) and `rent_control.zone_rules`, which applies only
 when `assets.controlled_zone` is set. That boolean column is added to `assets` in migration
-000001. Spec: RENT-SPEC-003, RENT-BE-001 §2 and §7. The shape of the zone rules is Q-28.
+000001. Spec: RENT-SPEC-003, RENT-BE-001 §2 and §7. `rent_control.zone_rules` was replaced by two rules on 2026-11-01 (Q-28).
 
 **Q-13 IRL retroactivity — Open (slice 1).** RENT-SPEC-003 says "A revision older than 12 months
 is not applied retroactively." Provisional: a revision never creates arrears for past months. It
@@ -99,10 +99,12 @@ parts always add up to the total.
 
 **Q-15 Allocation rounding and vacancy — Open (slice 1).** Provisional: an exercise is a date
 range (it may differ from the calendar year). A lease's share is
-`recoverable × lease days ÷ exercise days`, rounded half-up. Days with no lease stay with the
-owner as non-recovered. When there is no vacancy, the rounding remainder goes to the
-largest-remainder lease, so the shares add up to the total. A box on a dwelling lease shares that
-lease.
+`recoverable × lease days ÷ exercise days`. When the exercise has days with no lease, each share
+is rounded down, and the vacancy keeps the remainder as non-recovered, so a tenant is never
+charged a rounding cent. When there is no vacancy, the total is split by largest remainder, so
+the shares add up exactly. A box on a dwelling lease shares that lease. The proposed provision is
+the asset's recoverable total ÷ 12, rounded up to the euro, for every lease still running after
+the exercise.
 
 **Q-16 Late regularisation spread — Open (slice 1).** The law gives the 12 monthly instalments on
 the tenant's request; RENT-SPEC-007 makes them automatic. Provisional: follow the spec. The flag
@@ -120,6 +122,7 @@ x,xx5 rounds the same way, in absolute value, as a debit.
 **Q-19 Shared helpers — Open (slice 1).** RENT-BE-001 §1 has no package for money and periods.
 Provisional: add the leaf packages `internal/money` (cents, rounding) and `internal/period`
 (`YYYY-MM`, days), with no dependencies, and amend §1.
+Slice 1 also adds the leaf `internal/invariant` (`Error{Type, Detail}`, RENT-BE-001 §8's `ErrInvariant`), so that every module returns the same typed rule error.
 
 **Q-20 "Two real assets" — Open (slice 1).** The roadmap asks for golden tests on two real
 assets, but no real data is in the repository (and none may be committed). Provisional: synthetic
@@ -157,31 +160,67 @@ warning is shown above 2 months of rent.
 
 ## Raised by the 2026-11-01 decisions
 
-**Q-27 What counts as a property for line 222 — Open (slice 1).** `forfait_222_cents` is due
-"per property" (par local). Provisional, so as never to overstate a deduction: one flat amount
-per unfurnished asset that earned rent in the year. A box let with a dwelling counts with that
-dwelling, not separately; a box let on its own counts as one property.
+**Q-27 What counts as a property for line 222 — Answered 2026-11-01.** One flat amount per
+*local* that earned rent under its own lease: count = the number of leases of unfurnished assets
+that produced rent in the income year. A box let with the apartment is one local with it; a box
+on its own lease is another. Furnished assets (BIC) never count. `tax.Lines` puts each amount on
+the lease's principal asset. Spec: RENT-SPEC-004.
 
-**Q-28 Shape of `rent_control.zone_rules` — Open (slice 1).** The decision does not say what a
-zone rule contains. Provisional: a dated maximum variation of the rent at revision, in basis
-points, applied after the national `irl_cap` (the stricter wins). A per-m² reference-rent
-ceiling (loyer de référence majoré) would need per-asset zone data and is not modelled.
+**Q-28 Rent control — Answered 2026-11-01.** Three distinct rules, all dated in `legal_params`;
+they replace `rent_control.zone_rules`:
+1. `irl_cap` caps the IRL variation itself when a cap is in force (the 2022–2024 bouclier, 3.5 %),
+   in the revision formula, for every asset (`billing.Revise`).
+2. `rent_control.zone_ceiling`: for assets with `controlled_zone` set, the rent may not exceed
+   the loyer de référence majoré × surface for the asset's zone and category. It is applied in
+   `billing.Revise` as a cap, and checked by `lease.Validate` at lease creation and renewal.
+3. `rent_control.relocation_rule`: for a new lease in a controlled zone, the rent may not exceed
+   the previous lease's rent revised by IRL, unless an exemption (`works`, `under_valued`) is
+   recorded on the lease (`lease.Validate`).
 
-**Q-29 Copropriété provisions on line 229 — Open (slice 1).** On the form, line 229 takes the
-provisions paid in N, and line 230 takes back the non-deductible part the next year. Under
-Q-08, recoverable expenses are not deducted. Provisional (the conservative reading): line 229
-takes only the non-recoverable share of the provisions paid (`recoverable_pct` from the syndic's
-call). Line 230 takes the N−1 regularisation amount, entered as a charge of category
-`copro_regularisation_prior`, and is subtracted from the expenses.
+The fixtures carry an empty ceiling table, filled from the prefectoral arrêté when an asset is in
+a zone, and the relocation rule in force. The golden case uses a synthetic table: one controlled
+asset where the ceiling bites, one asset outside any zone. Spec: RENT-SPEC-003, RENT-BE-001 §2
+and §7. Q-33 and Q-34 follow from this.
+
+**Q-29 Copropriété provisions on line 229 — Answered 2026-11-01.** Confirmed: line 229 takes only
+the non-recoverable share of the syndic provisions paid in year N. Line 230 carries the
+regularisation of year N−1's non-recoverable share, **signed** (category
+`copro_regularisation_prior`): positive reduces the expenses, negative adds to them. A negative
+amount on any other line is refused. Spec: RENT-SPEC-004.
 
 **Q-30 `tax.Lines` inputs — Open (slice 1).** The signature `Lines(payments, charges, shares,
 year, params)` does not carry the prior-year deficits, nor the furnished flag and the
 dwelling/box kind that line 222 needs. Provisional: `shares` is a list of assets, each with its
 owners' shares, `Furnished` and `Kind`, and a final argument takes the prior deficits per owner.
 
-**Q-31 Which year a millésime names — Open (slice 1).** The re-exported RENT-SPEC-004 table header
-reads "millésime 2025". By the DGFiP convention, the form for income year N carries millésime
-N+1 (the 2044 filed in 2026 for 2025 income is millésime 2026). Provisional: millésime = income
-year + 1, so `tax.Lines` for income year 2025 needs the 2026 map. The fixtures hold the map
-under millésime 2026 for income year 2025. If the header means "income year 2025", only its
-wording changes.
+**Q-31 Which year a millésime names — Answered 2026-11-01.** Millésime = income year + 1. The 2044
+map and every tax parameter are keyed by income year (`tax_year`, read on 31 December of that
+year with `params.TaxYearEnd`); the millésime is stored as a label only. The fixture holds the
+income-year 2025 map, labelled millésime 2026. Spec: RENT-SPEC-004 header ("income year 2025,
+form millésime 2026"), RENT-BE-001 §5 and §7.
+
+**Q-32 Rent of a lease over several assets — Answered 2026-11-01.** A lease whose assets have
+different ownership shares is invalid: `lease.Validate` returns
+`lease/consistent-ownership-shares` (422 at save, slice 2), so the case never reaches tax. Rent
+goes to the lease's dwelling (`lease.PrincipalAsset`). An optional per-asset rent breakdown
+(`leases.rent_breakdown` jsonb) is kept for phase 3 reporting; it must add up to the rent, and
+tax ignores it. Spec: RENT-SPEC-004, RENT-BE-001 §2.
+
+**Q-33 Zone ceiling inputs — Open (slice 1).** Q-28 keys the ceiling "by zone and category", but
+the data model has no zone or category on the asset, and stores the surface as `surface_m2`.
+Provisional:
+- `assets.rent_control_zone` and `assets.rent_control_category` (text) key the
+  `rent_control.zone_ceiling` table, which holds cents per m² per month.
+- The surface is read in hundredths of a m².
+- The ceiling of each controlled dwelling is rounded down to the cent. Boxes are never under the
+  ceiling.
+- The rent compared with the ceiling is the breakdown share of the controlled dwellings when the
+  lease has a breakdown, and otherwise the whole rent (the stricter reading).
+- A controlled asset with no zone, no category, no surface or no table value is refused
+  (`lease/zone-ceiling-unknown`), never let through.
+
+**Q-34 Rent already above the ceiling at revision — Open (slice 1).** Q-28 says the revised rent
+may not exceed the ceiling, but not what happens when the current rent is already above it.
+Provisional: the revision does not raise the rent (`above_ceiling` is set so the owner is told),
+a falling index still lowers it, and the rent is never cut down to the ceiling automatically,
+because that is a separate procedure.

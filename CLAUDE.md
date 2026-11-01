@@ -64,7 +64,8 @@ internal/httpapi      Chi routers, middleware, problem details, swag
 internal/notify       e-mail
 migrations/           SQL migrations
 templates/<class>/<version>/   document templates (French)
-testdata/golden/<year>/        golden files per calculation and tax year
+testdata/golden/<year>/        golden files per calculation and tax year (internal/golden runs them)
+testdata/params/<year>.json    legal parameter fixtures, the seed of legal_params
 ```
 
 - **handler → service → repository**, one direction only. Handlers decode and type-check;

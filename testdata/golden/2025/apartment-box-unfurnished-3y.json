@@ -1,0 +1,657 @@
+{
+  "case": "apartment-box-unfurnished-3y",
+  "description": "Apartment A1 with attached box B1 on one unfurnished 3-year lease starting 15 March 2025: prorated first month (17/31 days), full second month, and the owner's 2025 tax year with a 2019 deficit carried forward. The box earns no rent of its own (rent attributed to the dwelling, Q-32), so one 222 flat amount.",
+  "leases": [
+    {
+      "id": "L1",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A1",
+          "kind": "apartment",
+          "furnished": false,
+          "controlled_zone": false
+        },
+        {
+          "id": "B1",
+          "kind": "box",
+          "furnished": false,
+          "controlled_zone": false,
+          "parent_asset_id": "A1"
+        }
+      ],
+      "start_on": "2025-03-15",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 85000,
+      "provision_cents": 9000,
+      "deposit_cents": 85000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q4",
+      "irl_ref_value": 14464,
+      "revision_month": 3
+    }
+  ],
+  "charges": [
+    {
+      "id": "tf",
+      "asset_id": "A1",
+      "category": "property_tax",
+      "amount_cents": 77000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 0,
+      "document_id": "doc-tf"
+    },
+    {
+      "id": "teom",
+      "asset_id": "A1",
+      "category": "teom",
+      "amount_cents": 18000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 10000,
+      "document_id": "doc-teom"
+    },
+    {
+      "id": "pno",
+      "asset_id": "A1",
+      "category": "insurance",
+      "amount_cents": 21000,
+      "charged_on": "2025-04-01",
+      "paid_on": "2025-04-01",
+      "recoverable_bp": 0,
+      "document_id": "doc-pno"
+    },
+    {
+      "id": "rep",
+      "asset_id": "A1",
+      "category": "repairs",
+      "amount_cents": 35000,
+      "charged_on": "2025-06-12",
+      "paid_on": "2025-06-12",
+      "recoverable_bp": 0
+    },
+    {
+      "id": "int",
+      "asset_id": "A1",
+      "category": "loan_interest",
+      "amount_cents": 210000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0,
+      "document_id": "doc-int"
+    },
+    {
+      "id": "ins",
+      "asset_id": "A1",
+      "category": "loan_insurance",
+      "amount_cents": 18000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0,
+      "document_id": "doc-ins"
+    },
+    {
+      "id": "cp1",
+      "asset_id": "A1",
+      "category": "copro_provision",
+      "amount_cents": 30000,
+      "charged_on": "2025-01-01",
+      "paid_on": "2025-01-01",
+      "recoverable_bp": 4000,
+      "document_id": "doc-cp1"
+    },
+    {
+      "id": "cp2",
+      "asset_id": "A1",
+      "category": "copro_provision",
+      "amount_cents": 30000,
+      "charged_on": "2025-04-01",
+      "paid_on": "2025-04-01",
+      "recoverable_bp": 4000,
+      "document_id": "doc-cp2"
+    },
+    {
+      "id": "cp3",
+      "asset_id": "A1",
+      "category": "copro_provision",
+      "amount_cents": 30000,
+      "charged_on": "2025-07-01",
+      "paid_on": "2025-07-01",
+      "recoverable_bp": 4000,
+      "document_id": "doc-cp3"
+    },
+    {
+      "id": "cp4",
+      "asset_id": "A1",
+      "category": "copro_provision",
+      "amount_cents": 30000,
+      "charged_on": "2025-10-01",
+      "paid_on": "2025-10-01",
+      "recoverable_bp": 4000,
+      "document_id": "doc-cp4"
+    },
+    {
+      "id": "bp1",
+      "asset_id": "B1",
+      "category": "copro_provision",
+      "amount_cents": 2000,
+      "charged_on": "2025-01-01",
+      "paid_on": "2025-01-01",
+      "recoverable_bp": 3000,
+      "document_id": "doc-bp1"
+    },
+    {
+      "id": "bp2",
+      "asset_id": "B1",
+      "category": "copro_provision",
+      "amount_cents": 2000,
+      "charged_on": "2025-04-01",
+      "paid_on": "2025-04-01",
+      "recoverable_bp": 3000,
+      "document_id": "doc-bp2"
+    },
+    {
+      "id": "bp3",
+      "asset_id": "B1",
+      "category": "copro_provision",
+      "amount_cents": 2000,
+      "charged_on": "2025-07-01",
+      "paid_on": "2025-07-01",
+      "recoverable_bp": 3000,
+      "document_id": "doc-bp3"
+    },
+    {
+      "id": "bp4",
+      "asset_id": "B1",
+      "category": "copro_provision",
+      "amount_cents": 2000,
+      "charged_on": "2025-10-01",
+      "paid_on": "2025-10-01",
+      "recoverable_bp": 3000,
+      "document_id": "doc-bp4"
+    }
+  ],
+  "payments": [
+    {
+      "id": "p03",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-03-20",
+      "amount_cents": 51548,
+      "matches": [
+        {
+          "billing_document_id": "AL-p03",
+          "line": "rent",
+          "amount_cents": 46613
+        },
+        {
+          "billing_document_id": "AL-p03",
+          "line": "provision",
+          "amount_cents": 4935
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-04-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p04",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p04",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-05-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p05",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p05",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p06",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-06-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p06",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p06",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p07",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-07-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p07",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p07",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p08",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-08-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p08",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p08",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p09",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-09-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p09",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p09",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-10-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p10",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p10",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p11",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-11-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p11",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p11",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    },
+    {
+      "id": "p12",
+      "lease_id": "L1",
+      "asset_id": "A1",
+      "paid_on": "2025-12-05",
+      "amount_cents": 94000,
+      "matches": [
+        {
+          "billing_document_id": "AL-p12",
+          "line": "rent",
+          "amount_cents": 85000
+        },
+        {
+          "billing_document_id": "AL-p12",
+          "line": "provision",
+          "amount_cents": 9000
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "A1",
+      "furnished": false,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 10000
+        }
+      ]
+    },
+    {
+      "asset_id": "B1",
+      "furnished": false,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 10000
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "fee 2025-03 prorated",
+      "fee": {
+        "lease_id": "L1",
+        "period": "2025-03"
+      },
+      "expected": {
+        "lease_id": "L1",
+        "period": "2025-03",
+        "occupied_days": 17,
+        "days_in_period": 31,
+        "prorated": true,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 46613,
+            "base_cents": 85000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 4935,
+            "base_cents": 9000
+          }
+        ],
+        "total_cents": 51548,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "fee 2025-04 full",
+      "fee": {
+        "lease_id": "L1",
+        "period": "2025-04"
+      },
+      "expected": {
+        "lease_id": "L1",
+        "period": "2025-04",
+        "occupied_days": 30,
+        "days_in_period": 30,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 85000,
+            "base_cents": 85000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 9000,
+            "base_cents": 9000
+          }
+        ],
+        "total_cents": 94000,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "tax 2025",
+      "tax": {
+        "year": 2025,
+        "prior": {
+          "O1": [
+            {
+              "year": 2019,
+              "remaining_cents": 100000
+            }
+          ]
+        }
+      },
+      "expected": {
+        "year": 2025,
+        "millesime": 2026,
+        "owners": [
+          {
+            "owner_id": "O1",
+            "assets": [
+              {
+                "asset_id": "A1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "211",
+                    "amount_cents": 811613,
+                    "sources": [
+                      "p03",
+                      "p04",
+                      "p05",
+                      "p06",
+                      "p07",
+                      "p08",
+                      "p09",
+                      "p10",
+                      "p11",
+                      "p12"
+                    ]
+                  },
+                  {
+                    "line": "222",
+                    "amount_cents": 2000,
+                    "sources": [
+                      "forfait_222:L1"
+                    ]
+                  },
+                  {
+                    "line": "223",
+                    "amount_cents": 21000,
+                    "sources": [
+                      "pno"
+                    ]
+                  },
+                  {
+                    "line": "224",
+                    "amount_cents": 35000,
+                    "sources": [
+                      "rep"
+                    ]
+                  },
+                  {
+                    "line": "227",
+                    "amount_cents": 77000,
+                    "sources": [
+                      "tf"
+                    ]
+                  },
+                  {
+                    "line": "229",
+                    "amount_cents": 72000,
+                    "sources": [
+                      "cp1",
+                      "cp2",
+                      "cp3",
+                      "cp4"
+                    ]
+                  },
+                  {
+                    "line": "250",
+                    "amount_cents": 228000,
+                    "sources": [
+                      "ins",
+                      "int"
+                    ]
+                  }
+                ],
+                "net_cents": 376613
+              },
+              {
+                "asset_id": "B1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "229",
+                    "amount_cents": 5600,
+                    "sources": [
+                      "bp1",
+                      "bp2",
+                      "bp3",
+                      "bp4"
+                    ]
+                  }
+                ],
+                "net_cents": -5600
+              }
+            ],
+            "totals": [
+              {
+                "line": "211",
+                "amount_cents": 811613,
+                "sources": [
+                  "p03",
+                  "p04",
+                  "p05",
+                  "p06",
+                  "p07",
+                  "p08",
+                  "p09",
+                  "p10",
+                  "p11",
+                  "p12"
+                ]
+              },
+              {
+                "line": "222",
+                "amount_cents": 2000,
+                "sources": [
+                  "forfait_222:L1"
+                ]
+              },
+              {
+                "line": "223",
+                "amount_cents": 21000,
+                "sources": [
+                  "pno"
+                ]
+              },
+              {
+                "line": "224",
+                "amount_cents": 35000,
+                "sources": [
+                  "rep"
+                ]
+              },
+              {
+                "line": "227",
+                "amount_cents": 77000,
+                "sources": [
+                  "tf"
+                ]
+              },
+              {
+                "line": "229",
+                "amount_cents": 77600,
+                "sources": [
+                  "bp1",
+                  "bp2",
+                  "bp3",
+                  "bp4",
+                  "cp1",
+                  "cp2",
+                  "cp3",
+                  "cp4"
+                ]
+              },
+              {
+                "line": "250",
+                "amount_cents": 228000,
+                "sources": [
+                  "ins",
+                  "int"
+                ]
+              }
+            ],
+            "micro": {
+              "eligible": true,
+              "gross_cents": 811613,
+              "allowance_cents": 243484,
+              "taxable_cents": 568129
+            },
+            "reel": {
+              "income_cents": 811613,
+              "interest_cents": 228000,
+              "other_expenses_cents": 212600,
+              "net_cents": 371013,
+              "prior_used": [
+                {
+                  "year": 2019,
+                  "remaining_cents": 100000
+                }
+              ],
+              "taxable_cents": 271013,
+              "global_imputable_cents": 0,
+              "carried_forward": null,
+              "expired": null
+            },
+            "furnished_gross_receipts_cents": 0
+          }
+        ],
+        "flags": [
+          {
+            "kind": "missing_document",
+            "id": "rep"
+          }
+        ]
+      }
+    }
+  ]
+}

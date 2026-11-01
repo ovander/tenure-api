@@ -1,0 +1,408 @@
+{
+  "case": "irl-mid-year-revision",
+  "description": "Revision month July, reference 2024-Q2 = 145,17, current 2025-Q2 = 146,68 (illustrative index values, not a reference). July is billed at the old rent; the revision applies from August with no retroactive line (Q-13). L3B: the same lease with a synthetic +4,70 % index under a national cap of 3,5 % on the IRL variation (irl_cap, modelled on the 2022–2024 bouclier, loi 2022-1158 art. 12, re-dated for the test). L3C: an asset in a controlled zone whose ceiling (synthetic 20,00 €/m² × 35,20 m² = 704,00 €) bites; L3 is the same asset outside a controlled zone. L3N: a new lease at 705,00 € on the controlled asset breaks the ceiling (704,00 €) but not the relocation rule (700,00 € × 146,68/145,17 = 707,28 €). L3R: a new lease at 703,00 € meets the ceiling but breaks the relocation rule (680,00 € × 146,68/145,17 = 687,07 €). L3F: revision claimed more than 12 months after the anniversary, forfeited.",
+  "params_override": [
+    {
+      "key": "irl_cap",
+      "effective_from": "2025-06-01",
+      "value": {
+        "applies": true,
+        "rate_bp": 350
+      },
+      "source": "synthetic: the 2022–2024 bouclier rate (loi 2022-1158 art. 12) re-dated to 2025 to test the formula, not a legal value for 2025",
+      "source_url": ""
+    },
+    {
+      "key": "rent_control.zone_ceiling",
+      "effective_from": "2025-06-01",
+      "value": {
+        "zones": {
+          "Z1": {
+            "T2": 2000
+          }
+        }
+      },
+      "source": "synthetic: 20,00 €/m² for zone Z1 category T2, not a legal value",
+      "source_url": ""
+    }
+  ],
+  "leases": [
+    {
+      "id": "L3",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A3",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2023-07-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70000,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q2",
+      "irl_ref_value": 14517,
+      "revision_month": 7
+    },
+    {
+      "id": "L3B",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A3B",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2023-07-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70000,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q2",
+      "irl_ref_value": 14517,
+      "revision_month": 7
+    },
+    {
+      "id": "L3C",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A3C",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": true,
+          "rent_control_zone": "Z1",
+          "rent_control_category": "T2"
+        }
+      ],
+      "start_on": "2023-07-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70000,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q2",
+      "irl_ref_value": 14517,
+      "revision_month": 7
+    },
+    {
+      "id": "L3N",
+      "kind": "unfurnished",
+      "state": "draft",
+      "assets": [
+        {
+          "id": "A3C",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": true,
+          "rent_control_zone": "Z1",
+          "rent_control_category": "T2"
+        }
+      ],
+      "start_on": "2025-09-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70500,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2025-Q2",
+      "irl_ref_value": 14668,
+      "revision_month": 7
+    },
+    {
+      "id": "L3R",
+      "kind": "unfurnished",
+      "state": "draft",
+      "assets": [
+        {
+          "id": "A3C",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": true,
+          "rent_control_zone": "Z1",
+          "rent_control_category": "T2"
+        }
+      ],
+      "start_on": "2025-09-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70300,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2025-Q2",
+      "irl_ref_value": 14668,
+      "revision_month": 7
+    },
+    {
+      "id": "L3F",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "A3F",
+          "kind": "apartment",
+          "furnished": false,
+          "surface_hundredths_m2": 3520,
+          "controlled_zone": false
+        }
+      ],
+      "start_on": "2023-07-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 70000,
+      "provision_cents": 8000,
+      "deposit_cents": 70000,
+      "due_day": 5,
+      "irl_ref_quarter": "2024-Q2",
+      "irl_ref_value": 14517,
+      "revision_month": 7
+    }
+  ],
+  "steps": [
+    {
+      "name": "fee 2025-07 before revision",
+      "fee": {
+        "lease_id": "L3",
+        "period": "2025-07"
+      },
+      "expected": {
+        "lease_id": "L3",
+        "period": "2025-07",
+        "occupied_days": 31,
+        "days_in_period": 31,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 70000,
+            "base_cents": 70000
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 8000,
+            "base_cents": 8000
+          }
+        ],
+        "total_cents": 78000,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "revise from 2025-08, variation under the cap",
+      "revise": {
+        "lease_id": "L3",
+        "index": {
+          "quarter": "2025-Q2",
+          "value": 14668,
+          "published_on": "2025-07-15"
+        },
+        "anniversary": "2025-07-01",
+        "from": "2025-08",
+        "apply": true
+      },
+      "expected": {
+        "lease_id": "L3",
+        "anniversary": "2025-07-01",
+        "effective_from": "2025-08",
+        "forfeited": false,
+        "old_rent_cents": 70000,
+        "indexed_rent_cents": 70728,
+        "new_rent_cents": 70728,
+        "new_ref_quarter": "2025-Q2",
+        "new_ref_value": 14668
+      }
+    },
+    {
+      "name": "fee 2025-08 at the new rent",
+      "fee": {
+        "lease_id": "L3",
+        "period": "2025-08"
+      },
+      "expected": {
+        "lease_id": "L3",
+        "period": "2025-08",
+        "occupied_days": 31,
+        "days_in_period": 31,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 70728,
+            "base_cents": 70728
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 8000,
+            "base_cents": 8000
+          }
+        ],
+        "total_cents": 78728,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "national cap on the IRL variation",
+      "revise": {
+        "lease_id": "L3B",
+        "index": {
+          "quarter": "2025-Q2",
+          "value": 15200,
+          "published_on": "2025-07-15"
+        },
+        "anniversary": "2025-07-01",
+        "from": "2025-08",
+        "apply": true
+      },
+      "expected": {
+        "lease_id": "L3B",
+        "anniversary": "2025-07-01",
+        "effective_from": "2025-08",
+        "forfeited": false,
+        "old_rent_cents": 70000,
+        "indexed_rent_cents": 72450,
+        "new_rent_cents": 72450,
+        "capped_by": "irl_cap",
+        "new_ref_quarter": "2025-Q2",
+        "new_ref_value": 15200
+      }
+    },
+    {
+      "name": "controlled zone, ceiling bites",
+      "revise": {
+        "lease_id": "L3C",
+        "index": {
+          "quarter": "2025-Q2",
+          "value": 14668,
+          "published_on": "2025-07-15"
+        },
+        "anniversary": "2025-07-01",
+        "from": "2025-08",
+        "apply": true
+      },
+      "expected": {
+        "lease_id": "L3C",
+        "anniversary": "2025-07-01",
+        "effective_from": "2025-08",
+        "forfeited": false,
+        "old_rent_cents": 70000,
+        "indexed_rent_cents": 70728,
+        "new_rent_cents": 70400,
+        "capped_by": "rent_control.zone_ceiling",
+        "ceiling_cents": 70400,
+        "new_ref_quarter": "2025-Q2",
+        "new_ref_value": 14668
+      }
+    },
+    {
+      "name": "fee 2025-08 controlled zone",
+      "fee": {
+        "lease_id": "L3C",
+        "period": "2025-08"
+      },
+      "expected": {
+        "lease_id": "L3C",
+        "period": "2025-08",
+        "occupied_days": 31,
+        "days_in_period": 31,
+        "prorated": false,
+        "lines": [
+          {
+            "kind": "rent",
+            "amount_cents": 70400,
+            "base_cents": 70400
+          },
+          {
+            "kind": "provision",
+            "amount_cents": 8000,
+            "base_cents": 8000
+          }
+        ],
+        "total_cents": 78400,
+        "carry_over_cents": 0
+      }
+    },
+    {
+      "name": "new lease: ceiling bites, relocation rule met",
+      "validate": {
+        "lease_id": "L3N",
+        "event": "creation",
+        "as_of": "2025-09-01",
+        "previous": {
+          "rent_cents": 70000,
+          "irl_ref_value": 14517,
+          "irl_latest_value": 14668
+        }
+      },
+      "expected": [
+        {
+          "type": "lease/zone-ceiling-exceeded",
+          "detail": "controlled rent 70500 above ceiling 70400"
+        }
+      ]
+    },
+    {
+      "name": "new lease: relocation rule bites",
+      "validate": {
+        "lease_id": "L3R",
+        "event": "creation",
+        "as_of": "2025-09-01",
+        "previous": {
+          "rent_cents": 68000,
+          "irl_ref_value": 14517,
+          "irl_latest_value": 14668
+        }
+      },
+      "expected": [
+        {
+          "type": "lease/relocation-rule-exceeded",
+          "detail": "rent 70300 above previous rent revised by IRL 68707"
+        }
+      ]
+    },
+    {
+      "name": "forfeited after 12 months",
+      "revise": {
+        "lease_id": "L3F",
+        "index": {
+          "quarter": "2025-Q2",
+          "value": 14668,
+          "published_on": "2025-07-15"
+        },
+        "anniversary": "2025-07-01",
+        "from": "2026-08",
+        "apply": false
+      },
+      "expected": {
+        "lease_id": "L3F",
+        "anniversary": "2025-07-01",
+        "effective_from": "2026-08",
+        "forfeited": true,
+        "old_rent_cents": 70000,
+        "indexed_rent_cents": 70000,
+        "new_rent_cents": 70000,
+        "new_ref_quarter": "2025-Q2",
+        "new_ref_value": 14668
+      }
+    }
+  ]
+}
