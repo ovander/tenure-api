@@ -136,6 +136,13 @@
       },
       "source": "Notice 2044, income year 2025 (millésime 2026)",
       "source_url": "https://www.impots.gouv.fr/formulaire/2044/declaration-des-revenus-fonciers"
+    },
+    {
+      "key": "archive_retention_years",
+      "effective_from": "2025-01-01",
+      "value": 10,
+      "source": "RENT-SPEC-005 (10 ans, au-delà des délais de prescription civile et fiscale; Code de commerce L123-22 pour les pièces comptables)",
+      "source_url": ""
     }
   ]
 }

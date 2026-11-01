@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,16 +37,18 @@ func TestEveryRouteRequiresAToken(t *testing.T) {
 	if len(routes) == 0 {
 		t.Fatal("no routes")
 	}
-	for i, rt := range routes {
+	n := 0
+	for _, rt := range routes {
 		for _, authz := range []string{"", "Bearer not-a-jwt", "Basic dXNlcjpwYXNz"} {
+			n++
 			path := "/api/v1" + strings.NewReplacer("{id}", "01900000-0000-7000-8000-000000000001", "{key}", "irl_cap").Replace(rt.Pattern)
 			req := httptest.NewRequest(rt.Method, path, strings.NewReader(`{}`))
 			req.Header.Set("Content-Type", "application/json")
 			if authz != "" {
 				req.Header.Set("Authorization", authz)
 			}
-			// Distinct client addresses keep the failed-auth lockout out of the way.
-			req.RemoteAddr = "192.0.2." + string(rune('0'+i%10)) + ":1234"
+			// One client address per request keeps the failed-auth lockout out of the way.
+			req.RemoteAddr = fmt.Sprintf("198.18.%d.%d:1234", n/250, n%250+1)
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, req)
 			if rec.Code != http.StatusUnauthorized {
@@ -62,7 +65,9 @@ func TestEveryRouteRequiresAToken(t *testing.T) {
 		t.Errorf("/healthz: %d", rec.Code)
 	}
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/v1/nothing-here", nil))
+	unknown := httptest.NewRequest("GET", "/api/v1/nothing-here", nil)
+	unknown.RemoteAddr = "198.19.0.1:1234"
+	h.ServeHTTP(rec, unknown)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("unknown /api/v1 path without a token: %d; want 401 before 404", rec.Code)
 	}

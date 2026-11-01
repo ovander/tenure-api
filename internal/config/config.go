@@ -19,10 +19,14 @@ type Need uint8
 
 // Setting groups.
 const (
-	NeedAPI     Need = 1 << iota // HTTP listener, API database role, Socrate
-	NeedJobs                     // jobs database role
-	NeedMigrate                  // migration database role
+	NeedAPI       Need = 1 << iota // HTTP listener, API database role, Socrate
+	NeedJobs                       // jobs database role
+	NeedMigrate                    // migration database role
+	NeedDocuments                  // object store, PDF engine, SMTP (serve and job)
 )
+
+// DefaultIRLSource is the INSEE BDM SDMX series of the IRL (idBank 001515333).
+const DefaultIRLSource = "https://bdm.insee.fr/series/sdmx/data/SERIES_BDM/001515333"
 
 // MaxStepUpAge is the upper bound of TENURE_STEP_UP_MAX_AGE (RENT-BE-001 §8b).
 const MaxStepUpAge = 5 * time.Minute
@@ -35,6 +39,26 @@ type Socrate struct {
 	AdminRole string
 }
 
+// S3 holds the object-store settings (Scaleway in production, OD-04).
+type S3 struct {
+	Endpoint  string // host[:port]
+	Region    string
+	Bucket    string
+	AccessKey string
+	SecretKey string
+	// Secure is false only for a loopback endpoint (local development).
+	Secure bool
+}
+
+// SMTP holds the mail settings. TLS (STARTTLS) is required except on a
+// loopback host.
+type SMTP struct {
+	Addr     string // host:port
+	Username string
+	Password string
+	From     string
+}
+
 // Config is the validated configuration.
 type Config struct {
 	HTTPAddr     string
@@ -44,6 +68,11 @@ type Config struct {
 	Socrate      Socrate
 	StepUpMaxAge time.Duration
 	LogLevel     slog.Level
+	S3           S3
+	SMTP         SMTP
+	PDFEngineURL string // gotenberg
+	// IRLSourceURL is the INSEE BDM series of the IRL (irl.fetch).
+	IRLSourceURL string
 	// TrustedProxies are the reverse proxies (Caddy) whose X-Forwarded-For is
 	// believed when finding a client's address; empty trusts none.
 	TrustedProxies []*net.IPNet
@@ -75,6 +104,53 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 	}
 	if c.HTTPAddr == "" {
 		c.HTTPAddr = ":8080"
+	}
+	docs := need&NeedDocuments != 0
+	c.S3 = S3{Endpoint: get("TENURE_S3_ENDPOINT", docs), Region: get("TENURE_S3_REGION", docs), Bucket: get("TENURE_S3_BUCKET", docs),
+		AccessKey: get("TENURE_S3_ACCESS_KEY", docs), SecretKey: get("TENURE_S3_SECRET_KEY", docs), Secure: true}
+	if c.S3.Endpoint != "" {
+		host, _, err := net.SplitHostPort(c.S3.Endpoint)
+		if err != nil {
+			host = c.S3.Endpoint
+		}
+		if strings.Contains(c.S3.Endpoint, "://") {
+			errs = append(errs, errors.New("TENURE_S3_ENDPOINT is host[:port], without scheme"))
+		}
+		switch v := get("TENURE_S3_INSECURE", false); v {
+		case "", "false":
+		case "true":
+			if !isLocal(host) {
+				errs = append(errs, errors.New("TENURE_S3_INSECURE is only allowed for a loopback endpoint"))
+			}
+			c.S3.Secure = false
+		default:
+			errs = append(errs, errors.New("TENURE_S3_INSECURE must be true or false"))
+		}
+	}
+	c.SMTP = SMTP{Addr: get("TENURE_SMTP_ADDR", docs), Username: get("TENURE_SMTP_USERNAME", false),
+		Password: get("TENURE_SMTP_PASSWORD", false), From: get("TENURE_SMTP_FROM", docs)}
+	if c.SMTP.Addr != "" {
+		if _, _, err := net.SplitHostPort(c.SMTP.Addr); err != nil {
+			errs = append(errs, errors.New("TENURE_SMTP_ADDR must be host:port"))
+		}
+	}
+	if (c.SMTP.Username == "") != (c.SMTP.Password == "") {
+		errs = append(errs, errors.New("TENURE_SMTP_USERNAME and TENURE_SMTP_PASSWORD go together"))
+	}
+	if c.SMTP.From != "" && !strings.Contains(c.SMTP.From, "@") {
+		errs = append(errs, errors.New("TENURE_SMTP_FROM must be an e-mail address"))
+	}
+	c.PDFEngineURL = get("TENURE_PDF_ENGINE_URL", docs)
+	c.IRLSourceURL = get("TENURE_IRL_SOURCE_URL", false)
+	if c.IRLSourceURL == "" {
+		c.IRLSourceURL = DefaultIRLSource
+	}
+	for key, v := range map[string]string{"TENURE_PDF_ENGINE_URL": c.PDFEngineURL, "TENURE_IRL_SOURCE_URL": c.IRLSourceURL} {
+		if v != "" {
+			if err := checkHTTPS(v); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", key, err))
+			}
+		}
 	}
 	for key, v := range map[string]string{"TENURE_DB_URL": c.DBURL, "TENURE_JOBS_DB_URL": c.JobsDBURL, "TENURE_MIGRATE_DB_URL": c.MigrateDBURL} {
 		if v != "" {

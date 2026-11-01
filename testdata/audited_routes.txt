@@ -1,6 +1,8 @@
 # Every mutating /api/v1 route (RENT-BE-001 §8b). The integration suite fails
-# when a route below commits without exactly one audit event, or when a
-# mutating route of internal/httpapi is missing from this list.
+# when a route below commits without its audit event — exactly one, or one or
+# more for a route marked "+" (runs and actions that issue documents and
+# e-mails) — when a refused call leaves an event, or when a mutating route of
+# internal/httpapi is missing from this list.
 PUT /me
 POST /assets
 PUT /assets/{id}
@@ -11,4 +13,9 @@ PUT /leases/{id}
 POST /leases/{id}/transitions
 POST /leases/{id}/guarantees
 PUT /guarantees/{id}
+POST /leases/{id}/revision +
+POST /billing/runs +
+POST /billing/documents/{id}/cancel +
+PUT /params/irl/{quarter}
 PUT /params/{key}
+POST /jobs/{name}/trigger +

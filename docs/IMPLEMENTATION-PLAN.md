@@ -132,7 +132,8 @@ variant; documents are French only.
 
 - **Spec**: RENT-SPEC-003 (monthly run, revision application), RENT-SPEC-005 (archive),
   RENT-BE-001 §3 billing and document, §5 `billing.monthly`, `irl.fetch`, `audit.head`, §6, §8b
-  (signed URLs, `document.download`).
+  (signed URLs, `document.download`). Provisional readings: Q-45 to Q-59; RustFS stands in
+  for MinIO (Q-38).
 - **Pkg**: `internal/document` (numbering counters, `html/template` loader, gotenberg client,
   minio-go store with checksum check and object lock, signed URLs bound to document and
   subject); `internal/notify` (SMTP, FR/EN e-mail templates, PDF attached); billing

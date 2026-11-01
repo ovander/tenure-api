@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Révision du loyer {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Notification de révision annuelle du loyer</h1>
+<p class="meta">N° {{.Number}} · émise le {{date .IssuedOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>En application de la clause de révision du bail (article 17-1 de la loi n° 89-462 du 6 juillet 1989), le loyer est révisé selon l’indice de référence des loyers publié par l’INSEE.</p>
+<table>
+  <tbody>
+  <tr><td>Indice de référence ({{.RefQuarter}})</td><td class="amount">{{index100 .RefValue}}</td></tr>
+  <tr><td>Nouvel indice ({{.NewQuarter}})</td><td class="amount">{{index100 .NewValue}}</td></tr>
+  <tr><td>Loyer hors charges actuel</td><td class="amount">{{euros .OldRentCents}}</td></tr>
+  <tr class="total"><td>Loyer hors charges révisé</td><td class="amount">{{euros .NewRentCents}}</td></tr>
+  </tbody>
+</table>
+{{if .CappedNote}}<p class="note">{{.CappedNote}}</p>{{end}}
+<p class="note">Le loyer révisé s’applique à compter de l’échéance de {{periodLabel .EffectiveFrom}}, sans effet rétroactif.</p>
+</body></html>

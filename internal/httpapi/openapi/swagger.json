@@ -482,6 +482,657 @@
                 }
             }
         },
+        "/audit/heads": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List the scope's daily audit chain heads",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-audit_ChainHead"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/documents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List the scope's billing documents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "period YYYY-MM",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "lease_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "rent_call, revision_notice, cancellation…",
+                        "name": "kind",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-billing_DocView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/documents/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Get a billing document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "billing document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/billing.DocView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/documents/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Issues a cancelling document and, when the lease is still billed for the period, a new rent call; both are archived and e-mailed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Cancel a rent call and reissue it",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "billing document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "reason",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.CancelInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/billing.CancelResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/runs": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "dry_run returns the computed fees without issuing; otherwise rent calls are issued, archived and e-mailed. A second run of the same period issues nothing new.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Run the monthly billing of the scope for a period",
+                "parameters": [
+                    {
+                        "description": "period",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.RunInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/billing.RunView"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/billing.RunView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/runs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Get a billing run",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "run id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jobs.Run"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/documents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An accountant sees financial classes only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "document"
+                ],
+                "summary": "List the scope's documents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "document class",
+                        "name": "class",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "lease_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "period YYYY-MM",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "year of issue",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-document_View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "document"
+                ],
+                "summary": "Get a document's metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/document.View"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{id}/content": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The content is never streamed through the API; every link issued is recorded as an audit event.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "document"
+                ],
+                "summary": "Get a 10-minute download link to a document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "document id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/document.Link"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/guarantees/{id}": {
             "put": {
                 "security": [
@@ -643,6 +1294,100 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{name}/trigger": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An admin runs it for every owner; an owner for their own scope only. A dry run computes and records nothing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Run a job now",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "job name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "options",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jobs.TriggerInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jobs.Run"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jobs.Run"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -1116,6 +1861,100 @@
                 }
             }
         },
+        "/leases/{id}/revision": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Applies the revision from its first billing period (never retroactively) and issues the revision notice; dry_run only computes it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Apply the IRL revision due today on a lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "options",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.RevisionInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/billing.RevisionView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/leases/{id}/transitions": {
             "post": {
                 "security": [
@@ -1409,6 +2248,88 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/params/irl/{quarter}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin only, step-up required; a recorded quarter is never replaced.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "params"
+                ],
+                "summary": "Record an IRL value by hand",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "quarter YYYY-Qn",
+                        "name": "quarter",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "value in hundredths",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/params.IRLInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/params.IRL"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -1796,6 +2717,27 @@
         }
     },
     "definitions": {
+        "audit.ChainHead": {
+            "type": "object",
+            "properties": {
+                "as_of": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "head_hash": {
+                    "type": "string"
+                },
+                "last_event_id": {
+                    "type": "integer"
+                },
+                "object_key": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
         "audit.Event": {
             "type": "object",
             "properties": {
@@ -1867,6 +2809,459 @@
                 }
             }
         },
+        "billing.CancelInput": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "billing.CancelResult": {
+            "type": "object",
+            "properties": {
+                "cancellation": {
+                    "$ref": "#/definitions/billing.IssuedDoc"
+                },
+                "reissued": {
+                    "$ref": "#/definitions/billing.IssuedDoc"
+                }
+            }
+        },
+        "billing.Delivery": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "billing.DocView": {
+            "type": "object",
+            "properties": {
+                "cancelled_by": {
+                    "type": "string"
+                },
+                "cancels_id": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "generation": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "kind": {
+                    "enum": [
+                        "rent_call",
+                        "receipt",
+                        "regularisation",
+                        "revision_notice",
+                        "cancellation"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/billing.Kind"
+                        }
+                    ]
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/document.Line"
+                    }
+                },
+                "number": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "total_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.Due": {
+            "type": "object",
+            "properties": {
+                "anniversary": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "index": {
+                    "$ref": "#/definitions/billing.Index"
+                }
+            }
+        },
+        "billing.Fee": {
+            "type": "object",
+            "properties": {
+                "carry_over_cents": {
+                    "description": "CarryOverCents is the part of a credit that did not fit on this fee and\nmoves to the next one (always \u003c= 0, OPEN-QUESTIONS Q-17).",
+                    "type": "integer"
+                },
+                "days_in_period": {
+                    "type": "integer"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.Line"
+                    }
+                },
+                "occupied_days": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "prorated": {
+                    "type": "boolean"
+                },
+                "total_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.Index": {
+            "type": "object",
+            "properties": {
+                "published_on": {
+                    "type": "string"
+                },
+                "quarter": {
+                    "description": "\"YYYY-Qn\"",
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.IssuedDoc": {
+            "type": "object",
+            "properties": {
+                "billing_document_id": {
+                    "type": "string"
+                },
+                "deliveries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.Delivery"
+                    }
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "$ref": "#/definitions/billing.Kind"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "sha256": {
+                    "type": "string"
+                },
+                "total_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.Kind": {
+            "type": "string",
+            "enum": [
+                "rent_call",
+                "revision_notice",
+                "cancellation"
+            ],
+            "x-enum-varnames": [
+                "KindRentCall",
+                "KindRevisionNotice",
+                "KindCancellation"
+            ]
+        },
+        "billing.Line": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "base_cents": {
+                    "description": "BaseCents is the monthly amount before proration (rent and provision).",
+                    "type": "integer"
+                },
+                "instalment": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "$ref": "#/definitions/billing.LineKind"
+                },
+                "of": {
+                    "type": "integer"
+                },
+                "reference": {
+                    "description": "Reference names the regularisation statement; Instalment/Of say which\nmonthly instalment this is when the balance is spread.",
+                    "type": "string"
+                }
+            }
+        },
+        "billing.LineKind": {
+            "type": "string",
+            "enum": [
+                "rent",
+                "provision",
+                "regularisation"
+            ],
+            "x-enum-varnames": [
+                "LineRent",
+                "LineProvision",
+                "LineRegularisation"
+            ]
+        },
+        "billing.Revision": {
+            "type": "object",
+            "properties": {
+                "above_ceiling": {
+                    "type": "boolean"
+                },
+                "anniversary": {
+                    "type": "string"
+                },
+                "capped_by": {
+                    "description": "CappedBy names the rule that limited the rent: \"irl_cap\" or\n\"rent_control.zone_ceiling\"; empty when uncapped.",
+                    "type": "string"
+                },
+                "ceiling_cents": {
+                    "description": "CeilingCents is the zone ceiling of a controlled-zone lease (0 when none\napplies). AboveCeiling is set when the current rent already exceeds it:\nthe revision then leaves the rent unchanged and the owner is told (Q-34).",
+                    "type": "integer"
+                },
+                "effective_from": {
+                    "description": "EffectiveFrom is the first period billed at the new rent; there is no\nretroactive billing of earlier periods (OPEN-QUESTIONS Q-13).",
+                    "type": "string"
+                },
+                "forfeited": {
+                    "description": "Forfeited is true when the anniversary is more than 12 months before\nEffectiveFrom: the revision is lost and the rent is unchanged.",
+                    "type": "boolean"
+                },
+                "indexed_rent_cents": {
+                    "description": "IndexedRentCents is old × current ÷ reference, before any cap.",
+                    "type": "integer"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "new_ref_quarter": {
+                    "type": "string"
+                },
+                "new_ref_value": {
+                    "type": "integer"
+                },
+                "new_rent_cents": {
+                    "type": "integer"
+                },
+                "old_rent_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.RevisionInput": {
+            "type": "object",
+            "properties": {
+                "dry_run": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "billing.RevisionResult": {
+            "type": "object",
+            "properties": {
+                "applied": {
+                    "type": "boolean"
+                },
+                "due": {
+                    "$ref": "#/definitions/billing.Due"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "revision": {
+                    "$ref": "#/definitions/billing.Revision"
+                }
+            }
+        },
+        "billing.RevisionView": {
+            "type": "object",
+            "properties": {
+                "notice": {
+                    "$ref": "#/definitions/billing.IssuedDoc"
+                },
+                "revision": {
+                    "$ref": "#/definitions/billing.RevisionResult"
+                }
+            }
+        },
+        "billing.RunInput": {
+            "type": "object",
+            "properties": {
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "period": {
+                    "type": "string",
+                    "example": "2025-04"
+                }
+            }
+        },
+        "billing.RunView": {
+            "type": "object",
+            "properties": {
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "fees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.Fee"
+                    }
+                },
+                "run": {
+                    "$ref": "#/definitions/jobs.Run"
+                }
+            }
+        },
+        "document.Class": {
+            "type": "string",
+            "enum": [
+                "rent_call",
+                "receipt",
+                "regularisation",
+                "revision_notice",
+                "contract",
+                "amendment",
+                "deposit",
+                "tax_summary",
+                "cancellation"
+            ],
+            "x-enum-varnames": [
+                "ClassRentCall",
+                "ClassReceipt",
+                "ClassRegularisation",
+                "ClassRevisionNotice",
+                "ClassContract",
+                "ClassAmendment",
+                "ClassDeposit",
+                "ClassTaxSummary",
+                "ClassCancellation"
+            ]
+        },
+        "document.Line": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "detail": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "document.Link": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "document.View": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "class": {
+                    "$ref": "#/definitions/document.Class"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "retain_until": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "sha256": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "template_version": {
+                    "type": "string"
+                }
+            }
+        },
+        "httpx.List-audit_ChainHead": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/audit.ChainHead"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "httpx.List-audit_Event": {
             "type": "object",
             "properties": {
@@ -1874,6 +3269,46 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/audit.Event"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-billing_DocView": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.DocView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-document_View": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/document.View"
                     }
                 },
                 "page": {
@@ -2013,6 +3448,17 @@
                 "StatusFailed",
                 "StatusPartial"
             ]
+        },
+        "jobs.TriggerInput": {
+            "type": "object",
+            "properties": {
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "period": {
+                    "type": "string"
+                }
+            }
         },
         "lease.Action": {
             "type": "string",
@@ -2491,6 +3937,22 @@
                 },
                 "value": {
                     "type": "integer"
+                }
+            }
+        },
+        "params.IRLInput": {
+            "type": "object",
+            "properties": {
+                "published_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer",
+                    "example": 14668
                 }
             }
         },

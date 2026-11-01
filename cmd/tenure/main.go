@@ -29,16 +29,15 @@ import (
 	"github.com/ovander/backendkit/buildinfo"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ovander/tenure-api/internal/audit"
+	"github.com/ovander/tenure-api/internal/app"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/config"
 	"github.com/ovander/tenure-api/internal/db"
-	"github.com/ovander/tenure-api/internal/httpapi"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/jobs"
-	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/migrate"
+	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
-	"github.com/ovander/tenure-api/internal/portfolio"
 )
 
 const usage = `usage:
@@ -117,7 +116,7 @@ func jobCmd(ctx context.Context, args []string, getenv func(string) string, out 
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
-	cfg, err := config.Load(getenv, config.NeedJobs)
+	cfg, err := config.Load(getenv, config.NeedJobs|config.NeedDocuments)
 	if err != nil {
 		return err
 	}
@@ -135,8 +134,15 @@ func jobCmd(ctx context.Context, args []string, getenv func(string) string, out 
 		return err
 	}
 	defer func() { _ = jdb.Close() }()
-	r := &jobs.Runner{DB: jdb, Jobs: jobs.Registry(), Now: time.Now}
-	runRes, ran, err := r.Trigger(ctx, name, owner, *dry)
+	d, _, _, err := deps(cfg, jdb, jdb)
+	if err != nil {
+		return err
+	}
+	a, err := app.New(d)
+	if err != nil {
+		return err
+	}
+	runRes, ran, err := a.Runner.Trigger(ctx, name, jobs.Options{Owner: owner, DryRun: *dry})
 	if err != nil {
 		return err
 	}
@@ -155,7 +161,7 @@ func jobCmd(ctx context.Context, args []string, getenv func(string) string, out 
 }
 
 func serve(ctx context.Context, getenv func(string) string) error {
-	cfg, err := config.Load(getenv, config.NeedAPI)
+	cfg, err := config.Load(getenv, config.NeedAPI|config.NeedDocuments)
 	if err != nil {
 		return err
 	}
@@ -176,24 +182,19 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	if err != nil {
 		return err
 	}
-	pf := portfolio.NewService(api)
-	h, err := httpapi.NewRouter(httpapi.Deps{
-		Auth:           authMW,
-		Portfolio:      portfolio.Handler{Service: pf},
-		Lease:          lease.Handler{Service: lease.NewService(api, pf)},
-		Params:         params.Handler{Service: params.Service{DB: api, Now: time.Now}},
-		Audit:          audit.Handler{Service: audit.Service{DB: api}},
-		Jobs:           jobs.Handler{DB: api},
-		Ready:          readiness(api, cfg.Socrate.JWKSURL),
-		TrustedProxies: cfg.TrustedProxies,
-	})
+	d, store, pdf, err := deps(cfg, api, jdb)
 	if err != nil {
 		return err
 	}
+	d.Auth, d.Ready = authMW, readiness(api, cfg.Socrate.JWKSURL, store, pdf)
+	a, err := app.New(d)
+	if err != nil {
+		return err
+	}
+	h, runner := a.Handler, a.Runner
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: h, ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 120 * time.Second}
 
-	runner := &jobs.Runner{DB: jdb, Jobs: jobs.Registry(), Now: time.Now}
 	errc := make(chan error, 2)
 	go func() { errc <- runner.Start(ctx) }()
 	go func() {
@@ -214,13 +215,30 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	return srv.Shutdown(shutdown)
 }
 
-// readiness checks the database and that the Socrate JWKS answers
-// (RENT-BE-001 §8; the bucket check arrives with the archive in slice 3).
-func readiness(d *db.DB, jwksURL string) func(context.Context) error {
+func deps(cfg config.Config, api, jdb *db.DB) (app.Deps, *document.S3, document.Gotenberg, error) {
+	store, err := document.NewS3(cfg.S3.Endpoint, cfg.S3.Region, cfg.S3.Bucket, cfg.S3.AccessKey, cfg.S3.SecretKey, cfg.S3.Secure)
+	if err != nil {
+		return app.Deps{}, nil, document.Gotenberg{}, err
+	}
+	pdf := document.Gotenberg{URL: cfg.PDFEngineURL}
+	return app.Deps{API: api, Jobs: jdb, Store: store, PDF: pdf, INSEE: params.INSEE{URL: cfg.IRLSourceURL},
+		Mailer:         notify.SMTP{Addr: cfg.SMTP.Addr, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From},
+		TrustedProxies: cfg.TrustedProxies}, store, pdf, nil
+}
+
+// readiness checks the database, the Socrate JWKS, the bucket's object lock
+// and the PDF engine (RENT-BE-001 §8).
+func readiness(d *db.DB, jwksURL string, store document.Store, pdf document.Gotenberg) func(context.Context) error {
 	client := &http.Client{Timeout: 2 * time.Second}
 	return func(ctx context.Context) error {
 		if err := d.Ping(ctx); err != nil {
 			return fmt.Errorf("database: %w", err)
+		}
+		if err := store.CheckLock(ctx); err != nil {
+			return err
+		}
+		if err := pdf.Ping(ctx); err != nil {
+			return err
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwksURL, nil)
 		if err != nil {

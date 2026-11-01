@@ -19,7 +19,9 @@ import (
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm/clause"
 
+	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/db"
+	"github.com/ovander/tenure-api/internal/period"
 )
 
 // Status is the outcome of a run.
@@ -53,6 +55,12 @@ func (Run) TableName() string { return "job_runs" }
 type Owner struct {
 	ID     uuid.UUID
 	DryRun bool
+	// Period is the run's period key; Today the run's date in Europe/Paris.
+	Period string
+	Today  period.Date
+	RunID  uuid.UUID
+	// ActorSub is the subject of the caller who triggered the run, if any.
+	ActorSub string
 }
 
 // Job is a scheduled job. Each runs once per period key; PerOwner is called
@@ -63,7 +71,25 @@ type Job struct {
 	Schedule string // cron spec, Europe/Paris
 	Period   func(t time.Time) string
 	PerOwner func(ctx context.Context, o Owner) (any, error)
-	Platform func(ctx context.Context, dryRun bool) (any, error)
+	Platform func(ctx context.Context, o Owner) (any, error)
+	// AfterCommit runs after an owner's transaction committed, with its
+	// result (e-mail delivery: never sent for a rolled-back document).
+	AfterCommit func(ctx context.Context, o Owner, result any) any
+	// ValidPeriod checks a period given by a caller instead of Period(now).
+	ValidPeriod func(p string) error
+}
+
+// Options are the options of a triggered run.
+type Options struct {
+	// Owner limits the run to one owner scope.
+	Owner *uuid.UUID
+	// DryRun computes without writing or recording the run.
+	DryRun bool
+	// ActorSub is the Socrate subject of a caller who triggered the run (its
+	// audit events name them); empty for the scheduler.
+	ActorSub string
+	// Period replaces the current period key.
+	Period string
 }
 
 // Runner runs jobs against the tenure_jobs database role.
@@ -92,39 +118,63 @@ func WeekKey(t time.Time) string {
 	return fmt.Sprintf("%04d-W%02d", y, w)
 }
 
+// MonthKey returns the key YYYY-MM of t in Europe/Paris.
+func MonthKey(t time.Time) string { return t.In(Paris()).Format("2006-01") }
+
+// QuarterKey returns the key YYYY-Qn of t in Europe/Paris.
+func QuarterKey(t time.Time) string {
+	p := t.In(Paris())
+	return fmt.Sprintf("%04d-Q%d", p.Year(), (int(p.Month())+2)/3)
+}
+
 // DayKey returns the key YYYY-MM-DD of t in Europe/Paris.
 func DayKey(t time.Time) string { return t.In(Paris()).Format(time.DateOnly) }
 
 type ownerResult struct {
-	OwnerID string `json:"owner_id"`
-	OK      bool   `json:"ok"`
-	Error   string `json:"error,omitempty"`
-	Result  any    `json:"result,omitempty"`
+	OwnerID     string `json:"owner_id"`
+	OK          bool   `json:"ok"`
+	Error       string `json:"error,omitempty"`
+	Result      any    `json:"result,omitempty"`
+	AfterCommit any    `json:"after_commit,omitempty"`
 }
 
-// Trigger runs name now for its current period. owner limits the run to one
-// owner; dryRun computes without recording the run. When a non-dry run of the
-// same key exists, it is returned unchanged and nothing runs again.
-func (r *Runner) Trigger(ctx context.Context, name string, owner *uuid.UUID, dryRun bool) (Run, bool, error) {
+// ErrInvalidPeriod is returned for a period a job does not accept.
+var ErrInvalidPeriod = errors.New("jobs: invalid period")
+
+// Trigger runs name now (RENT-BE-001 §5). With Options.Owner the run is
+// limited to that owner; with DryRun it computes without writing and is not
+// recorded. When a non-dry run of the same (job, period, owner) exists, it is
+// returned unchanged and nothing runs again (ran is false).
+func (r *Runner) Trigger(ctx context.Context, name string, opts Options) (run Run, ran bool, err error) {
 	j, ok := r.Jobs[name]
 	if !ok {
 		return Run{}, false, fmt.Errorf("%w: %s", ErrUnknownJob, name)
 	}
 	now := r.Now().UTC().Truncate(time.Microsecond)
-	run := Run{ID: uuid.Must(uuid.NewV7()), Job: name, Period: j.Period(now), OwnerID: owner, DryRun: dryRun,
+	key := j.Period(now)
+	if opts.Period != "" {
+		if j.ValidPeriod == nil {
+			return Run{}, false, fmt.Errorf("%w: %s takes no period", ErrInvalidPeriod, name)
+		}
+		if err := j.ValidPeriod(opts.Period); err != nil {
+			return Run{}, false, fmt.Errorf("%w: %v", ErrInvalidPeriod, err)
+		}
+		key = opts.Period
+	}
+	run = Run{ID: uuid.Must(uuid.NewV7()), Job: name, Period: key, OwnerID: opts.Owner, DryRun: opts.DryRun,
 		StartedAt: now, Status: StatusRunning, Summary: json.RawMessage("{}")}
-	if !dryRun {
+	if !opts.DryRun {
 		existing, created, err := r.claim(ctx, run)
 		if err != nil || !created {
 			return existing, false, err
 		}
 	}
-	summary, status := r.execute(ctx, j, owner, dryRun)
+	summary, status := r.execute(ctx, j, run, opts, period.FromTime(now.In(Paris())))
 	run.Status = status
 	run.Summary, _ = json.Marshal(summary)
 	fin := r.Now().UTC().Truncate(time.Microsecond)
 	run.FinishedAt = &fin
-	if !dryRun {
+	if !opts.DryRun {
 		if err := r.finish(ctx, run); err != nil {
 			return run, true, err
 		}
@@ -185,30 +235,57 @@ func (r *Runner) owners(ctx context.Context) ([]uuid.UUID, error) {
 	return ids, err
 }
 
+// unit runs one owner (or the platform when id is nil) in its scope, records
+// the job's audit event in the same transaction, then runs AfterCommit.
+func (r *Runner) unit(ctx context.Context, j Job, run Run, opts Options, today period.Date, id *uuid.UUID) ownerResult {
+	o := Owner{DryRun: opts.DryRun, Period: run.Period, Today: today, RunID: run.ID, ActorSub: opts.ActorSub}
+	sc := db.Scope{Role: "job", ActorSub: opts.ActorSub}
+	label := "platform"
+	f := j.Platform
+	if id != nil {
+		o.ID, sc.OwnerID, label, f = *id, *id, id.String(), j.PerOwner
+	}
+	var res any
+	err := r.DB.InScope(ctx, sc, func(ctx context.Context) error {
+		var err error
+		if res, err = f(ctx, o); err != nil {
+			return err
+		}
+		if opts.DryRun {
+			return nil
+		}
+		return audit.Record(ctx, "job."+j.Name, audit.Entity{Type: "job_run", ID: run.ID.String()}, nil,
+			map[string]any{"period": run.Period, "owner_scope": opts.Owner != nil})
+	})
+	out := ownerResult{OwnerID: label, OK: err == nil, Result: res}
+	if err != nil {
+		out.Error = err.Error()
+		slog.ErrorContext(ctx, "job unit failed", "job", j.Name, "owner", label, "error", err)
+		return out
+	}
+	if j.AfterCommit != nil && !opts.DryRun {
+		out.AfterCommit = j.AfterCommit(ctx, o, res)
+	}
+	return out
+}
+
 // execute runs the job and returns its summary and status: failed when every
 // unit failed, partial when some did, succeeded otherwise.
-func (r *Runner) execute(ctx context.Context, j Job, only *uuid.UUID, dryRun bool) (map[string]any, Status) {
+func (r *Runner) execute(ctx context.Context, j Job, run Run, opts Options, today period.Date) (map[string]any, Status) {
 	summary := map[string]any{}
 	failures, units := 0, 0
-	if j.Platform != nil && only == nil {
+	if j.Platform != nil && opts.Owner == nil {
 		units++
-		var res any
-		err := r.DB.InScope(ctx, db.Scope{Role: "job"}, func(ctx context.Context) error {
-			var err error
-			res, err = j.Platform(ctx, dryRun)
-			return err
-		})
-		pr := ownerResult{OwnerID: "platform", OK: err == nil, Result: res}
-		if err != nil {
+		pr := r.unit(ctx, j, run, opts, today, nil)
+		if !pr.OK {
 			failures++
-			pr.Error = err.Error()
 		}
 		summary["platform"] = pr
 	}
 	if j.PerOwner != nil {
 		ids := []uuid.UUID{}
-		if only != nil {
-			ids = append(ids, *only)
+		if opts.Owner != nil {
+			ids = append(ids, *opts.Owner)
 		} else {
 			var err error
 			if ids, err = r.owners(ctx); err != nil {
@@ -219,17 +296,9 @@ func (r *Runner) execute(ctx context.Context, j Job, only *uuid.UUID, dryRun boo
 		results := []ownerResult{}
 		for _, id := range ids {
 			units++
-			var res any
-			err := r.DB.InScope(ctx, db.Scope{OwnerID: id, Role: "job"}, func(ctx context.Context) error {
-				var err error
-				res, err = j.PerOwner(ctx, Owner{ID: id, DryRun: dryRun})
-				return err
-			})
-			or := ownerResult{OwnerID: id.String(), OK: err == nil, Result: res}
-			if err != nil {
+			or := r.unit(ctx, j, run, opts, today, &id)
+			if !or.OK {
 				failures++
-				or.Error = err.Error()
-				slog.ErrorContext(ctx, "job owner failed", "job", j.Name, "owner_id", id, "error", err)
 			}
 			results = append(results, or)
 		}
@@ -253,7 +322,7 @@ func (r *Runner) Start(ctx context.Context) error {
 	for name, j := range r.Jobs {
 		name := name
 		if _, err := r.cron.AddFunc(j.Schedule, func() {
-			if _, _, err := r.Trigger(ctx, name, nil, false); err != nil {
+			if _, _, err := r.Trigger(ctx, name, Options{}); err != nil {
 				slog.ErrorContext(ctx, "scheduled job failed", "job", name, "error", err)
 			}
 		}); err != nil {

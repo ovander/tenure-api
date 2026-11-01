@@ -25,6 +25,8 @@ import (
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/billing"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/params"
@@ -43,6 +45,8 @@ type Deps struct {
 	Params         params.Handler
 	Audit          audit.Handler
 	Jobs           jobs.Handler
+	Billing        billing.Handler
+	Documents      document.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 }
@@ -91,12 +95,24 @@ func Routes(d Deps) []Route {
 		{"GET", "/leases/{id}/guarantees", GuardScopeOwnerW, false, h(d.Lease.ListGuarantees)},
 		{"POST", "/leases/{id}/guarantees", GuardScopeOwnerW, false, h(d.Lease.CreateGuarantee)},
 		{"PUT", "/guarantees/{id}", GuardScopeOwnerW, false, h(d.Lease.UpdateGuarantee)},
+		{"POST", "/leases/{id}/revision", GuardScopeOwnerW, false, h(d.Billing.Revise)},
+		{"POST", "/billing/runs", GuardScopeOwnerW, false, h(d.Billing.CreateRun)},
+		{"GET", "/billing/runs/{id}", GuardScopeOwnerW, false, h(d.Billing.GetRun)},
+		{"GET", "/billing/documents", GuardScopeOwnerW, false, h(d.Billing.ListDocuments)},
+		{"GET", "/billing/documents/{id}", GuardScopeOwnerW, false, h(d.Billing.GetDocument)},
+		{"POST", "/billing/documents/{id}/cancel", GuardScopeOwnerW, false, h(d.Billing.Cancel)},
+		{"GET", "/documents", GuardScopeOwnerW, false, h(d.Documents.List)},
+		{"GET", "/documents/{id}", GuardScopeOwnerW, false, h(d.Documents.Get)},
+		{"GET", "/documents/{id}/content", GuardScopeOwnerW, false, h(d.Documents.Content)},
 		{"GET", "/params", GuardAuthenticated, false, h(d.Params.List)},
 		{"GET", "/params/irl", GuardAuthenticated, false, h(d.Params.IRLSeries)},
+		{"PUT", "/params/irl/{quarter}", GuardAdmin, true, h(d.Params.PutIRL)},
 		{"PUT", "/params/{key}", GuardAdmin, true, h(d.Params.Put)},
 		{"GET", "/audit/events", GuardAuditReaders, false, h(d.Audit.List)},
 		{"GET", "/audit/events.csv", GuardAuditReaders, true, h(d.Audit.ExportCSV)},
+		{"GET", "/audit/heads", GuardAuditReaders, false, h(d.Audit.ListHeads)},
 		{"GET", "/jobs/runs", GuardAuthenticated, false, h(d.Jobs.ListRuns)},
+		{"POST", "/jobs/{name}/trigger", GuardAuthenticated, false, h(d.Jobs.Trigger)},
 		{"GET", "/openapi.json", GuardAuthenticated, false, serveOpenAPI},
 	}
 }

@@ -39,13 +39,15 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | guarantees | id, lease\_id, kind, guarantor jsonb, amount\_cents, valid\_from, valid\_to, status, document\_id | kind: deposit, surety, visale, insurance |
 | inventories | id, lease\_id, kind (entry/exit), done\_on, items jsonb, document\_id | Structured items from phase 2 |
 | charges | id, owner\_id, asset\_id, charged\_on, paid\_on, category, amount\_cents, recoverable, recoverable\_pct, exercise\_year, document\_id, source (manual/syndic/invoice) | category enum drives 2044 line |
-| billing\_documents | id, owner\_id, lease\_id, kind, period, number, lines jsonb, total\_cents, issued\_at, cancels\_id, document\_id, input\_snapshot jsonb | Immutable after issued\_at; cancels\_id for corrective documents |
+| billing\_documents | id, owner\_id, lease\_id, kind, period, generation, number, lines jsonb, total\_cents, issued\_at, cancels\_id, document\_id, input\_snapshot jsonb | Created issued and never changed (trigger); a correction is a cancellation row (cancels\_id) and the next generation of the same lease, kind and period |
+| document\_counters | owner\_id, class, asset\_code, year, last\_seq | Number sequence locked in the issuing transaction (Q-48) |
+| document\_deliveries | id, owner\_id, document\_id, recipient, channel, status (pending, sent, failed, skipped), attempts, last\_error | Delivery status per document and recipient (Q-24, Q-58) |
 | payments | id, owner\_id, lease\_id, paid\_on, amount\_cents, method, reference, bank\_line\_id | — |
 | payment\_matches | payment\_id, billing\_document\_id, amount\_cents | Partial matching |
 | reconciliations | id, owner\_id, asset\_id, exercise\_year, state, statement\_document\_id, totals jsonb | One per asset and exercise |
 | reconciliation\_lines | reconciliation\_id, lease\_id, charge\_id, allocated\_cents, provisions\_cents, balance\_cents | Per lease allocation |
 | tax\_summaries | id, owner\_id, tax\_year, regime, lines jsonb, issued\_at, document\_id | One per owner and year |
-| documents | id, owner\_id, class, asset\_id, lease\_id, period, object\_key, sha256, size\_bytes, template\_version, issued\_at, retain\_until | Metadata of every archived file |
+| documents | id, owner\_id, class, asset\_id, lease\_id, period, object\_key, object\_version, sha256, size\_bytes, template\_version, issued\_at, retain\_until | Metadata of every archived file |
 | legal\_params | key, value jsonb, effective\_from, source\_url | See section 7 |
 | irl\_index | quarter, value, published\_on | INSEE cache |
 | job\_runs | id, job, period, started\_at, finished\_at, status, summary jsonb | Idempotence key = (job, period) |
@@ -67,12 +69,12 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 | --- | --- | --- |
 | portfolio | `GET/POST /assets`, `GET/PUT /assets/{id}`, `GET/POST /tenants`, `GET/PUT /tenants/{id}`, `GET/PUT /me` | `/me` returns the caller, roles and grants; `PUT /me` creates the caller's owner profile (no `If-Match`) or updates it, language included (Q-06, Q-35) |
 | lease | `GET/POST /leases`, `GET/PUT /leases/{id}`, `POST /leases/{id}/transitions` (activate, notice, end, close), `POST /leases/{id}/contract` (generate), `POST /leases/{id}/amendments`, `GET/POST /leases/{id}/guarantees`, `PUT /guarantees/{id}`, `POST /leases/{id}/inventories` | Transitions validate the state machine and required documents |
-| billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing |
+| billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing; cancel issues the cancelling document and reissues the rent call (Q-56) |
 | charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (file + mapping), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
 | payment | `GET/POST /payments`, `PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer |
 | tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed, one issued |
 | document | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/content` (signed URL), `POST /documents` (upload with class and links), `POST /documents/export` (year or asset ZIP, async) | Content never streamed through the API for large files: short-lived signed URL |
-| params | `GET /params`, `GET /params/irl`, `PUT /params/{key}` (admin) | Effective-dated values |
+| params | `GET /params`, `GET /params/irl`, `PUT /params/{key}` (admin), `PUT /params/irl/{quarter}` (admin, manual override of a missing quarter, Q-53) | Effective-dated values |
 | jobs | `GET /jobs/runs`, `POST /jobs/{name}/trigger` (admin or owner for own scope) | — |
 | audit | GET /audit/events (entity, from, to), GET /audit/events.csv, GET /audit/heads | Read only; owner and accountant; includes prev\_hash and hash per event |
 
@@ -124,7 +126,7 @@ A document is produced in one transaction: number reserved, input snapshot store
 - Rendering: HTML → PDF/A-2b through the engine chosen in OD-03; fonts embedded; A4; a visible document number and hash footer.
 - Archive: object key `<owner_id>/<class>/<YYYY>/<number>.pdf`; bucket versioning and object lock (compliance, 10 years); `documents.object_key`, `sha256`, `size_bytes`, `retain_until` written after a successful PUT with checksum verification.
 - Immutability: no UPDATE on `billing_documents` or `documents` after `issued_at` (enforced by a trigger); corrections create a new document with `cancels_id`.
-- Delivery: e-mail in the recipient’s language (French default, English if set on the owner or tenant) with the PDF attached and a signed download link valid 30 days; the PDF itself is always French; delivery status stored per document.
+- Delivery: e-mail in the recipient’s language (French default, English if set on the owner or tenant) with the PDF attached, sent after the commit; the signed download link for tenants comes with the portal (Q-45); the PDF itself is always French; delivery status stored per document.
 
 ## 7. Legal parameters and calculation engine
 
@@ -138,6 +140,7 @@ Every legal constant lives in `legal_params` with an effective date, and every c
 | regularisation\_spread\_after\_months | 12 | charge |
 | irl\_cap.applies / irl\_cap.rate | per decree, dated | billing |
 | receipt\_due\_days\_before\_reminder | 5 | billing |
+| archive\_retention\_years | 10 | document (retention and object lock, Q-54) |
 | form\_2044\_line\_map | by income year (tax\_year), millésime as label: category → line | tax; tax.Lines and tax.annual fail when the income year has no map |
 | micro\_foncier\_allowance\_pct | 30 | tax |
 | forfait\_222\_cents | 2000 (per local: per lease of unfurnished assets that produced rent) | tax |
@@ -169,7 +172,7 @@ Every service write emits one audit event in the same transaction through `audit
 - Headers (Caddy): HSTS 1 year, CSP `default-src 'self'` with hashed script allowances, `X-Content-Type-Options`, `Referrer-Policy`, frame denial; API refuses non-JSON content types.
 - Rate limiting: Chi middleware, 60 write requests/min per subject, 600 reads/min, 10 failed auth/15 min per IP before lockout; limits logged and alerted.
 - Uploads: `POST /documents` streams to a quarantine prefix, ClamAV scan (sidecar) then move to the archive prefix; MIME sniffed server-side; max 25 MB; infected files rejected and logged.
-- Signed URLs: 10 minutes, bound to the document id and caller subject in the signature; every issue recorded as an audit event `document.download`.
+- Signed URLs: 10 minutes, bound to the document id and caller subject in the signature (issued only to a caller who may read the document, Q-50); every issue recorded as an audit event `document.download`.
 - Encryption: PostgreSQL on an encrypted volume, bucket SSE, backups encrypted with a provider KMS key; TLS 1.2+ only; database connections over TLS.
 - Roles: `tenure_api` (no BYPASSRLS, no DDL), `tenure_migrate` (DDL, used only by `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner, no DDL), and `tenure_rls` (NOLOGIN, BYPASSRLS, owns only the SECURITY DEFINER functions the policies call, Q-41); credentials separate; break-glass superuser access only through the provider console, logged and alerted.
 - Supply chain: `go.sum` and `package-lock.json` pinned, `govulncheck` and `npm audit` in CI, gitleaks on every PR in both repositories (secret scanning and push protection on private personal repositories need GitHub Advanced Security, so gitleaks is the day-1 control), Dependabot alerts and security updates enabled, SBOM (CycloneDX) attached to each release, container image scanned.
@@ -225,3 +228,4 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.1 | Implementation feedback: tenure\_\* DB roles, step-up on auth\_time + amr, owner\_grants in 000001, four tax parameters and rent-control zone rules in legal\_params; assets.controlled\_zone, 2044 map by millésime and tax.annual pre-check (Q-07, Q-12) |
 | 2026-11-01 | 1.2 | Implementation feedback (Q-27 to Q-33): rent\_control.zone\_ceiling and relocation\_rule replace zone\_rules; assets.rent\_control\_zone/category; leases.rent\_exemption and rent\_breakdown; 2044 map and tax parameters by income year; 222 per local |
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
+| 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |

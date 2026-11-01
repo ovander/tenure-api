@@ -17,23 +17,22 @@ import (
 var update = flag.Bool("update", false, "regenerate the legal_params seed of 000001_init.sql")
 
 const (
-	seedFile  = "000001_init.sql"
 	seedBegin = "-- seed:legal_params:begin\n"
 	seedEnd   = "-- seed:legal_params:end\n"
 )
 
 func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
 
-// renderSeed renders the INSERT statements of every fixture entry, in a stable
-// order, so the migration seeds exactly what the calculation tests use.
-func renderSeed(t *testing.T) string {
+// fixtureInserts renders one INSERT per fixture entry, in a stable order, so
+// the migrations seed exactly what the calculation tests use.
+func fixtureInserts(t *testing.T) []string {
 	t.Helper()
 	files, err := filepath.Glob(filepath.Join("..", "testdata", "params", "*.json"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no fixtures: %v", err)
 	}
 	sort.Strings(files)
-	var b strings.Builder
+	var out []string
 	for _, f := range files {
 		raw, err := os.ReadFile(f)
 		if err != nil {
@@ -43,44 +42,94 @@ func renderSeed(t *testing.T) string {
 		if err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
-		fmt.Fprintf(&b, "-- %s\n", filepath.Base(f))
 		for _, e := range set.Entries() {
 			var v any
 			if err := json.Unmarshal(e.Value, &v); err != nil {
 				t.Fatal(err)
 			}
 			compact, _ := json.Marshal(v)
-			fmt.Fprintf(&b, "INSERT INTO legal_params (key, effective_from, value, source, source_url) VALUES (%s, %s, %s, %s, %s);\n",
-				quote(e.Key), quote(e.EffectiveFrom.String()), quote(string(compact))+"::jsonb", quote(e.Source), quote(e.SourceURL))
+			out = append(out, fmt.Sprintf("INSERT INTO legal_params (key, effective_from, value, source, source_url) VALUES (%s, %s, %s, %s, %s);",
+				quote(e.Key), quote(e.EffectiveFrom.String()), quote(string(compact))+"::jsonb", quote(e.Source), quote(e.SourceURL)))
 		}
 	}
-	return b.String()
+	return out
 }
 
-func TestSeedMatchesFixtures(t *testing.T) {
-	raw, err := os.ReadFile(seedFile)
+type seedBlock struct {
+	file       string
+	text       string
+	begin, end int
+}
+
+func seedBlocks(t *testing.T) []seedBlock {
+	t.Helper()
+	entries, err := FS.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := string(raw)
-	i, j := strings.Index(s, seedBegin), strings.Index(s, seedEnd)
-	if i < 0 || j < i {
-		t.Fatal("seed markers not found in " + seedFile)
-	}
-	want := renderSeed(t)
-	got := s[i+len(seedBegin) : j]
-	if got == want {
-		return
-	}
-	if *update {
-		out := s[:i+len(seedBegin)] + want + s[j:]
-		if err := os.WriteFile(seedFile, []byte(out), 0o644); err != nil {
-			t.Fatal(err)
+	var out []seedBlock
+	for _, e := range entries {
+		raw, _ := FS.ReadFile(e.Name())
+		s := string(raw)
+		i, j := strings.Index(s, seedBegin), strings.Index(s, seedEnd)
+		if i < 0 || j < i {
+			continue
 		}
-		t.Log("seed regenerated")
+		out = append(out, seedBlock{file: e.Name(), text: s, begin: i + len(seedBegin), end: j})
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].file < out[b].file })
+	return out
+}
+
+// TestSeedMatchesFixtures checks that the seed blocks of every migration,
+// together, insert exactly the fixture entries, each once. With -update, the
+// missing entries are appended to the latest migration's block; an entry that
+// is seeded but no longer in the fixtures is an error to fix by hand (a new
+// migration that deletes it), never by editing an applied migration.
+func TestSeedMatchesFixtures(t *testing.T) {
+	want := fixtureInserts(t)
+	blocks := seedBlocks(t)
+	if len(blocks) == 0 {
+		t.Fatal("no seed block found")
+	}
+	seeded := map[string]int{}
+	for _, b := range blocks {
+		for _, l := range strings.Split(b.text[b.begin:b.end], "\n") {
+			if strings.HasPrefix(l, "INSERT INTO legal_params") {
+				seeded[l]++
+			}
+		}
+	}
+	wanted := map[string]bool{}
+	var missing []string
+	for _, w := range want {
+		wanted[w] = true
+		switch seeded[w] {
+		case 0:
+			missing = append(missing, w)
+		case 1:
+		default:
+			t.Errorf("seeded twice: %s", w)
+		}
+	}
+	for l := range seeded {
+		if !wanted[l] {
+			t.Errorf("seeded but not in testdata/params: %s", l)
+		}
+	}
+	if len(missing) == 0 {
 		return
 	}
-	t.Errorf("the legal_params seed of %s differs from testdata/params; run go test ./migrations -update and review", seedFile)
+	if !*update {
+		t.Errorf("%d fixture entries are not seeded; run go test ./migrations -update and review", len(missing))
+		return
+	}
+	last := blocks[len(blocks)-1]
+	out := last.text[:last.end] + strings.Join(missing, "\n") + "\n" + last.text[last.end:]
+	if err := os.WriteFile(last.file, []byte(out), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("appended %d entries to %s", len(missing), last.file)
 }
 
 func TestEveryMigrationHasUpAndDown(t *testing.T) {

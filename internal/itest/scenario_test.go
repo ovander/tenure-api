@@ -8,14 +8,12 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/ovander/tenure-api/internal/httpapi"
 	"github.com/ovander/tenure-api/internal/jobs"
 )
 
@@ -30,8 +28,14 @@ const (
 
 type exercised map[string]bool
 
+// seen collects the mutating routes exercised with a successful, audited call
+// across the suite; TestZAuditedRoutes checks it last.
+var seen = exercised{}
+
 // audited runs a mutating call and asserts it committed exactly one audit
-// event when it succeeded, and none when it was refused.
+// event when it succeeded — one or more for a route marked "+" in
+// testdata/audited_routes.txt (runs and actions that issue documents) — and
+// none when it was refused.
 func audited(t *testing.T, seen exercised, route string, wantStatus int, f func() resp) resp {
 	t.Helper()
 	before := superCount(t, "SELECT count(*) FROM audit_events")
@@ -40,13 +44,17 @@ func audited(t *testing.T, seen exercised, route string, wantStatus int, f func(
 		t.Fatalf("%s: status %d, want %d: %s", route, r.Status, wantStatus, r.Body)
 	}
 	delta := superCount(t, "SELECT count(*) FROM audit_events") - before
-	want := 0
-	if r.Status < 300 {
-		want = 1
-		seen[route] = true
+	many := auditedRoutes(t)[route]
+	switch {
+	case r.Status >= 300 && delta != 0:
+		t.Fatalf("%s: refused call left %d audit events", route, delta)
+	case r.Status < 300 && many && delta < 1:
+		t.Fatalf("%s: no audit event", route)
+	case r.Status < 300 && !many && delta != 1:
+		t.Fatalf("%s: %d audit events, want 1", route, delta)
 	}
-	if delta != want {
-		t.Fatalf("%s: %d audit events, want %d", route, delta, want)
+	if r.Status < 300 {
+		seen[route] = true
 	}
 	return r
 }
@@ -57,7 +65,6 @@ type idv struct {
 }
 
 func TestScenario(t *testing.T) {
-	seen := exercised{}
 	tokA, tokB := token(t, subA), token(t, subB)
 	var ownerA, ownerB idv
 
@@ -201,7 +208,7 @@ func TestScenario(t *testing.T) {
 		if r := call(t, "GET", "/audit/events", req{tok: tokB}); !strings.Contains(string(r.Body), `"total":1`) {
 			t.Errorf("B's audit trail holds only B's profile event: %s", r.Body)
 		}
-		rlsZeroRows(t, ownerA.ID, ownerB.ID, apt.ID)
+		rlsZeroRows(t, ownerA.ID, ownerB.ID, subA, subB, apt.ID, slice2Tables)
 	})
 
 	t.Run("grants", func(t *testing.T) {
@@ -306,17 +313,17 @@ func TestScenario(t *testing.T) {
 		if n := superCount(t, "SELECT count(*) FROM audit_events WHERE action = 'audit.export'"); n != 1 {
 			t.Errorf("export events: %d", n)
 		}
-		runner := &jobs.Runner{DB: env.jobsDB, Jobs: jobs.Registry(), Now: time.Now}
+		runner := env.app.Runner
 		ctx := context.Background()
-		run, ran, err := runner.Trigger(ctx, "audit.verify", nil, false)
+		run, ran, err := runner.Trigger(ctx, "audit.verify", jobs.Options{})
 		if err != nil || !ran || run.Status != jobs.StatusSucceeded {
 			t.Fatalf("verify: %+v %v %v", run, ran, err)
 		}
-		again, ran, err := runner.Trigger(ctx, "audit.verify", nil, false)
+		again, ran, err := runner.Trigger(ctx, "audit.verify", jobs.Options{})
 		if err != nil || ran || again.ID != run.ID {
 			t.Errorf("second start of the same period ran again: %v %v", ran, err)
 		}
-		if n := superCount(t, "SELECT count(*) FROM job_runs WHERE job = 'audit.verify'"); n != 1 {
+		if n := superCount(t, "SELECT count(*) FROM job_runs WHERE job = 'audit.verify' AND owner_id IS NULL"); n != 1 {
 			t.Errorf("job runs: %d", n)
 		}
 		// The trail refuses updates; tampering needs the trigger disabled.
@@ -327,46 +334,32 @@ func TestScenario(t *testing.T) {
 		superExec(t, `UPDATE audit_events SET after = jsonb_set(after, '{legal_name}', '"Forged"')
 			WHERE id = (SELECT min(id) FROM audit_events WHERE owner_id = $1)`, ownerA.ID)
 		superExec(t, "ALTER TABLE audit_events ENABLE TRIGGER audit_events_no_update")
-		dry, _, err := runner.Trigger(ctx, "audit.verify", nil, true)
+		dry, _, err := runner.Trigger(ctx, "audit.verify", jobs.Options{DryRun: true})
 		if err != nil || dry.Status != jobs.StatusPartial || !strings.Contains(string(dry.Summary), "hash does not match") {
 			t.Errorf("tampered chain: %s %s %v", dry.Status, dry.Summary, err)
 		}
 	})
 
-	t.Run("every mutating route is audited", func(t *testing.T) {
-		listed := readAuditedRoutes(t)
-		var mutating []string
-		for _, rt := range httpapi.Routes(httpapi.Deps{}) {
-			if rt.Method != "GET" {
-				mutating = append(mutating, rt.Method+" "+rt.Pattern)
-			}
-		}
-		sort.Strings(mutating)
-		if strings.Join(mutating, "\n") != strings.Join(listed, "\n") {
-			t.Errorf("testdata/audited_routes.txt\n%s\ndiffers from the router's mutating routes\n%s", strings.Join(listed, "\n"), strings.Join(mutating, "\n"))
-		}
-		for _, r := range listed {
-			if !seen[r] {
-				t.Errorf("%s was never exercised with a successful, audited call", r)
-			}
-		}
-	})
 }
 
-func readAuditedRoutes(t *testing.T) []string {
+// auditedRoutes reads testdata/audited_routes.txt: route → "one or more".
+func auditedRoutes(t *testing.T) map[string]bool {
+	t.Helper()
 	f, err := os.Open("../../testdata/audited_routes.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = f.Close() }()
-	var out []string
+	out := map[string]bool{}
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
-		if l := strings.TrimSpace(sc.Text()); l != "" && !strings.HasPrefix(l, "#") {
-			out = append(out, l)
+		l := strings.TrimSpace(sc.Text())
+		if l == "" || strings.HasPrefix(l, "#") {
+			continue
 		}
+		route, many := strings.CutSuffix(l, " +")
+		out[route] = many
 	}
-	sort.Strings(out)
 	return out
 }
 
@@ -389,26 +382,45 @@ func asAPI(t *testing.T, owner, actor string, f func(*sql.Tx) error) error {
 	return f(tx)
 }
 
-// rlsZeroRows proves owner B — or nobody — reads none of owner A's rows in any
-// owner table, even with app.owner_id spoofed to A (RENT-BE-001 §10).
-func rlsZeroRows(t *testing.T, ownerA, ownerB, assetA string) {
+// slice2Tables are the owner tables of migration 000001; $1 is the owner id,
+// $2 an asset of the owner (asset_shares follows its asset).
+var slice2Tables = map[string]string{
+	"owners": "id = $1", "owner_grants": "owner_id = $1", "assets": "owner_id = $1", "tenants": "owner_id = $1",
+	"leases": "owner_id = $1", "lease_assets": "owner_id = $1", "lease_tenants": "owner_id = $1", "guarantees": "owner_id = $1",
+	"documents": "owner_id = $1", "audit_events": "owner_id = $1", "audit_chain_heads": "owner_id = $1",
+	"job_runs": "owner_id = $1", "asset_shares": "asset_id = $2",
+}
+
+// rlsZeroRows proves owner B — or nobody — reads none of owner A's rows in the
+// given owner tables, even with app.owner_id spoofed to A (RENT-BE-001 §10).
+// Rows a table lacks for owner A are added first as superuser.
+func rlsZeroRows(t *testing.T, ownerA, ownerB, subA, subB, assetA string, tables map[string]string) {
 	t.Helper()
-	superExec(t, `INSERT INTO documents (id, owner_id, class, object_key, sha256, size_bytes, created_at, created_by)
-		VALUES ($1, $2, 'other', 'k', repeat('a', 64), 1, now(), 'itest')`, uuid.Must(uuid.NewV7()), ownerA)
-	superExec(t, `INSERT INTO audit_chain_heads (owner_id, as_of, last_event_id, head_hash) VALUES ($1, current_date, 1, repeat('b', 64))`, ownerA)
-	superExec(t, `INSERT INTO job_runs (id, job, period, owner_id, started_at) VALUES ($1, 'itest', 'x', $2, now())`, uuid.Must(uuid.NewV7()), ownerA)
-	superExec(t, `INSERT INTO owner_grants (id, owner_id, grantee_sub, role, granted_at, created_by, updated_at, updated_by)
-		VALUES ($1, $2, 'someone-else', 'accountant', now(), 'itest', now(), 'itest')`, uuid.Must(uuid.NewV7()), ownerA)
-	tables := map[string]string{
-		"owners": "id = $1", "owner_grants": "owner_id = $1", "assets": "owner_id = $1", "tenants": "owner_id = $1",
-		"leases": "owner_id = $1", "lease_assets": "owner_id = $1", "lease_tenants": "owner_id = $1", "guarantees": "owner_id = $1",
-		"documents": "owner_id = $1", "audit_events": "owner_id = $1", "audit_chain_heads": "owner_id = $1",
-		"job_runs": "owner_id = $1", "asset_shares": "asset_id = '" + assetA + "'",
+	fixtures := map[string]string{
+		"documents": `INSERT INTO documents (id, owner_id, class, object_key, sha256, size_bytes, created_at, created_by)
+			VALUES ($1, $2, 'other', 'k', repeat('a', 64), 1, now(), 'itest')`,
+		"audit_chain_heads": `INSERT INTO audit_chain_heads (owner_id, as_of, last_event_id, head_hash)
+			SELECT owner_id, current_date - 1000, id, hash FROM audit_events WHERE owner_id = $2 ORDER BY id DESC LIMIT 1`,
+		"job_runs": `INSERT INTO job_runs (id, job, period, owner_id, started_at) VALUES ($1, 'itest', 'x', $2, now())`,
+		"owner_grants": `INSERT INTO owner_grants (id, owner_id, grantee_sub, role, granted_at, created_by, updated_at, updated_by)
+			VALUES ($1, $2, 'someone-else', 'accountant', now(), 'itest', now(), 'itest')`,
+	}
+	fill := func(where string) string {
+		return strings.NewReplacer("$1", "'"+ownerA+"'", "$2", "'"+assetA+"'").Replace(where)
+	}
+	for table, where := range tables {
+		if q, ok := fixtures[table]; ok && superCount(t, "SELECT count(*) FROM "+table+" WHERE "+fill(where)) == 0 {
+			if table == "audit_chain_heads" {
+				superExec(t, strings.Replace(q, "$2", "$1", 1), ownerA)
+			} else {
+				superExec(t, q, uuid.Must(uuid.NewV7()), ownerA)
+			}
+		}
 	}
 	count := func(owner, actor, table, where string) int {
 		var n int
 		err := asAPI(t, owner, actor, func(tx *sql.Tx) error {
-			return tx.QueryRow("SELECT count(*) FROM " + table + " WHERE " + strings.ReplaceAll(where, "$1", "'"+ownerA+"'")).Scan(&n)
+			return tx.QueryRow("SELECT count(*) FROM " + table + " WHERE " + fill(where)).Scan(&n)
 		})
 		if err != nil {
 			t.Fatalf("%s: %v", table, err)
@@ -416,15 +428,15 @@ func rlsZeroRows(t *testing.T, ownerA, ownerB, assetA string) {
 		return n
 	}
 	for table, where := range tables {
-		if superCount(t, "SELECT count(*) FROM "+table+" WHERE "+strings.ReplaceAll(where, "$1", "'"+ownerA+"'")) == 0 {
+		if superCount(t, "SELECT count(*) FROM "+table+" WHERE "+fill(where)) == 0 {
 			t.Fatalf("fixture: owner A has no row in %s", table)
 		}
 		if n := count(ownerA, subA, table, where); n == 0 && table != "owner_grants" {
 			t.Errorf("%s: owner A cannot read its own rows", table)
 		}
-		for _, ctx := range []struct{ owner, actor string }{{ownerA, subB}, {ownerB, subB}, {"", subB}, {"", ""}, {ownerA, ""}} {
-			if n := count(ctx.owner, ctx.actor, table, where); n != 0 {
-				t.Errorf("%s: %d of owner A's rows visible with app.owner_id=%q app.actor_sub=%q", table, n, ctx.owner, ctx.actor)
+		for _, c := range []struct{ owner, actor string }{{ownerA, subB}, {ownerB, subB}, {"", subB}, {"", ""}, {ownerA, ""}} {
+			if n := count(c.owner, c.actor, table, where); n != 0 {
+				t.Errorf("%s: %d of owner A's rows visible with app.owner_id=%q app.actor_sub=%q", table, n, c.owner, c.actor)
 			}
 		}
 	}

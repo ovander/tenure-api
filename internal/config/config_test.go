@@ -19,6 +19,48 @@ func valid() map[string]string {
 	}
 }
 
+func withDocs(m map[string]string) map[string]string {
+	for k, v := range map[string]string{
+		"TENURE_S3_ENDPOINT": "s3.fr-par.scw.cloud", "TENURE_S3_REGION": "fr-par", "TENURE_S3_BUCKET": "tenure-archive",
+		"TENURE_S3_ACCESS_KEY": "placeholder-access", "TENURE_S3_SECRET_KEY": "placeholder-secret",
+		"TENURE_SMTP_ADDR": "smtp.example.test:587", "TENURE_SMTP_FROM": "no-reply@example.test",
+		"TENURE_PDF_ENGINE_URL": "http://127.0.0.1:3000",
+	} {
+		m[k] = v
+	}
+	return m
+}
+
+func TestLoadDocuments(t *testing.T) {
+	c, err := Load(env(withDocs(valid())), NeedAPI|NeedDocuments)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.S3.Secure || c.IRLSourceURL != DefaultIRLSource || c.PDFEngineURL == "" {
+		t.Errorf("%+v", c)
+	}
+	bad := map[string][2]string{
+		"insecure remote store": {"TENURE_S3_INSECURE", "true"},
+		"scheme in endpoint":    {"TENURE_S3_ENDPOINT", "https://s3.example.test"},
+		"remote http pdf":       {"TENURE_PDF_ENGINE_URL", "http://gotenberg.internal:3000"},
+		"smtp without port":     {"TENURE_SMTP_ADDR", "smtp.example.test"},
+		"user without password": {"TENURE_SMTP_USERNAME", "u"},
+		"missing secret":        {"TENURE_S3_SECRET_KEY", ""},
+	}
+	for name, kv := range bad {
+		m := withDocs(valid())
+		m[kv[0]] = kv[1]
+		if _, err := Load(env(m), NeedAPI|NeedDocuments); err == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+	m := withDocs(valid())
+	m["TENURE_S3_ENDPOINT"], m["TENURE_S3_INSECURE"] = "localhost:9000", "true"
+	if c, err := Load(env(m), NeedAPI|NeedDocuments); err != nil || c.S3.Secure {
+		t.Errorf("loopback insecure store: %v %v", c.S3.Secure, err)
+	}
+}
+
 func TestLoadValid(t *testing.T) {
 	c, err := Load(env(valid()), NeedAPI)
 	if err != nil {
