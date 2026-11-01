@@ -190,11 +190,11 @@ Every service write emits one audit event in the same transaction through `audit
 - Read access to audit events: owner and accountant through `GET /audit/events?entity=&from=&to=`; export as CSV with the chain hashes.
 - Browser sessions: the BFF of §4; no token in the browser, `__Host-` HttpOnly SameSite=Strict cookie, CSRF token on unsafe methods, encrypted server-side sessions (Q-86).
 - Authentication: backendkit validates tokens and exposes `auth_time` and `amr`; routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most 5 minutes old and `mfa` in `amr`, otherwise 401 with `type: auth/step-up-required`; a token without `auth_time` is refused on those routes; MFA enforced by Socrate policy for owner and admin realms.
-- Headers (Caddy): HSTS 1 year, CSP `default-src 'self'` with hashed script allowances, `X-Content-Type-Options`, `Referrer-Policy`, frame denial; API refuses non-JSON content types.
+- Headers: HSTS (backendkit's 2 years, Caddy adds 1 year only where missing); CSP set by tenure per surface: `default-src 'none'` on the API, `default-src 'self'` without inline script on the embedded web app (Q-96), `X-Content-Type-Options`, `Referrer-Policy`, frame denial; API refuses non-JSON content types.
 - Rate limiting: Chi middleware, 60 write requests/min per subject, 600 reads/min, 10 failed auth/15 min per IP before lockout; limits logged and alerted.
 - Uploads: `POST /documents` streams to a quarantine prefix, ClamAV scan (sidecar) then move to the archive prefix; MIME sniffed server-side; max 25 MB; infected files rejected and logged. The quarantine prefix `quarantine/<owner_id>/` holds objects without retention (the bucket has no default retention rule) and every quarantined object is deleted after the scan; the scan runs before the type check so that every infected file is logged (warning log and `document.reject` audit event); no scanner answer refuses the upload with 503 (fail closed); accepted types are PDF, JPEG, PNG, and CSV or OFX by extension (Q-67).
 - Signed URLs: 10 minutes, bound to the document id and caller subject in the signature (issued only to a caller who may read the document, Q-50); every issue recorded as an audit event `document.download`.
-- Encryption: PostgreSQL on an encrypted volume, bucket SSE, backups encrypted with a provider KMS key; TLS 1.2+ only; database connections over TLS.
+- Encryption: PostgreSQL on an encrypted volume, bucket SSE, backups encrypted on the host with age to a public key whose identity is kept offline, in a bucket with SSE (Q-97); TLS 1.2+ only; database connections over TLS.
 - Roles: `tenure_api` (no BYPASSRLS, no DDL), `tenure_migrate` (DDL, used only by `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner, no DDL), and `tenure_rls` (NOLOGIN, BYPASSRLS, owns only the SECURITY DEFINER functions the policies call, Q-41); credentials separate; break-glass superuser access only through the provider console, logged and alerted.
 - Supply chain: `go.sum` and `package-lock.json` pinned, `govulncheck` and `npm audit` in CI, gitleaks on every PR in both repositories (secret scanning and push protection on private personal repositories need GitHub Advanced Security, so gitleaks is the day-1 control), Dependabot alerts and security updates enabled, SBOM (CycloneDX) attached to each release, container image scanned.
 - RGPD: `GET /me/export` (owner) and tenant data export on request; erasure job after retention; processing register kept in `docs/rgpd/`; breach runbook in `deploy/runbooks/`.
@@ -202,7 +202,7 @@ Every service write emits one audit event in the same transaction through `audit
 
 ## 9. Repository, configuration, CI and release
 
-Two repositories: github.com/ovander/tenure-api (Go module github.com/ovander/tenure-api: service, scheduler, templates, migrations, deploy) and github.com/ovander/tenure-web (the Vue app). tenure-web publishes its built bundle as a release artefact; tenure-api pins that release in web/VERSION, downloads it at build and embeds it, so one tenure-api release still ships both and is stamped with `-ldflags` at build.
+Two repositories: github.com/ovander/tenure-api (Go module github.com/ovander/tenure-api: service, scheduler, templates, migrations, deploy) and github.com/ovander/tenure-web (the Vue app). tenure-web publishes its built bundle as a release artefact; tenure-api pins that release and the SHA-256 of its `tenure-web-<tag>.tar.gz` asset in web/VERSION, downloads and verifies it at release build (`scripts/fetch-web.sh`) and embeds it, serving it outside `/api` and `/bff` with an SPA fallback (Q-96), so one tenure-api release still ships both and is stamped with `-ldflags` at build.
 
 | Path | Holds |
 | --- | --- |
@@ -213,7 +213,7 @@ Two repositories: github.com/ovander/tenure-api (Go module github.com/ovander/te
 | `templates` | Document HTML templates by class and version |
 | `web` | Built bundle of tenure-web at the pinned release (RENT-FE-001), embedded into `tenure` as embedded static files |
 | `testdata/golden` | Golden files per calculation and tax year |
-| `deploy` | Caddyfile, systemd unit, backup scripts |
+| `deploy` | Caddyfile, systemd units, sidecars compose file, deploy script, backup and restore scripts, env templates (Q-98) |
 | docs/rgpd, deploy/runbooks | Processing register and privacy notice; breach, restore and break-glass runbooks |
 
 Configuration by environment variables only (`TENURE_DB_URL`, `TENURE_S3_*`, `TENURE_SOCRATE_ISSUER`, `TENURE_SMTP_*`, `TENURE_PDF_ENGINE_URL`), validated at start; secrets never in the repo. Workflow, identical in both repositories: GitHub issue → branch → PR with a CI status check named `ci` (tenure-api: go vet, staticcheck, golangci-lint, govulncheck, gitleaks, unit and golden tests, migration up/down; tenure-web: vue-tsc, eslint, npm audit, gitleaks, Vitest, Playwright smoke) → AI security audit on the PR → tag `vX.Y.Z` → release (tenure-web: built bundle as release asset; tenure-api: binary embedding the pinned bundle, plus deploy script); database migrated before the binary swaps; rollback = previous binary plus the migration’s down file. Branch `main` protected in both: PR required, `ci` check required and up to date, admins included, no force push or deletion.
@@ -251,6 +251,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-01 | 2.1 | Slice 8b (Q-96 to Q-98): web/VERSION with checksum and embedded bundle, CSP per surface, deploy/ (Caddyfile, systemd, sidecars, deploy.sh), age-encrypted backups and tenure\_backup role, runbooks, docs/rgpd, release workflow with CycloneDX SBOM, ASVS L2 checklist |
 | 2026-11-01 | 2.0 | Slice 8a (Q-91 to Q-95): export\_jobs (migration 000008) and `GET /documents/exports/{id}`, grants routes, `GET /me/export`, number filter on `GET /documents`, archive.retention starts the retention clock, archive.verify sample |
 | 2026-11-01 | 1.9 | Slice 7 (Q-87 to Q-90): tax\_summaries draft/issued with deficits\_after (migration 000007), step\_up on POST and lines.csv, CSV archived beside the RF PDF, reel\_option\_lock\_years, tax.annual pre-check |
 | 2026-11-01 | 1.8 | BFF (Q-85, Q-86): browser login through backendkit bff in tenure, /bff routes, session tables (migration 000006), TENURE\_SOCRATE\_CLIENT\_ID/SECRET, TENURE\_PUBLIC\_URL, TENURE\_SESSION\_KEY |

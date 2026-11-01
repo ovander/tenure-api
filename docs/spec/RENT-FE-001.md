@@ -98,7 +98,7 @@ PrimeVue 4.4 components with the Aura preset and Tailwind for layout; one patter
 
 ## 7. Technical
 
-The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own repository github.com/ovander/tenure-web, published as a release bundle and served by `tenure` as embedded static files, talking to the API through a generated client.
+The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own repository github.com/ovander/tenure-web, published as a release asset `tenure-web-<tag>.tar.gz` (the built files at the archive root, `index.html` among them; hashed assets under `assets/`) and served by `tenure` as embedded static files under a CSP without inline script (Q-96), talking to the API through a generated client.
 
 - Structure: `src/{app,features/<module>,components,stores,api,i18n}`; one feature folder per backend module with its routes, views and store.
 - State: Pinia 2.3 stores per feature (`useLeaseStore`, `useBillingStore`…) holding server data by id and the active scope; no global caching beyond the current view; optimistic updates only for matching payments.

@@ -251,7 +251,8 @@ variant; documents are French only.
 - **Tables** `000008_archive.sql` (000007 went to tax): `export_jobs` (the async state, Q-91);
   `documents.retain_until` may be set once by `tenure_jobs` (Q-95).
 - **Split**: 8a is the API and jobs (exports, grants, RGPD export, retention, verify); 8b is
-  deploy, the RGPD register and the release workflow.
+  deploy, the RGPD register and the release workflow (Q-96 to Q-98), with the ASVS L2
+  checklist of the gate in `docs/security/asvs-l2.md`.
 - **API**: `GET /documents` (asset, year, class, number), `POST /documents/export`
   (`step_up`), `GET/POST /grants`, `DELETE /grants/{id}` (`step_up`, Q-05), `GET /me/export`.
 - **Jobs**: `archive.retention` (lists, deletes nothing), `archive.verify` (re-hashes a sample).
