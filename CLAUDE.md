@@ -41,7 +41,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | Migrations | `migrations/NNNNNN_<name>.sql`, six-digit zero-padded, reversible or marked not; applied by `tenure migrate` |
 | OpenAPI | swag v1.16.4 annotations on handlers, served at `/api/v1/openapi.json` |
 | Scheduler | robfig/cron in process, `job_runs` as the lock (BE-OD-01) |
-| Object store | minio-go: MinIO in docker-compose, Scaleway fr-par in production (OD-04, BE-OD-03) |
+| Object store | minio-go: Scaleway fr-par in production (OD-04, BE-OD-03); RustFS in docker-compose and the integration suite while no MinIO image can be pulled (Q-38) |
 | PDF | gotenberg over HTTP, HTML → PDF/A-2b (OD-03, BE-OD-02) |
 | Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`) |
 | Logs | `log/slog` JSON; backendkit's logrus entry is configured to JSON as well |
@@ -61,7 +61,9 @@ internal/auth         the only package that reads a token (wraps backendkit)
 internal/audit        audit.Record, hash chain, chain heads
 internal/jobs         scheduler, job_runs lock, per-owner iteration
 internal/httpapi      Chi routers, middleware, problem details, swag
-internal/notify       e-mail
+internal/notify       e-mail (SMTP, FR/EN), smtptest for tests
+internal/document     numbering, templates, PDF engine, archive store, signed links
+internal/app          wiring of the router and the jobs (cmd/tenure and the integration suite)
 internal/db           scoped transactions (app.owner_id, app.actor_sub), column types
 internal/migrate      goose over the embedded migrations
 internal/httpx        decode, ETag/If-Match, paging, service error → problem
@@ -70,7 +72,7 @@ internal/invariant    Error{Type, Detail}, ErrNotFound/ErrStale/ErrForbidden, Fi
 internal/itest        integration suite (build tag integration, testcontainers)
 migrations/           SQL migrations (embedded; seed generated from testdata/params)
 deploy/sql/roles.sql  database roles, run once per cluster by a superuser
-templates/<class>/<version>/   document templates (French)
+templates/<class>/<version>/   document templates (French, embedded); a change adds a version
 testdata/golden/<year>/        golden files per calculation and tax year (internal/golden runs them)
 testdata/params/<year>.json    legal parameter fixtures, the seed of legal_params
 ```
@@ -155,7 +157,8 @@ testdata/params/<year>.json    legal parameter fixtures, the seed of legal_param
   (inputs, parameter set, expected lines). A parameter change for year N+1 must never move a
   year-N golden. Regenerate only with the documented `-update` flag, and review the diff.
 - State machines (lease, reconciliation) are tested exhaustively: every state × every transition.
-- Integration tests run PostgreSQL 17, MinIO and gotenberg through testcontainers.
+- Integration tests run PostgreSQL 17, the S3 store (RustFS, Q-38) and gotenberg through
+  testcontainers, with an in-process SMTP server (`notify/smtptest`).
 - Never weaken a gate: no skipped or deleted test, no `t.Skip` or `//nolint` without a one-line
   reason, no required check removed.
 

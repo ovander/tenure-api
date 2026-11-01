@@ -245,10 +245,13 @@ plain `INSERT`, because `RETURNING` would require read access to the chain.
 accountant; RENT-FE-001 §5 also lets the co-owner read the audit tabs. Provisional: follow the
 backend spec. A co-owner gets 403, enforced both in the API and in row-level security.
 
-**Q-38 MinIO image — Open (slice 3).** OD-04 puts MinIO in docker-compose, but `minio/minio`
-cannot be pulled from Docker Hub here, and quay.io has no image either. Provisional: the
-`minio` service is behind the compose profile `archive` until slice 3 settles the image source.
-PostgreSQL 17 and gotenberg 8.21 start with a plain `up`.
+**Q-38 Object store in development and tests — Needs answer (OD-04).** OD-04 puts MinIO in
+docker-compose, but no MinIO image can be pulled (`minio/minio` is not on Docker Hub, and
+neither quay.io nor bitnami has one). Provisional: RustFS 1.0.3, an S3-compatible store whose
+versioning, compliance object lock and presigned URLs were checked with minio-go. The code
+speaks plain S3 through minio-go (BE-OD-03), so production on Scaleway is unchanged. RustFS
+backs the `archive` service of docker-compose and the integration suite. OD-04 is a decided
+item, so the owner should confirm this substitute or name another.
 
 **Q-39 Parameter changes with a past date — Open (slice 2).** RENT-SPEC-021 makes a parameter
 change a reviewed entry, but does not say whether it may be backdated. Provisional: `PUT
@@ -280,3 +283,87 @@ holding the share (RENT-BE-001 §2), so that table's policy follows the asset in
 `step_up`. Provisional: `GET /audit/events.csv` is step-up, and the export itself is recorded as
 an `audit.export` event. `GET /openapi.json` requires a token like every route except the health
 checks.
+
+## Raised by slice 3
+
+**Q-45 Download link in e-mails — Open (slice 3).** RENT-BE-001 §6 sends "a signed download link
+valid 30 days"; §8b limits signed URLs to 10 minutes, bound to the caller. In phase 1 a tenant
+has no Socrate login, so a 30-day link would be an unauthenticated way into the archive.
+Provisional: the e-mail carries the PDF as an attachment and no link. Links for tenants come
+with the portal (phase 4).
+
+**Q-46 Hash in the footer — Open (slice 3).** "A visible document number and hash footer", but a
+PDF cannot contain its own hash. Provisional: the footer prints the number and the first 16
+hex digits of the SHA-256 of the input snapshot. `documents.sha256` is the hash of the PDF
+itself, verified after upload.
+
+**Q-47 An object written before the commit — Open (slice 3).** The PDF is written under
+compliance lock before the metadata commits. If the commit then fails, the object stays in the
+bucket, locked and unreferenced, and its number is given back. Provisional: the next document
+reuses the number and is written as a new version of the same key; `documents.object_version`
+records which version is the document. `archive.verify` (slice 8) reports unreferenced
+versions.
+
+**Q-48 Document numbers — Open (slice 3).** `<prefix>-<asset>-<YYYY>-<seq>` does not say what
+`<asset>` is. Provisional: the first eight hex digits of the lease's principal asset id, in
+upper case. YYYY is the year of issue (Europe/Paris), and the sequence has four digits.
+
+**Q-49 Numbering a cancellation — Open (slice 3).** RENT-BE-001 §6 has no prefix for a cancelling
+document. Provisional: it takes the next number in the class of the document it cancels (AL),
+is archived in that class, and is rendered from the `cancellation` template.
+
+**Q-50 Binding a download link to the caller — Open (slice 3).** An S3 presigned URL cannot check
+who uses it. Provisional:
+- a link is issued only to a caller who may read the document;
+- its signature covers `x-tenure-sub` and `x-tenure-document`, so changing either makes the
+  store answer 403;
+- it lasts 10 minutes and is recorded as `document.download`;
+- an accountant gets links for financial classes only.
+
+**Q-51 One bucket or one per owner — Open (slice 3).** RENT-SPEC-005 says "bucket per owner";
+RENT-BE-001 §6 keys objects `<owner_id>/…` in one bucket. Provisional: follow the backend spec,
+with one bucket and an owner prefix.
+
+**Q-52 When a revision is due — Open (slice 3).** The rules, as implemented in
+`billing.DueRevision`:
+- **Index:** the reference quarter one year later.
+- **Anniversary:** in the revision month, on the lease's start day, at least 12 months after
+  the start.
+- **Effective from:** the first billing period starting on or after the anniversary, the
+  index's publication and today.
+
+`billing.monthly` applies a due revision before computing the fee; `irl.fetch` applies those
+that become due when INSEE publishes; `POST /leases/{id}/revision` applies one on demand. A
+revision more than 12 months late is forfeited (Q-13).
+
+**Q-53 Correcting an IRL value — Open (slice 3).** Provisional: the IRL cache is insert-only.
+`irl.fetch` adds only new quarters, and `PUT /params/irl/{quarter}` (admin, step-up) records a
+missing quarter by hand. A wrong recorded value is corrected by a reviewed migration.
+
+**Q-54 Retention period — Open (slice 3).** RENT-SPEC-005's 10 years is a legal constant.
+Provisional: `archive_retention_years` = 10 in `legal_params`, effective 2025-01-01. Its
+`source_url` is still to be filled.
+
+**Q-55 IRL publication date — Open (slice 3).** INSEE's SDMX series gives no publication date,
+and revisions must not apply before the index was known. Provisional: a fetched value is
+recorded as published on the 15th of the month after its quarter, INSEE's usual calendar, and
+never after the day it was fetched.
+
+**Q-56 Cancel and reissue — Open (slice 3).** Provisional: `POST /billing/documents/{id}/cancel`
+cancels a live rent call and, when the lease is still billed for that period, reissues it as
+the next generation in the same transaction (RENT-FE-001 flow 5). Revision notices are not
+cancelled; a wrong revision is corrected by an amendment (slice 5).
+
+**Q-57 Audit events of jobs and runs — Open (slice 3).** RENT-SPEC-022 audits "job runs".
+Provisional: every owner unit of a non-dry run records `job.<name>` in that owner's chain, and
+the platform unit in the platform chain. Routes that issue documents and e-mails emit one or
+more events; they are marked `+` in `testdata/audited_routes.txt`.
+
+**Q-58 Failed e-mails — Open (slice 3).** Provisional: a failed send is recorded on its delivery
+(`failed`, with the error) and audited. It neither fails the run nor rolls back the document.
+Automatic retry is not built yet.
+
+**Q-59 Atomicity of a monthly run — Open (slice 3).** RENT-BE-001 §5 makes failures per owner.
+Provisional: one owner's month is one transaction, so a lease that fails rolls back that
+owner's documents of the run (their numbers are given back; written objects follow Q-47). The
+run ends `partial`, and the other owners are unaffected.
