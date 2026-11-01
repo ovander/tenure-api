@@ -43,7 +43,8 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | document\_counters | owner\_id, class, asset\_code, year, last\_seq | Number sequence locked in the issuing transaction (Q-48) |
 | document\_deliveries | id, owner\_id, document\_id, recipient, channel, status (pending, sent, failed, skipped), attempts, last\_error | Delivery status per document and recipient (Q-24, Q-58) |
 | payments | id, owner\_id, lease\_id, paid\_on, amount\_cents, method, reference, bank\_line\_id | — |
-| payment\_matches | payment\_id, billing\_document\_id, amount\_cents | Partial matching |
+| payment\_matches | payment\_id, billing\_document\_id, amount\_cents | Partial matching; at most the payment and what remains due on a live rent call of the same lease (Q-60); moved to the reissue on cancel (Q-63) |
+| billing\_reminders | billing\_document\_id (unique), sent\_on, outstanding\_cents, recipients, failures | One reminder per rent call (Q-62) |
 | reconciliations | id, owner\_id, asset\_id, exercise\_year, state, statement\_document\_id, totals jsonb | One per asset and exercise |
 | reconciliation\_lines | reconciliation\_id, lease\_id, charge\_id, allocated\_cents, provisions\_cents, balance\_cents | Per lease allocation |
 | tax\_summaries | id, owner\_id, tax\_year, regime, lines jsonb, issued\_at, document\_id | One per owner and year |
@@ -71,7 +72,7 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 | lease | `GET/POST /leases`, `GET/PUT /leases/{id}`, `POST /leases/{id}/transitions` (activate, notice, end, close), `POST /leases/{id}/contract` (generate), `POST /leases/{id}/amendments`, `GET/POST /leases/{id}/guarantees`, `PUT /guarantees/{id}`, `POST /leases/{id}/inventories` | Transitions validate the state machine and required documents |
 | billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing; cancel issues the cancelling document and reissues the rent call (Q-56) |
 | charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (file + mapping), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
-| payment | `GET/POST /payments`, `PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer |
+| payment | `GET/POST /payments`, `GET/PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer (Q-60); amount and date frozen once receipted (Q-64) |
 | tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed, one issued |
 | document | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/content` (signed URL), `POST /documents` (upload with class and links), `POST /documents/export` (year or asset ZIP, async) | Content never streamed through the API for large files: short-lived signed URL |
 | params | `GET /params`, `GET /params/irl`, `PUT /params/{key}` (admin), `PUT /params/irl/{quarter}` (admin, manual override of a missing quarter, Q-53) | Effective-dated values |
@@ -106,7 +107,7 @@ Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job,
 | --- | --- | --- | --- |
 | billing.monthly | 1st, 06:00 | YYYY-MM | Issues rent calls for active and notice leases (RENT-SPEC-003) |
 | billing.reminders | daily, 08:00 | YYYY-MM-DD | Reminder e-mails at due day + 5; arrears flags |
-| billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run |
+| billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run, and partial receipts for new partial matches (Q-61) |
 | irl.fetch | 15th of Jan/Apr/Jul/Oct, 07:00 | YYYY-Qn | Fetches INSEE IRL; applies due revisions and issues notices |
 | charges.reconcile | on demand | asset + year | Reconciliation steps (RENT-SPEC-007) |
 | tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the income year; then drafts every owner’s summary for the previous year; owner issues it |
@@ -229,3 +230,4 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.2 | Implementation feedback (Q-27 to Q-33): rent\_control.zone\_ceiling and relocation\_rule replace zone\_rules; assets.rent\_control\_zone/category; leases.rent\_exemption and rent\_breakdown; 2044 map and tax parameters by income year; 222 per local |
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
+| 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
