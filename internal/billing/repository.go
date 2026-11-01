@@ -242,3 +242,87 @@ func (Repository) IRLSeries(ctx context.Context) (map[string]Index, error) {
 	}
 	return out, nil
 }
+
+// ReceiptsOf returns the receipts (quittance and partial) issued for a rent call.
+func (Repository) ReceiptsOf(ctx context.Context, rentCallID uuid.UUID) ([]docRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []docRow
+	err = t.Select(withCancelled).Where("kind IN ('receipt', 'partial_receipt') AND input_snapshot ->> 'rent_call_id' = ?", rentCallID.String()).
+		Order("issued_at").Find(&rows).Error
+	return rows, err
+}
+
+// CountKind returns how many documents of kind exist for (lease, period).
+func (Repository) CountKind(ctx context.Context, leaseID uuid.UUID, kind Kind, p string) (int, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var n int64
+	err = t.Model(&docRow{}).Where("lease_id = ? AND kind = ? AND period = ?", leaseID, string(kind), p).Count(&n).Error
+	return int(n), err
+}
+
+// DueDay returns the due day of a lease.
+func (Repository) DueDay(ctx context.Context, leaseID uuid.UUID) (int, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var d []int
+	if err := t.Table("leases").Where("id = ?", leaseID).Limit(1).Pluck("due_day", &d).Error; err != nil {
+		return 0, err
+	}
+	if len(d) == 0 {
+		return 0, invariant.ErrNotFound
+	}
+	return d[0], nil
+}
+
+// ReminderRow is a billing_reminders row.
+type ReminderRow struct {
+	ID                uuid.UUID `gorm:"column:id;primaryKey"`
+	OwnerID           uuid.UUID `gorm:"column:owner_id"`
+	BillingDocumentID uuid.UUID `gorm:"column:billing_document_id"`
+	SentOn            time.Time `gorm:"column:sent_on"`
+	OutstandingCents  int64     `gorm:"column:outstanding_cents"`
+	Recipients        int       `gorm:"column:recipients"`
+	Failures          int       `gorm:"column:failures"`
+	CreatedAt         time.Time `gorm:"column:created_at"`
+}
+
+// TableName maps ReminderRow to billing_reminders.
+func (ReminderRow) TableName() string { return "billing_reminders" }
+
+// RemindedOn returns the reminder date of rent calls, by id.
+func (Repository) RemindedOn(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]period.Date, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := map[uuid.UUID]period.Date{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	var rows []ReminderRow
+	if err := t.Where("billing_document_id IN ?", ids).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[r.BillingDocumentID] = period.FromTime(r.SentOn)
+	}
+	return out, nil
+}
+
+// InsertReminder records a sent reminder; a second one for the same rent call
+// is refused by the unique key.
+func (Repository) InsertReminder(ctx context.Context, r ReminderRow) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&r).Error
+}

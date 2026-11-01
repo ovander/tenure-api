@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>{{if .Partial}}Reçu partiel{{else}}Quittance de loyer{{end}} {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>{{if .Partial}}Reçu partiel{{else}}Quittance de loyer{{end}}</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}} · période {{periodLabel .Period}} · avis d’échéance n° {{.RentCallNumber}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+{{if .Partial}}
+<p>Le bailleur reconnaît avoir reçu la somme de <strong>{{euros .ReceivedCents}}</strong> en paiement partiel des sommes dues pour la période de {{periodLabel .Period}}.</p>
+{{else}}
+<p>Le bailleur reconnaît avoir reçu de {{range $i, $t := .Tenants}}{{if $i}}, {{end}}{{$t}}{{end}} la somme de <strong>{{euros .TotalCents}}</strong> au titre du loyer et des charges de la période de {{periodLabel .Period}}, et lui en donne quittance, sous réserve de tous ses droits.</p>
+{{end}}
+<table>
+  <thead><tr><th>Détail des sommes dues pour la période</th><th class="amount">Montant</th></tr></thead>
+  <tbody>
+  {{range .Lines}}<tr><td>{{.Label}}{{if .Detail}} ({{.Detail}}){{end}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+  {{end}}<tr class="total"><td>Total de la période</td><td class="amount">{{euros .TotalCents}}</td></tr>
+  </tbody>
+</table>
+<table>
+  <thead><tr><th>Paiements reçus</th><th>Mode</th><th class="amount">Montant</th></tr></thead>
+  <tbody>
+  {{range .Payments}}<tr><td>{{date .PaidOn}}</td><td>{{.Method}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+  {{end}}<tr class="total"><td colspan="2">Total reçu pour la période</td><td class="amount">{{euros .PaidCents}}</td></tr>
+  </tbody>
+</table>
+{{if .Partial}}
+<p class="note">Reste dû pour la période : <strong>{{euros .OutstandingCents}}</strong>. Le présent reçu ne vaut pas quittance ; la quittance sera délivrée après paiement intégral.</p>
+{{else}}
+<p class="note">Quittance délivrée en application de l’article 21 de la loi n° 89-462 du 6 juillet 1989. Dont loyer {{euros .RentCents}} et provisions pour charges {{euros .ChargesCents}}.</p>
+{{end}}
+</body></html>

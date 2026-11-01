@@ -30,6 +30,7 @@ import (
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -47,6 +48,7 @@ type Deps struct {
 	Jobs           jobs.Handler
 	Billing        billing.Handler
 	Documents      document.Handler
+	Payments       payment.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 }
@@ -96,6 +98,12 @@ func Routes(d Deps) []Route {
 		{"POST", "/leases/{id}/guarantees", GuardScopeOwnerW, false, h(d.Lease.CreateGuarantee)},
 		{"PUT", "/guarantees/{id}", GuardScopeOwnerW, false, h(d.Lease.UpdateGuarantee)},
 		{"POST", "/leases/{id}/revision", GuardScopeOwnerW, false, h(d.Billing.Revise)},
+		{"GET", "/leases/{id}/arrears", GuardScopeOwnerW, false, h(d.Billing.Arrears)},
+		{"GET", "/payments", GuardScopeOwnerW, false, h(d.Payments.List)},
+		{"POST", "/payments", GuardScopeOwnerW, false, h(d.Payments.Create)},
+		{"GET", "/payments/{id}", GuardScopeOwnerW, false, h(d.Payments.Get)},
+		{"PUT", "/payments/{id}", GuardScopeOwnerW, false, h(d.Payments.Update)},
+		{"POST", "/payments/{id}/matches", GuardScopeOwnerW, false, h(d.Payments.Match)},
 		{"POST", "/billing/runs", GuardScopeOwnerW, false, h(d.Billing.CreateRun)},
 		{"GET", "/billing/runs/{id}", GuardScopeOwnerW, false, h(d.Billing.GetRun)},
 		{"GET", "/billing/documents", GuardScopeOwnerW, false, h(d.Billing.ListDocuments)},

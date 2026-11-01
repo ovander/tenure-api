@@ -74,3 +74,38 @@ func IRLFetchJob(s Service, d *db.DB, src params.INSEE) jobs.Job {
 		AfterCommit: deliverAfter(s, d),
 	}
 }
+
+// ReceiptsJob is billing.receipts (RENT-BE-001 §5): hourly, the receipts of
+// the rent calls paid since the last run, then their e-mails.
+func ReceiptsJob(s Service, d *db.DB) jobs.Job {
+	return jobs.Job{
+		Name:     "billing.receipts",
+		Schedule: "0 * * * *",
+		Period:   jobs.HourKey,
+		PerOwner: func(ctx context.Context, o jobs.Owner) (any, error) {
+			return s.ReceiptsOwner(ctx, o.DryRun)
+		},
+		AfterCommit: deliverAfter(s, d),
+	}
+}
+
+// RemindersJob is billing.reminders (RENT-BE-001 §5): daily at 08:00, a
+// reminder e-mail for every rent call still unpaid on its due day plus
+// receipt_due_days_before_reminder, sent once.
+func RemindersJob(s Service, d *db.DB) jobs.Job {
+	return jobs.Job{
+		Name:     "billing.reminders",
+		Schedule: "0 8 * * *",
+		Period:   jobs.DayKey,
+		PerOwner: func(ctx context.Context, o jobs.Owner) (any, error) {
+			return s.RemindersOwner(ctx, o.Today)
+		},
+		AfterCommit: func(ctx context.Context, o jobs.Owner, res any) any {
+			due, _ := res.([]ReminderDue)
+			if len(due) == 0 {
+				return nil
+			}
+			return s.SendReminders(ctx, d, db.Scope{OwnerID: o.ID, ActorSub: o.ActorSub, Role: "job"}, o.Today, due)
+		},
+	}
+}
