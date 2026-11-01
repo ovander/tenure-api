@@ -158,11 +158,11 @@ variant; documents are French only.
 
 - **Spec**: RENT-SPEC-002 (Payment), RENT-SPEC-003 (receipt, partial receipt, late rent),
   OD-02, RENT-BE-001 §3 payment, `GET /leases/{id}/arrears`, §5 `billing.receipts`,
-  `billing.reminders`.
+  `billing.reminders`. Provisional readings: Q-60 to Q-66.
 - **Pkg**: `internal/payment` (repository, service and handler; matching rules in the service);
   billing receipts and arrears; `templates/receipt/v1` (rent and charges stated separately) and
   the partial-receipt variant.
-- **Tables** `000003_payments.sql`: `payments`, `payment_matches`.
+- **Tables** `000003_payments.sql`: `payments`, `payment_matches`, `billing_reminders`.
 - **API**: `GET/POST /payments`, `PUT /payments/{id}`, `POST /payments/{id}/matches`,
   `GET /leases/{id}/arrears`.
 - **Jobs**: `billing.receipts` (hourly), `billing.reminders` (daily, due day +

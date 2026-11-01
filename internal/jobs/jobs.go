@@ -127,6 +127,9 @@ func QuarterKey(t time.Time) string {
 	return fmt.Sprintf("%04d-Q%d", p.Year(), (int(p.Month())+2)/3)
 }
 
+// HourKey returns the key YYYY-MM-DD-HH of t in Europe/Paris.
+func HourKey(t time.Time) string { return t.In(Paris()).Format("2006-01-02-15") }
+
 // DayKey returns the key YYYY-MM-DD of t in Europe/Paris.
 func DayKey(t time.Time) string { return t.In(Paris()).Format(time.DateOnly) }
 

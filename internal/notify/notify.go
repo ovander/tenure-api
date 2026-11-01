@@ -176,6 +176,32 @@ var subjects = map[string]map[string]string{
 	"rent_call":       {"fr": "Avis d’échéance %s — %s", "en": "Rent call %s — %s"},
 	"revision_notice": {"fr": "Révision annuelle du loyer — %[2]s", "en": "Annual rent revision — %[2]s"},
 	"cancellation":    {"fr": "Annulation d’un document — %[2]s", "en": "Cancelled document — %[2]s"},
+	"receipt":         {"fr": "Quittance de loyer %s — %s", "en": "Rent receipt %s — %s"},
+	"partial_receipt": {"fr": "Reçu de paiement partiel %s — %s", "en": "Partial payment receipt %s — %s"},
+}
+
+// Reminder is a reminder of an unpaid rent call (RENT-SPEC-003, due day + 5).
+type Reminder struct {
+	Number      string
+	Period      string // formatted
+	DueOn       string // formatted
+	Outstanding string // formatted
+	Owner       string
+	Language    string
+}
+
+var reminderBodies = map[string]string{
+	"fr": "Bonjour,\n\nSauf erreur de notre part, l’avis d’échéance n° %s (%s), échu le %s, présente un reste dû de %s.\n\nSi votre paiement est en cours, merci de ne pas tenir compte de ce message.\n\nCordialement,\n%s\n",
+	"en": "Hello,\n\nUnless we are mistaken, rent call no. %s (%s), due on %s, still shows %s outstanding.\n\nIf your payment is on its way, please disregard this message.\n\nKind regards,\n%s\n",
+}
+
+// ComposeReminder returns the reminder message for recipient; it carries no
+// attachment.
+func ComposeReminder(r Reminder, to string) Message {
+	lang := Language(r.Language)
+	subject := map[string]string{"fr": "Rappel : loyer de %s", "en": "Reminder: rent for %s"}[lang]
+	return Message{To: to, Subject: fmt.Sprintf(subject, r.Period),
+		Text: fmt.Sprintf(reminderBodies[lang], r.Number, r.Period, r.DueOn, r.Outstanding, r.Owner)}
 }
 
 var bodies = map[string]string{

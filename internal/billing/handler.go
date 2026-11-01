@@ -333,3 +333,28 @@ func (h Handler) Revise(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, RevisionView{Revision: res, Notice: doc})
 }
+
+// Arrears godoc
+//
+//	@Summary		The arrears of a lease
+//	@Description	Every live rent call with something left to pay, overdue after its due day; no penalty is computed.
+//	@Tags			billing
+//	@Produce		json
+//	@Param			id				path		string	true	"lease id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	ArrearsView
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/leases/{id}/arrears [get]
+func (h Handler) Arrears(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.ArrearsFor(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}

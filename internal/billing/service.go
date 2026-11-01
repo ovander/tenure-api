@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -29,6 +31,7 @@ const (
 	TypeAlreadyCancelled = "billing/already-cancelled"
 	TypeNotCancellable   = "billing/not-cancellable"
 	TypeReasonRequired   = "billing/cancel-reason-required"
+	TypeReceiptIssued    = "billing/receipt-issued"
 )
 
 func init() {
@@ -37,6 +40,7 @@ func init() {
 		TypeAlreadyCancelled: problem.M(409, "Ce document est déjà annulé.", "This document is already cancelled."),
 		TypeNotCancellable:   problem.M(409, "Ce document ne peut pas être annulé.", "This document cannot be cancelled."),
 		TypeReasonRequired:   problem.M(422, "Le motif de l’annulation est obligatoire.", "A reason for the cancellation is required."),
+		TypeReceiptIssued:    problem.M(409, "Une quittance a été délivrée pour cet appel de loyer ; il ne peut plus être annulé.", "A receipt was issued for this rent call; it can no longer be cancelled."),
 	})
 }
 
@@ -92,15 +96,16 @@ type OwnerResult struct {
 // inside the caller's scoped transaction (a job's owner iteration); the others
 // open their own with the API role.
 type Service struct {
-	DB     *db.DB // API role
-	Lease  lease.Service
-	Repo   Repository
-	Params params.Repository
-	Issuer document.Issuer
-	Docs   document.Repository
-	Mailer notify.Mailer
-	Now    func() time.Time
-	NewID  func() uuid.UUID
+	DB       *db.DB // API role
+	Lease    lease.Service
+	Repo     Repository
+	Params   params.Repository
+	Issuer   document.Issuer
+	Docs     document.Repository
+	Payments payment.Repository
+	Mailer   notify.Mailer
+	Now      func() time.Time
+	NewID    func() uuid.UUID
 }
 
 func (s Service) now() time.Time { return s.Now().UTC().Truncate(time.Microsecond) }
@@ -122,19 +127,19 @@ func feeLines(f Fee) []document.Line {
 			if f.Prorated {
 				d = fmt.Sprintf("prorata %d/%d jours", f.OccupiedDays, f.DaysInPeriod)
 			}
-			out = append(out, document.Line{Label: "Loyer hors charges", Detail: d, AmountCents: l.AmountCents})
+			out = append(out, document.Line{Kind: string(l.Kind), Label: "Loyer hors charges", Detail: d, AmountCents: l.AmountCents})
 		case LineProvision:
 			d := ""
 			if f.Prorated {
 				d = fmt.Sprintf("prorata %d/%d jours", f.OccupiedDays, f.DaysInPeriod)
 			}
-			out = append(out, document.Line{Label: "Provision sur charges", Detail: d, AmountCents: l.AmountCents})
+			out = append(out, document.Line{Kind: string(l.Kind), Label: "Provision sur charges", Detail: d, AmountCents: l.AmountCents})
 		case LineRegularisation:
 			d := l.Reference
 			if l.Of > 0 {
 				d = fmt.Sprintf("%s, échéance %d/%d", l.Reference, l.Instalment, l.Of)
 			}
-			out = append(out, document.Line{Label: "Régularisation des charges", Detail: d, AmountCents: l.AmountCents})
+			out = append(out, document.Line{Kind: string(l.Kind), Label: "Régularisation des charges", Detail: d, AmountCents: l.AmountCents})
 		}
 	}
 	return out
@@ -495,6 +500,16 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 		if cur.CancelledBy != nil {
 			return invariant.New(TypeAlreadyCancelled, cur.Number)
 		}
+		if err := s.Payments.LockLease(ctx, cur.LeaseID); err != nil {
+			return err
+		}
+		receipts, err := s.Repo.ReceiptsOf(ctx, cur.ID)
+		if err != nil {
+			return err
+		}
+		if slices.ContainsFunc(receipts, func(r docRow) bool { return r.Kind == string(KindReceipt) }) {
+			return receiptedError(cur.Number)
+		}
 		ps, err := s.Params.Load(ctx)
 		if err != nil {
 			return err
@@ -509,7 +524,7 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 		}
 		lines := make([]document.Line, len(orig))
 		for i, l := range orig {
-			lines[i] = document.Line{Label: l.Label, Detail: l.Detail, AmountCents: -l.AmountCents}
+			lines[i] = document.Line{Kind: l.Kind, Label: l.Label, Detail: l.Detail, AmountCents: -l.AmountCents}
 		}
 		per, err := period.Parse(cur.Period)
 		if err != nil {
@@ -546,7 +561,8 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 		}
 		fee, err := ComputeFee(l, per, ps, FeeOptions{})
 		if errors.Is(err, ErrNotBillable) {
-			return nil
+			// Nothing to reissue: the payments become unapplied again.
+			return s.moveMatches(ctx, cur.ID, cur.ID, 0)
 		}
 		if err != nil {
 			return err
@@ -560,7 +576,7 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 			return err
 		}
 		reissued = &doc
-		return nil
+		return s.moveMatches(ctx, cur.ID, doc.BillingDocumentID, fee.TotalCents)
 	})
 	if err != nil {
 		return CancelResult{}, err

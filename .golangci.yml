@@ -12,6 +12,10 @@ linters:
     - misspell
     - revive
   settings:
+    misspell:
+      # User-facing strings are French (CLAUDE.md, Language); these are
+      # correct French words, not misspelt English.
+      ignore-rules: [partiel, exemple]
     revive:
       rules:
         - name: exported

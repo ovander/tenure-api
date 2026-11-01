@@ -367,3 +367,55 @@ Automatic retry is not built yet.
 Provisional: one owner's month is one transaction, so a lease that fails rolls back that
 owner's documents of the run (their numbers are given back; written objects follow Q-47). The
 run ends `partial`, and the other owners are unaffected.
+
+## Raised by slice 4
+
+**Q-60 Matching rules — Open (slice 4).** RENT-BE-001 §3 leaves the matching rules to the
+service. Provisional:
+- a payment applies only to a live rent call of its own lease;
+- each match is at most what remains due on that rent call, and all matches together at most
+  the payment;
+- `auto` (or `auto_match` at entry) applies the unapplied part to the oldest unpaid rent calls
+  first;
+- an overpayment stays unapplied on the payment, as a credit, and is never matched forward on
+  its own.
+
+Matching on one lease is serialised by a transaction lock.
+
+**Q-61 Partial receipts — Open (slice 4).** "A partial payment produces a reçu partiel": the spec
+does not say when or how many. Provisional:
+- `billing.receipts` issues, per rent call and per run, one partial receipt (kind
+  `partial_receipt`, numbered QL) for the matches no receipt covers yet;
+- the quittance (kind `receipt`) is issued once matched payments reach the rent call's total;
+  it lists every payment of the period and states rent and charges separately;
+- a rent call never gets a quittance before it is fully paid.
+
+**Q-62 Reminders — Open (slice 4).** Provisional:
+- one reminder per rent call (`billing_reminders`), sent by `billing.reminders` once the due
+  day plus `receipt_due_days_before_reminder` has passed and something is still due;
+- a day the job did not run is caught up the next day;
+- the e-mail carries no attachment, and the reminder is recorded after sending, with its audit
+  event;
+- no penalty (RENT-SPEC-003).
+
+**Q-63 Cancelling a paid rent call — Open (slice 4).** Provisional: a rent call that has a
+quittance cannot be cancelled (`billing/receipt-issued`). Otherwise, a cancel and reissue moves
+its matches to the reissued rent call, up to the new total; the remainder becomes unapplied on
+the payments again.
+
+**Q-64 Editing a payment — Open (slice 4).** Provisional:
+- a payment's amount and date are frozen once a receipt covers it, while method and reference
+  stay editable;
+- a payment never changes lease;
+- the amount cannot drop below what is already applied;
+- a payment date in the future is refused.
+
+**Q-65 Splitting a payment between rent and charges for tax — Open (slice 7).** Matches are per
+rent call, but `tax.Lines` counts only the rent lines (Q-08). Provisional, to be confirmed
+before slice 7: a matched amount is split between the rent call's lines in proportion to their
+amounts. This neither overstates nor understates line 211.
+
+**Q-66 Reading payments — Open (slice 4).** Provisional: owner, co-owner and accountant read
+payments, arrears and receipts (RENT-FE-001 §5, "billing month, payments: read"). Only the owner
+records, edits or matches a payment.
+

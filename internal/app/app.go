@@ -22,6 +22,7 @@ import (
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
 )
 
@@ -62,6 +63,8 @@ func New(d Deps) (*App, error) {
 		jobs.AuditHead(d.Store, params.Repository{}),
 		billing.MonthlyJob(bs, d.Jobs),
 		billing.IRLFetchJob(bs, d.Jobs, d.INSEE),
+		billing.ReceiptsJob(bs, d.Jobs),
+		billing.RemindersJob(bs, d.Jobs),
 	} {
 		reg[j.Name] = j
 	}
@@ -75,6 +78,7 @@ func New(d Deps) (*App, error) {
 		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
 		Billing:        billing.Handler{Service: bs, Runner: runner},
 		Documents:      document.Handler{Service: document.Service{DB: d.API, Store: d.Store, Now: d.Now}},
+		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
 	})
