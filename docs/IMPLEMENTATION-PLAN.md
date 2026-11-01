@@ -36,14 +36,16 @@ variant; documents are French only.
     no repository yet.
   - `internal/billing`: `ComputeFee(lease, period, params, opts)` returns fee lines (rent,
     provision, proration, regularisation line or instalment, carry-over) (Q-11, Q-16, Q-17);
-    `Revise(lease, index, asOf, params)` returns the new rent, the capped flag, or forfeited.
+    `Revise(lease, index, anniversary, from, params)` returns the new rent, the capped rule,
+    or forfeited.
     The cap is `irl_cap`, plus `rent_control.zone_rules` when an asset is in a controlled zone
     (Q-12, Q-13, Q-28).
-  - `internal/charge`: `Allocate(charges, leases, exercise, provisionsCollected, issuedOn,
-    params)` returns lines per lease: allocated, provisions, balance, spread flag, new provision
+  - `internal/charge`: `Allocate(charges, leases, exercise, provisionsCollected, params)`
+    (the exercise carries the issue date) returns lines per lease: allocated, provisions, balance, spread flag, new provision
     rounded up to the euro (Q-15, Q-16).
   - `internal/payment`: the pure type `Payment` only.
-  - `internal/tax`: `Lines(payments, charges, shares, year, params, priorDeficits)` returns per
+  - `internal/portfolio`: the pure type `Asset` (kind, furnished, controlled zone, parent).
+  - `internal/tax`: `Lines(payments, charges, assetShares, year, params, priorDeficits)` returns per
     asset and per owner share: income, expense lines by 2044 line, net, the micro-foncier
     eligibility and allowance, deficit split, missing-document flags, source ids. Rent income
     comes only from payments matched to rent lines; provisions received are not income, and
@@ -52,8 +54,8 @@ variant; documents are French only.
 - **Tables / API / Jobs**: none.
 - **Tests**: table tests per function (boundaries: the 1st and last day, 28/29/30/31-day months,
   zero-day overlap, a cap hit, a forfeited revision, a credit above the fee, rounding at .5).
-  Golden runner `testdata/golden/<year>/<case>.json`, with `go test ./internal/... -update` to
-  regenerate. Cases:
+  Golden runner `internal/golden` over `testdata/golden/<year>/<case>.json`, with
+  `go test ./internal/golden -update` to regenerate; parameter fixtures in `testdata/params/`. Cases:
   1. `apartment-box-unfurnished-3y`: apartment plus attached box, one lease, starting
      mid-month; the first month is prorated, then a full month.
   2. `furnished-studio`: full year of fees; tax gives gross receipts only.
