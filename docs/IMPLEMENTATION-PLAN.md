@@ -29,17 +29,21 @@ variant; documents are French only.
   - `internal/params`: the `Set` type, `Lookup(key, asOf)` over effective-dated values, typed
     accessors, fixtures for 2025 and 2026 (`micro_foncier_threshold_cents` 1500000,
     `deposit_max_months.*`, `regularisation_spread_after_months` 12, `irl_cap.*`,
-    `rent_control.zone_rules`, `form_2044_line_map` keyed by millésime (Q-07, Q-31),
+    `rent_control.zone_ceiling`, `rent_control.relocation_rule`, `form_2044_line_map` keyed by
+    income year with the millésime as label (Q-07, Q-28, Q-31),
     `micro_foncier_allowance_pct` 30, `forfait_222_cents` 2000, `deficit_global_cap_cents`
     1070000, `deficit_carryforward_years` 10). It has no database code yet.
-  - `internal/lease`: the pure domain type `Lease` (terms, assets, dates, IRL reference). It has
-    no repository yet.
+  - `internal/lease`: the pure domain type `Lease` (terms, assets, dates, IRL reference, rent
+    exemption and breakdown) and `Validate`: consistent ownership shares, zone ceiling at
+    creation and renewal, relocation rule at creation (Q-28, Q-32, Q-33). It has no repository
+    yet.
+  - `internal/invariant`: `Error{Type, Detail}`, the typed business-rule error (Q-19).
   - `internal/billing`: `ComputeFee(lease, period, params, opts)` returns fee lines (rent,
     provision, proration, regularisation line or instalment, carry-over) (Q-11, Q-16, Q-17);
     `Revise(lease, index, anniversary, from, params)` returns the new rent, the capped rule,
     or forfeited.
-    The cap is `irl_cap`, plus `rent_control.zone_rules` when an asset is in a controlled zone
-    (Q-12, Q-13, Q-28).
+    `irl_cap` caps the IRL variation; for controlled-zone dwellings the zone ceiling caps the
+    revised rent (Q-13, Q-28, Q-34).
   - `internal/charge`: `Allocate(charges, leases, exercise, provisionsCollected, params)`
     (the exercise carries the issue date) returns lines per lease: allocated, provisions, balance, spread flag, new provision
     rounded up to the euro (Q-15, Q-16).
@@ -49,8 +53,9 @@ variant; documents are French only.
     asset and per owner share: income, expense lines by 2044 line, net, the micro-foncier
     eligibility and allowance, deficit split, missing-document flags, source ids. Rent income
     comes only from payments matched to rent lines; provisions received are not income, and
-    recoverable expenses are not deducted except on line 225. It fails when the millésime has
-    no map (Q-07…Q-10, Q-14, Q-27…Q-31). Furnished assets give gross receipts only (OD-01).
+    recoverable expenses are not deducted except on line 225; one line 222 amount per lease of
+    unfurnished assets with rent; line 230 is signed. It fails when the income year has no map
+    (Q-07…Q-10, Q-14, Q-27…Q-31). Furnished assets give gross receipts only (OD-01).
 - **Tables / API / Jobs**: none.
 - **Tests**: table tests per function (boundaries: the 1st and last day, 28/29/30/31-day months,
   zero-day overlap, a cap hit, a forfeited revision, a credit above the fee, rounding at .5).
@@ -65,7 +70,7 @@ variant; documents are French only.
   5. `co-owned-50-50`: one asset, two owners; tax lines split, parts add up exactly.
   A test asserts that each year's golden file only reads that year's parameters.
 - **Accept**: `go test ./...` green; the five golden cases are reviewed by the owner (figures in
-  the PR); no legal constant in Go (a grep test checks the known values); a missing millésime
+  the PR); no legal constant in Go (a grep test checks the known values); a missing income-year
   map fails `tax.Lines`.
 
 ## Slice 2 — Portfolio and lease without contract
@@ -90,12 +95,15 @@ variant; documents are French only.
     `/healthz`, `/readyz`, `/api/v1/openapi.json`.
   - `internal/portfolio` and `internal/lease`: repository, service and handler for each; lease
     state machine `draft → active → notice → ended → closed` with blocker hooks (Q-22); the
-    one-active-lease-per-asset rule.
+    one-active-lease-per-asset rule; `lease.Validate` at every save, so a broken rule is a 422
+    with its problem `type` (`lease/consistent-ownership-shares`, `lease/zone-ceiling-exceeded`…).
   - `internal/params`: repository for `legal_params` and `irl_index`.
   - `internal/jobs`: cron, `job_runs` lock on (job, period), per-owner iteration as
     `tenure_jobs`, `partial` status.
 - **Tables** `000001_init.sql`: enums; `owners`, `owner_grants` (with `granted_at` and
-  `revoked_at`, Q-05), `assets` (with `controlled_zone`, Q-12),
+  `revoked_at`, Q-05), `assets` (with `controlled_zone`, `rent_control_zone`,
+  `rent_control_category`, Q-28, Q-33), `leases` (with `rent_exemption`, `rent_breakdown`,
+  Q-32),
   `asset_shares`, `tenants`, `leases`, `lease_assets`, `lease_tenants`, `guarantees`,
   `audit_events` (with a trigger refusing UPDATE and DELETE), `audit_chain_heads`,
   `legal_params` (seeded from the slice 1 fixtures, including the Q-09 keys), `irl_index`, `job_runs`, `documents`
@@ -216,10 +224,10 @@ variant; documents are French only.
 - **API**: `GET /tax/summaries`, `POST /tax/summaries` (year, regime; `step_up`),
   `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv`.
 - **Jobs**: `tax.annual` (10 January, drafts only). It starts with a pre-check that fails the
-  run when `form_2044_line_map` has no map for the target millésime.
+  run when `form_2044_line_map` has no map for the income year.
 - **Tests**: the summary equals the slice 1 golden for the year; a charge paid in N+1 counts in
   N+1; a charge with no document is flagged, not excluded; every figure traces to source ids;
-  `tax.annual` fails before drafting when the millésime map is missing;
+  `tax.annual` fails before drafting when the income-year map is missing;
   issuing without step-up gives 401; the RF summary and CSV are archived.
 - **Accept**: the seeded owner's previous year shows micro and réel side by side; issuing gives
   the RF-… PDF and CSV in the archive.

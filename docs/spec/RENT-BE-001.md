@@ -30,10 +30,10 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | owners | id, socrate\_sub, legal\_name, address, tax\_id, language (fr default, en), created\_at | One row per Socrate identity acting as owner |
-| assets | id, owner\_id, kind (house/apartment/box), address, lot, surface\_m2, furnished, dpe\_class, controlled\_zone, acquired\_on, acquisition\_cents, parent\_asset\_id | parent\_asset\_id links a box to a dwelling; controlled\_zone (boolean, default false) makes rent\_control.zone\_rules apply |
+| assets | id, owner\_id, kind (house/apartment/box), address, lot, surface\_m2, furnished, dpe\_class, controlled\_zone, acquired\_on, acquisition\_cents, parent\_asset\_id | parent\_asset\_id links a box to a dwelling; controlled\_zone (boolean, default false) with rent\_control\_zone and rent\_control\_category (the zone and category the ceiling table is keyed by) makes rent\_control.zone\_ceiling and rent\_control.relocation\_rule apply |
 | asset\_shares | asset\_id, owner\_id, share\_pct | Co-ownership; shares sum to 100 |
 | tenants | id, owner\_id, names\[\], email, phone, language (fr default, en) | Personal data minimised |
-| leases | id, owner\_id, kind, state, start\_on, end\_on, term\_months, rent\_cents, provision\_cents, deposit\_cents, due\_day, irl\_ref\_quarter, irl\_ref\_value, revision\_month, clauses jsonb, version | state: draft, active, notice, ended, closed; version bumps on each change |
+| leases | id, owner\_id, kind, state, start\_on, end\_on, term\_months, rent\_cents, provision\_cents, deposit\_cents, due\_day, irl\_ref\_quarter, irl\_ref\_value, revision\_month, rent\_exemption, rent\_breakdown jsonb, clauses jsonb, version | state: draft, active, notice, ended, closed; version bumps on each change; rent\_exemption (works, under\_valued) lifts the relocation rule; rent\_breakdown (per-asset rent) is optional and for reporting from phase 3, ignored by tax; all assets of a lease must have identical ownership shares (`lease/consistent-ownership-shares`, 422) |
 | lease\_assets | lease\_id, asset\_id | Many-to-many |
 | lease\_tenants | lease\_id, tenant\_id, solidary | — |
 | guarantees | id, lease\_id, kind, guarantor jsonb, amount\_cents, valid\_from, valid\_to, status, document\_id | kind: deposit, surety, visale, insurance |
@@ -107,7 +107,7 @@ Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job,
 | billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run |
 | irl.fetch | 15th of Jan/Apr/Jul/Oct, 07:00 | YYYY-Qn | Fetches INSEE IRL; applies due revisions and issues notices |
 | charges.reconcile | on demand | asset + year | Reconciliation steps (RENT-SPEC-007) |
-| tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the target millésime; then drafts every owner’s summary for the previous year; owner issues it |
+| tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the income year; then drafts every owner’s summary for the previous year; owner issues it |
 | archive.retention | 1st, 03:00 | YYYY-MM | Lists documents past retain\_until for manual review; deletes nothing |
 | archive.verify | weekly, Sun 04:00 | YYYY-Www | Re-hashes a sample of objects against `documents.sha256` |
 | audit.head | daily, 02:00 | YYYY-MM-DD | Writes each owner’s chain head to the locked bucket |
@@ -138,12 +138,13 @@ Every legal constant lives in `legal_params` with an effective date, and every c
 | regularisation\_spread\_after\_months | 12 | charge |
 | irl\_cap.applies / irl\_cap.rate | per decree, dated | billing |
 | receipt\_due\_days\_before\_reminder | 5 | billing |
-| form\_2044\_line\_map | by millésime: category → line | tax; tax.Lines and tax.annual fail when the target millésime has no map |
+| form\_2044\_line\_map | by income year (tax\_year), millésime as label: category → line | tax; tax.Lines and tax.annual fail when the income year has no map |
 | micro\_foncier\_allowance\_pct | 30 | tax |
-| forfait\_222\_cents | 2000 (per property) | tax |
+| forfait\_222\_cents | 2000 (per local: per lease of unfurnished assets that produced rent) | tax |
 | deficit\_global\_cap\_cents | 1070000 | tax |
 | deficit\_carryforward\_years | 10 | tax |
-| rent\_control.zone\_rules | per zone, dated; applied only when assets.controlled\_zone is set | billing |
+| rent\_control.zone\_ceiling | loyer de référence majoré per m² by zone and category, dated; only for assets with controlled\_zone | billing (revision cap), lease (creation, renewal) |
+| rent\_control.relocation\_rule | dated; whether a new lease on a controlled-zone asset is capped at the previous rent revised by IRL | lease (creation) |
 
 Calculations are pure functions in each module (`billing.ComputeFee(lease, period, params)`, `charge.Allocate(...)`, `tax.Lines(...)`) with no I/O, which is what the golden-file tests in section 10 exercise. Rounding: fees to the cent, half-up; provisions proposed to the euro, up; IRL revision to the cent.
 
@@ -222,3 +223,4 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 0.6 | Two repositories created: ovander/tenure-api and ovander/tenure-web; web bundle pinned and embedded at tenure-api build; CI check named ci, gitleaks and Dependabot as day-1 controls |
 | 2026-11-01 | 1.0 | BE-OD-01 to 04 decided (robfig/cron, gotenberg, minio-go, CSV + OFX); baseline for the phase 1 implementation plan |
 | 2026-11-01 | 1.1 | Implementation feedback: tenure\_\* DB roles, step-up on auth\_time + amr, owner\_grants in 000001, four tax parameters and rent-control zone rules in legal\_params; assets.controlled\_zone, 2044 map by millésime and tax.annual pre-check (Q-07, Q-12) |
+| 2026-11-01 | 1.2 | Implementation feedback (Q-27 to Q-33): rent\_control.zone\_ceiling and relocation\_rule replace zone\_rules; assets.rent\_control\_zone/category; leases.rent\_exemption and rent\_breakdown; 2044 map and tax parameters by income year; 222 per local |
