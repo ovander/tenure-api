@@ -99,10 +99,12 @@ parts always add up to the total.
 
 **Q-15 Allocation rounding and vacancy — Open (slice 1).** Provisional: an exercise is a date
 range (it may differ from the calendar year). A lease's share is
-`recoverable × lease days ÷ exercise days`, rounded half-up. Days with no lease stay with the
-owner as non-recovered. When there is no vacancy, the rounding remainder goes to the
-largest-remainder lease, so the shares add up to the total. A box on a dwelling lease shares that
-lease.
+`recoverable × lease days ÷ exercise days`. When the exercise has days with no lease, each share
+is rounded down, and the vacancy keeps the remainder as non-recovered, so a tenant is never
+charged a rounding cent. When there is no vacancy, the total is split by largest remainder, so
+the shares add up exactly. A box on a dwelling lease shares that lease. The proposed provision is
+the asset's recoverable total ÷ 12, rounded up to the euro, for every lease still running after
+the exercise.
 
 **Q-16 Late regularisation spread — Open (slice 1).** The law gives the 12 monthly instalments on
 the tenant's request; RENT-SPEC-007 makes them automatic. Provisional: follow the spec. The flag
@@ -185,3 +187,10 @@ N+1 (the 2044 filed in 2026 for 2025 income is millésime 2026). Provisional: mi
 year + 1, so `tax.Lines` for income year 2025 needs the 2026 map. The fixtures hold the map
 under millésime 2026 for income year 2025. If the header means "income year 2025", only its
 wording changes.
+
+**Q-32 Rent of a lease over several assets — Open (slice 1).** Rent is set per lease, not per
+asset, so a lease of an apartment with its box has one rent. Provisional: the rent is attributed
+to the lease's principal asset (its first dwelling, or the box when the box is let alone,
+`lease.PrincipalAsset`), and charges stay on the asset they concern. If the dwelling and the box
+have different co-owners, the summary is wrong for that lease. The owner should confirm that
+this never happens, or the rent will need a split key per asset.
