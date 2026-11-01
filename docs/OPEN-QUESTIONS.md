@@ -738,6 +738,9 @@ Provisional:
   `index.html`, and a missing file with an extension is a 404 problem;
 - the CSP is set by tenure per surface (`'self'`, no inline script, for the app;
   `default-src 'none'` for the API); Caddy adds headers only where missing;
+- `index.html` gets a fresh nonce on every response, written over its `__CSP_NONCE__`
+  placeholder and allowed in `style-src`: PrimeVue writes its theme into `<style>` elements at
+  run time (tenure-web Q-W1); scripts stay `'self'` and `'unsafe-inline'` is used nowhere;
 - hashed `assets/` are cached for a year and `index.html` is `no-cache`.
 
 **Q-97 Backups — Open (slice 8).** RENT-BE-001 says "encrypted with a provider KMS key".
