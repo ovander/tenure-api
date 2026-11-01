@@ -19,3 +19,6 @@ POST /billing/documents/{id}/cancel +
 PUT /params/irl/{quarter}
 PUT /params/{key}
 POST /jobs/{name}/trigger +
+POST /payments +
+PUT /payments/{id}
+POST /payments/{id}/matches
