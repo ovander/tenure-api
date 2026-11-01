@@ -41,6 +41,7 @@ import (
 	"github.com/ovander/tenure-api/internal/migrate"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/web"
 )
 
 const usage = `usage:
@@ -195,6 +196,12 @@ func serve(ctx context.Context, getenv func(string) string) error {
 		return err
 	}
 	go d.BFF.Sweep(ctx)
+	d.Web = web.FS()
+	if tag, _, err := web.Pinned(); err != nil {
+		slog.Warn("web bundle", "error", err)
+	} else {
+		slog.Info("web bundle", "release", tag)
+	}
 	a, err := app.New(d)
 	if err != nil {
 		return err

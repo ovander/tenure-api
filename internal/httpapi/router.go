@@ -15,6 +15,7 @@ package httpapi
 import (
 	"context"
 	_ "embed"
+	"io/fs"
 	"net"
 	"net/http"
 	"time"
@@ -65,6 +66,9 @@ type Deps struct {
 	// keeps 10. Only the integration suite, whose every call comes from one
 	// address, raises it.
 	FailedAuthMax int
+	// Web is the embedded tenure-web bundle served outside /api and /bff
+	// (nil: none, every such path is a 404).
+	Web fs.FS
 	// BFF serves /bff and turns a browser session into a bearer in front of
 	// internal/auth; nil serves bearer clients only.
 	BFF *bff.Server
@@ -214,7 +218,7 @@ func NewRouter(d Deps) (http.Handler, error) {
 	r := chi.NewRouter()
 	// The body cap is set per route (bodyLimit): 1 MiB, except uploads.
 	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders, attribute(d.TrustedProxies))
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) { problem.Write(w, r, problem.NotFound, "", "", nil) })
+	r.NotFound(staticApp(d.Web, problemNotFound))
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		problem.Write(w, r, problem.MethodNotAllowed, "", "", nil)
 	})

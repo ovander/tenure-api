@@ -1,0 +1,5 @@
+# The tenure-web release embedded into tenure (RENT-BE-001 §9), as
+#   <tag> <sha256 of tenure-web-<tag>.tar.gz>
+# or "none" while tenure-web has published no release (Q-96): the placeholder
+# in dist/ is embedded and a tenure release refuses to build.
+none

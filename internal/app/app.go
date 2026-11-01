@@ -6,6 +6,7 @@ package app
 
 import (
 	"context"
+	"io/fs"
 	"net"
 	"net/http"
 	"time"
@@ -47,6 +48,8 @@ type Deps struct {
 	FailedAuthMax int
 	// BFF serves browser sessions (nil: bearer clients only).
 	BFF *bff.Server
+	// Web is the embedded web app (nil: API only).
+	Web fs.FS
 	Now func() time.Time
 }
 
@@ -103,6 +106,7 @@ func New(d Deps) (*App, error) {
 		WriteBurst:     d.WriteBurst,
 		FailedAuthMax:  d.FailedAuthMax,
 		BFF:            d.BFF,
+		Web:            d.Web,
 	})
 	if err != nil {
 		return nil, err

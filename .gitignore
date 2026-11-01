@@ -32,3 +32,6 @@ go.work.sum
 # .idea/
 # .vscode/
 /tenure
+
+# Release builds (scripts/build.sh)
+/dist/
