@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+  exclusions:
+    rules:
+      # httptest handlers in tests routinely ignore Write/Encode errors.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
