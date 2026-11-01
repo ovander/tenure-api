@@ -1,0 +1,2853 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Rental management for houses, apartments and parking boxes under French law. Every amount is in cents; every error is an RFC 9457 problem with a stable type.",
+        "title": "Tenure API",
+        "contact": {},
+        "version": "1"
+    },
+    "basePath": "/api/v1",
+    "paths": {
+        "/assets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "List the scope's assets",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-portfolio_AssetView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Add an asset",
+                "parameters": [
+                    {
+                        "description": "asset",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.AssetInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.AssetView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Get an asset",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.AssetView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Update an asset",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "asset",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.AssetInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.AssetView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/audit/events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List the scope's audit events, with their chain hashes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "entity type, e.g. lease",
+                        "name": "entity_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "entity id",
+                        "name": "entity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "first day (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "last day (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-audit_Event"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/audit/events.csv": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Step-up required; the export is itself recorded as an audit event.",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Export the scope's audit events as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "entity type",
+                        "name": "entity_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "entity id",
+                        "name": "entity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "first day (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "last day (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/guarantees/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Update a guarantee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "guarantee id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "guarantee",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.GuaranteeInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lease.GuaranteeView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/runs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List job runs",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-jobs_Run"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "List the scope's leases",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "draft, active, notice, ended or closed",
+                        "name": "state",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "leases over this asset",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-lease_View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks every lease rule at save: one ownership across the assets, zone ceiling, relocation rule.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Draft a lease",
+                "parameters": [
+                    {
+                        "description": "lease",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Get a lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lease.View"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Update a draft lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "lease",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lease.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/guarantees": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An accountant does not see the guarantor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "List a lease's guarantees",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/lease.GuaranteeView"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Add a guarantee to a lease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "guarantee",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.GuaranteeInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/lease.GuaranteeView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/transitions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lease"
+                ],
+                "summary": "Move a lease along its lifecycle (activate, notice, end, close)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "transition",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/lease.TransitionInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lease.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "The caller, their roles and owner scopes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.MeView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Without If-Match, creates the profile linked to the caller's Socrate subject; with If-Match, updates it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Create or update the caller's owner profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "version to update",
+                        "name": "If-Match",
+                        "in": "header"
+                    },
+                    {
+                        "description": "profile",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.OwnerInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.OwnerView"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.OwnerView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/params": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "params"
+                ],
+                "summary": "List legal parameters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "only this key",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only the values in force on this date (YYYY-MM-DD)",
+                        "name": "as_of",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/params.Entry"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/params/irl": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "params"
+                ],
+                "summary": "List the cached INSEE IRL values",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/params.IRL"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/params/{key}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin only, step-up required. Values are appended, never edited; the effective date cannot be in the past.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "params"
+                ],
+                "summary": "Add an effective-dated value to a legal parameter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "parameter key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new value",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/params.PutInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/params.Entry"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An accountant sees names only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "List the scope's tenants",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-portfolio_TenantView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Add a tenant",
+                "parameters": [
+                    {
+                        "description": "tenant",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.TenantInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.TenantView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Get a tenant",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "tenant id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.TenantView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Update a tenant",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "tenant id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "tenant",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.TenantInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.TenantView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "audit.Event": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor_sub": {
+                    "type": "string"
+                },
+                "after": {
+                    "type": "object"
+                },
+                "before": {
+                    "type": "object"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "occurred_at": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "prev_hash": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "type": "string"
+                },
+                "scope": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.Role": {
+            "type": "string",
+            "enum": [
+                "owner",
+                "co_owner",
+                "accountant"
+            ],
+            "x-enum-varnames": [
+                "RoleOwner",
+                "RoleCoOwner",
+                "RoleAccountant"
+            ]
+        },
+        "auth.Scope": {
+            "type": "object",
+            "properties": {
+                "legal_name": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/auth.Role"
+                }
+            }
+        },
+        "httpx.List-audit_Event": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/audit.Event"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-jobs_Run": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jobs.Run"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-lease_View": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.View"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-portfolio_AssetView": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/portfolio.AssetView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-portfolio_TenantView": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/portfolio.TenantView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jobs.Run": {
+            "type": "object",
+            "properties": {
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "job": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/jobs.Status"
+                },
+                "summary": {
+                    "type": "object"
+                }
+            }
+        },
+        "jobs.Status": {
+            "type": "string",
+            "enum": [
+                "running",
+                "succeeded",
+                "failed",
+                "partial"
+            ],
+            "x-enum-varnames": [
+                "StatusRunning",
+                "StatusSucceeded",
+                "StatusFailed",
+                "StatusPartial"
+            ]
+        },
+        "lease.Action": {
+            "type": "string",
+            "enum": [
+                "activate",
+                "notice",
+                "end",
+                "close"
+            ],
+            "x-enum-varnames": [
+                "ActionActivate",
+                "ActionNotice",
+                "ActionEnd",
+                "ActionClose"
+            ]
+        },
+        "lease.GuaranteeInput": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "guarantor": {
+                    "type": "object"
+                },
+                "kind": {
+                    "enum": [
+                        "deposit",
+                        "surety",
+                        "visale",
+                        "insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.GuaranteeKind"
+                        }
+                    ]
+                },
+                "status": {
+                    "enum": [
+                        "held",
+                        "valid",
+                        "expired",
+                        "settled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.GuaranteeStatus"
+                        }
+                    ]
+                },
+                "valid_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "valid_to": {
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
+        "lease.GuaranteeKind": {
+            "type": "string",
+            "enum": [
+                "deposit",
+                "surety",
+                "visale",
+                "insurance"
+            ],
+            "x-enum-varnames": [
+                "GuaranteeDeposit",
+                "GuaranteeSurety",
+                "GuaranteeVisale",
+                "GuaranteeInsurance"
+            ]
+        },
+        "lease.GuaranteeStatus": {
+            "type": "string",
+            "enum": [
+                "held",
+                "valid",
+                "expired",
+                "settled"
+            ],
+            "x-enum-varnames": [
+                "StatusHeld",
+                "StatusValid",
+                "StatusExpired",
+                "StatusSettled"
+            ]
+        },
+        "lease.GuaranteeView": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "guarantor": {
+                    "type": "object"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "enum": [
+                        "deposit",
+                        "surety",
+                        "visale",
+                        "insurance"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.GuaranteeKind"
+                        }
+                    ]
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "held",
+                        "valid",
+                        "expired",
+                        "settled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.GuaranteeStatus"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "valid_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "valid_to": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "lease.Input": {
+            "type": "object",
+            "properties": {
+                "asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "clauses": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "deposit_cents": {
+                    "type": "integer"
+                },
+                "due_day": {
+                    "type": "integer"
+                },
+                "end_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "irl_ref_quarter": {
+                    "type": "string",
+                    "example": "2025-Q2"
+                },
+                "irl_ref_value": {
+                    "type": "integer",
+                    "example": 14668
+                },
+                "kind": {
+                    "enum": [
+                        "unfurnished",
+                        "furnished",
+                        "mobility",
+                        "box"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.Kind"
+                        }
+                    ]
+                },
+                "provision_cents": {
+                    "type": "integer"
+                },
+                "rent_breakdown": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.RentPart"
+                    }
+                },
+                "rent_cents": {
+                    "type": "integer"
+                },
+                "rent_exemption": {
+                    "enum": [
+                        "works",
+                        "under_valued"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.RentExemption"
+                        }
+                    ]
+                },
+                "revision_month": {
+                    "type": "integer"
+                },
+                "start_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "tenants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.TenantLink"
+                    }
+                },
+                "term_months": {
+                    "type": "integer"
+                }
+            }
+        },
+        "lease.Kind": {
+            "type": "string",
+            "enum": [
+                "unfurnished",
+                "furnished",
+                "mobility",
+                "box"
+            ],
+            "x-enum-varnames": [
+                "KindUnfurnished",
+                "KindFurnished",
+                "KindMobility",
+                "KindBox"
+            ]
+        },
+        "lease.RentExemption": {
+            "type": "string",
+            "enum": [
+                "",
+                "works",
+                "under_valued"
+            ],
+            "x-enum-varnames": [
+                "ExemptionNone",
+                "ExemptionWorks",
+                "ExemptionUnderValued"
+            ]
+        },
+        "lease.RentPart": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "rent_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "lease.State": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "active",
+                "notice",
+                "ended",
+                "closed"
+            ],
+            "x-enum-varnames": [
+                "StateDraft",
+                "StateActive",
+                "StateNotice",
+                "StateEnded",
+                "StateClosed"
+            ]
+        },
+        "lease.TenantLink": {
+            "type": "object",
+            "properties": {
+                "solidary": {
+                    "description": "Solidary defaults to true (clause de solidarité).",
+                    "type": "boolean"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "lease.TransitionInput": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "enum": [
+                        "activate",
+                        "notice",
+                        "end",
+                        "close"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.Action"
+                        }
+                    ]
+                },
+                "end_on": {
+                    "description": "EndOn is required for a notice: the last day of the lease.",
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
+        "lease.View": {
+            "type": "object",
+            "properties": {
+                "asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "clauses": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deposit_cents": {
+                    "type": "integer"
+                },
+                "due_day": {
+                    "type": "integer"
+                },
+                "end_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "irl_ref_quarter": {
+                    "type": "string",
+                    "example": "2025-Q2"
+                },
+                "irl_ref_value": {
+                    "type": "integer",
+                    "example": 14668
+                },
+                "kind": {
+                    "enum": [
+                        "unfurnished",
+                        "furnished",
+                        "mobility",
+                        "box"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.Kind"
+                        }
+                    ]
+                },
+                "provision_cents": {
+                    "type": "integer"
+                },
+                "rent_breakdown": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.RentPart"
+                    }
+                },
+                "rent_cents": {
+                    "type": "integer"
+                },
+                "rent_exemption": {
+                    "enum": [
+                        "works",
+                        "under_valued"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.RentExemption"
+                        }
+                    ]
+                },
+                "revision_month": {
+                    "type": "integer"
+                },
+                "start_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "state": {
+                    "enum": [
+                        "draft",
+                        "active",
+                        "notice",
+                        "ended",
+                        "closed"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/lease.State"
+                        }
+                    ]
+                },
+                "tenants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lease.TenantLink"
+                    }
+                },
+                "term_months": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "params.Entry": {
+            "type": "object",
+            "properties": {
+                "effective_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "source_url": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "object"
+                }
+            }
+        },
+        "params.IRL": {
+            "type": "object",
+            "properties": {
+                "published_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "quarter": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "params.PutInput": {
+            "type": "object",
+            "properties": {
+                "effective_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "source_url": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "object"
+                }
+            }
+        },
+        "portfolio.AssetInput": {
+            "type": "object",
+            "properties": {
+                "acquired_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "acquisition_cents": {
+                    "type": "integer"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "controlled_zone": {
+                    "type": "boolean"
+                },
+                "dpe_class": {
+                    "type": "string"
+                },
+                "furnished": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "enum": [
+                        "house",
+                        "apartment",
+                        "box"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.AssetKind"
+                        }
+                    ]
+                },
+                "lot": {
+                    "type": "string"
+                },
+                "parent_asset_id": {
+                    "type": "string"
+                },
+                "rent_control_category": {
+                    "type": "string"
+                },
+                "rent_control_zone": {
+                    "type": "string"
+                },
+                "shares": {
+                    "description": "Shares defaults to 100 % for the owner of the scope.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/portfolio.ShareView"
+                    }
+                },
+                "surface_hundredths_m2": {
+                    "type": "integer"
+                }
+            }
+        },
+        "portfolio.AssetKind": {
+            "type": "string",
+            "enum": [
+                "house",
+                "apartment",
+                "box"
+            ],
+            "x-enum-varnames": [
+                "KindHouse",
+                "KindApartment",
+                "KindBox"
+            ]
+        },
+        "portfolio.AssetView": {
+            "type": "object",
+            "properties": {
+                "acquired_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "acquisition_cents": {
+                    "type": "integer"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "controlled_zone": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dpe_class": {
+                    "type": "string"
+                },
+                "furnished": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "enum": [
+                        "house",
+                        "apartment",
+                        "box"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/portfolio.AssetKind"
+                        }
+                    ]
+                },
+                "lot": {
+                    "type": "string"
+                },
+                "parent_asset_id": {
+                    "type": "string"
+                },
+                "rent_control_category": {
+                    "type": "string"
+                },
+                "rent_control_zone": {
+                    "type": "string"
+                },
+                "shares": {
+                    "description": "Shares defaults to 100 % for the owner of the scope.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/portfolio.ShareView"
+                    }
+                },
+                "surface_hundredths_m2": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "portfolio.MeView": {
+            "type": "object",
+            "properties": {
+                "active_scope": {
+                    "$ref": "#/definitions/auth.Scope"
+                },
+                "admin": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "owner": {
+                    "$ref": "#/definitions/portfolio.OwnerView"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/auth.Scope"
+                    }
+                },
+                "sub": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.OwnerInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "legal_name": {
+                    "type": "string"
+                },
+                "tax_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.OwnerView": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "legal_name": {
+                    "type": "string"
+                },
+                "tax_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "portfolio.ShareView": {
+            "type": "object",
+            "properties": {
+                "bp": {
+                    "type": "integer"
+                },
+                "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.TenantInput": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.TenantView": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "problem.Body": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "string"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/problem.FieldError"
+                    }
+                },
+                "instance": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "problem.FieldError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Socrate access token: \"Bearer \u003ctoken\u003e\".",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

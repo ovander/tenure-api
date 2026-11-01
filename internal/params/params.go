@@ -37,11 +37,15 @@ const (
 // asked, or when no 2044 map exists for a millésime.
 var ErrNotFound = errors.New("params: no effective value")
 
+// ErrDuplicate is returned by New for two entries of one key, date (and, for
+// the 2044 map, income year).
+var ErrDuplicate = errors.New("params: duplicate entry")
+
 // Entry is one effective-dated value of a parameter, as stored in legal_params.
 type Entry struct {
 	Key           string          `json:"key"`
-	EffectiveFrom period.Date     `json:"effective_from"`
-	Value         json.RawMessage `json:"value"`
+	EffectiveFrom period.Date     `json:"effective_from" swaggertype:"string" format:"date"`
+	Value         json.RawMessage `json:"value" swaggertype:"object"`
 	Source        string          `json:"source"`
 	SourceURL     string          `json:"source_url"`
 }
@@ -71,7 +75,7 @@ func New(entries ...Entry) (Set, error) {
 			id += fmt.Sprintf("#%d", m.TaxYear)
 		}
 		if seen[id] {
-			return Set{}, fmt.Errorf("params: duplicate entry %s", id)
+			return Set{}, fmt.Errorf("%w %s", ErrDuplicate, id)
 		}
 		seen[id] = true
 		s.entries[e.Key] = append(s.entries[e.Key], e)

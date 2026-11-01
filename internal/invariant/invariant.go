@@ -27,3 +27,36 @@ func Is(err error, t string) bool {
 	var e *Error
 	return errors.As(err, &e) && e.Type == t
 }
+
+// Errors every service returns besides business rules; the HTTP layer maps
+// them to 404, 412 and 403.
+var (
+	ErrNotFound  = errors.New("not found")
+	ErrStale     = errors.New("version mismatch")
+	ErrForbidden = errors.New("forbidden")
+)
+
+// Field is one invalid input field.
+type Field struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// Fields is a list of invalid input fields, returned as one error (422
+// validation/invalid with errors[]). Messages are French: they are shown
+// inline next to the field.
+type Fields []Field
+
+// Error implements error.
+func (f Fields) Error() string { return fmt.Sprintf("%d invalid field(s)", len(f)) }
+
+// Add appends a field error.
+func (f *Fields) Add(field, message string) { *f = append(*f, Field{field, message}) }
+
+// Err returns f as an error, or nil when empty.
+func (f Fields) Err() error {
+	if len(f) == 0 {
+		return nil
+	}
+	return f
+}

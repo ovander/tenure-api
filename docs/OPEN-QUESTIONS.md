@@ -16,6 +16,7 @@ value were not supplied. Provisional: `TENURE_SOCRATE_ISSUER`, `TENURE_SOCRATE_J
 `tenure serve` refuses to start without them. `.env.example` holds obvious placeholders. The
 admin role is read from backendkit's `role` claim (`ctxutil.GetUserRole`).
 2026-11-01: the owner confirmed the reading. The four settings stay required, with no default.
+Slice 2: `tenure serve` refuses to start without them; `.env.example` holds placeholders and the integration suite signs its own tokens with a local JWKS.
 
 **Q-02 Step-up freshness — Answered 2026-11-01.** The owner adopted the reading. A `step_up`
 route requires `auth_time` at most 5 minutes old and `mfa` in `amr`; a missing `auth_time` is
@@ -135,12 +136,14 @@ phase 1 gate.
 reversibility, but not the tool. Provisional: pressly/goose v3 with `-- +goose Up` and
 `-- +goose Down` sections in one file, embedded in the binary. A migration that cannot be
 reversed says so in its Down section and fails it on purpose.
+Slice 2: goose v3 `Provider` over the embedded `migrations` package; `tenure migrate up|down|status`; CI runs up, down, up.
 
 **Q-22 Activation blockers before slice 5 — Open (slice 2).** Activation needs the signed contract
 and the entry inventory (RENT-SPEC-008), which only exist from slice 5. Provisional: slice 2
 builds the state machine with a blocker interface and implements the blockers that need no
 documents. Slice 5 adds the document blockers. No release reaches real data before the phase 1
 gate.
+Slice 2: activation checks one current lease per asset (assets locked `FOR UPDATE`) and every lease rule; closing requires every deposit settled.
 
 **Q-23 Diagnostics — Open (slice 5).** Generation is blocked by "a diagnostic past its validity,
 no DPE", but the data model only has `assets.dpe_class`. Provisional: an `asset_diagnostics`
@@ -224,3 +227,56 @@ may not exceed the ceiling, but not what happens when the current rent is alread
 Provisional: the revision does not raise the rent (`above_ceiling` is set so the owner is told),
 a falling index still lowers it, and the rent is never cut down to the ceiling automatically,
 because that is a separate procedure.
+
+## Raised by slice 2
+
+**Q-35 Creating the owner profile — Open (slice 2).** Nothing in the spec says how an owners row
+is created. Provisional: `PUT /me` without `If-Match` creates the caller's profile, linked to
+their Socrate subject. It holds no credential and is not an account, so RENT-SPEC-006 still
+holds. It is audited as `owner.create` and starts the owner's audit chain. With `If-Match`, the
+same route updates the profile. A grantee who has no profile of their own gets no default scope.
+
+**Q-36 Platform audit chain — Open (slice 2).** Admin parameter changes (`PUT /params/{key}`)
+belong to no owner. Provisional: `audit_events.owner_id` is nullable, and NULL is a separate
+platform chain, hashed, locked and verified like the owner chains. Events are appended with a
+plain `INSERT`, because `RETURNING` would require read access to the chain.
+
+**Q-37 Who reads the audit trail — Open (slice 2).** RENT-BE-001 §3 says the owner and the
+accountant; RENT-FE-001 §5 also lets the co-owner read the audit tabs. Provisional: follow the
+backend spec. A co-owner gets 403, enforced both in the API and in row-level security.
+
+**Q-38 MinIO image — Open (slice 3).** OD-04 puts MinIO in docker-compose, but `minio/minio`
+cannot be pulled from Docker Hub here, and quay.io has no image either. Provisional: the
+`minio` service is behind the compose profile `archive` until slice 3 settles the image source.
+PostgreSQL 17 and gotenberg 8.21 start with a plain `up`.
+
+**Q-39 Parameter changes with a past date — Open (slice 2).** RENT-SPEC-021 makes a parameter
+change a reviewed entry, but does not say whether it may be backdated. Provisional: `PUT
+/params/{key}` appends an entry effective today or later (Europe/Paris), and only for a key that
+already exists. Backdating would change past results; it is done through a reviewed migration
+instead.
+
+**Q-40 Versions on every mutable resource — Open (slice 2).** RENT-BE-001 §3 requires ETag and
+`If-Match` on every PUT, but §2 gives only `leases` a `version` column. Provisional: owners,
+assets, tenants and guarantees carry `version` too, and the ETag is `W/"<version>"`. A missing
+`If-Match` is 428; a stale one is 412.
+
+**Q-41 Database roles beyond the three — Open (slice 2).** The policies of `owners` and
+`owner_grants` would recurse into each other. Provisional: a fourth role, `tenure_rls` (NOLOGIN,
+BYPASSRLS), owns only the SECURITY DEFINER functions `tenure_scope_role()` and
+`audit_last_hash()`. Only `tenure_migrate` is a member of it, so that migrations can assign
+those functions to it. The three login roles are unchanged.
+
+**Q-42 Editing a lease after draft — Open (slice 2).** Provisional: `PUT /leases/{id}` changes
+only a draft (`lease/not-editable` otherwise). After activation, terms change through
+transitions, revisions (slice 3) and amendments (slice 5).
+
+**Q-43 Row-level security on link tables — Open (slice 2).** Provisional: `lease_assets`,
+`lease_tenants` and `guarantees` carry `owner_id`, with composite foreign keys to their parent's
+`(id, owner_id)`, so nothing can link rows of two owners. `asset_shares.owner_id` is the co-owner
+holding the share (RENT-BE-001 §2), so that table's policy follows the asset instead.
+
+**Q-44 Step-up on the audit export — Open (slice 2).** RENT-BE-001 §8b puts "exports" under
+`step_up`. Provisional: `GET /audit/events.csv` is step-up, and the export itself is recorded as
+an `audit.export` event. `GET /openapi.json` requires a token like every route except the health
+checks.

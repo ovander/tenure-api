@@ -1,0 +1,51 @@
+# Local development services (RENT-SPEC roadmap, dev environment): PostgreSQL 17,
+# MinIO (object store, S3 API) and gotenberg (HTML → PDF). Socrate runs
+# separately. Every password here is a dev-only placeholder; never reuse one.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   cp .env.example .env   # then fill the Socrate values
+#   set -a; . ./.env; set +a
+#   go run ./cmd/tenure migrate up && go run ./cmd/tenure serve
+name: tenure-dev
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev-only-superuser
+      POSTGRES_DB: tenure
+      TENURE_MIGRATE_PW: dev-only-migrate
+      TENURE_API_PW: dev-only-api
+      TENURE_JOBS_PW: dev-only-jobs
+    ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/sql/roles.sql:/tenure/roles.sql:ro
+      - ./deploy/dev/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tenure"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # The archive (slice 3). Behind a profile until the image source is settled
+  # (OPEN-QUESTIONS Q-38): `docker compose -f docker-compose.dev.yml --profile archive up -d`.
+  minio:
+    profiles: ["archive"]
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: dev-only-minio
+      MINIO_ROOT_PASSWORD: dev-only-minio-secret
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes:
+      - miniodata:/data
+
+  gotenberg:
+    image: gotenberg/gotenberg:8.21
+    ports: ["127.0.0.1:3000:3000"]
+
+volumes:
+  pgdata:
+  miniodata:

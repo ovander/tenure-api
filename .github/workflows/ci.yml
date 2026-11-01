@@ -49,7 +49,7 @@ jobs:
         run: go build ./...
 
       - name: Vet
-        run: go vet ./...
+        run: go vet -tags integration ./...
 
       # staticcheck runs inside golangci-lint (enabled in .golangci.yml).
       # Built with the job's Go: prebuilt binaries use an older Go and refuse
@@ -60,13 +60,31 @@ jobs:
           version: v2.14.0
           install-mode: goinstall
           verify: false
+          args: --build-tags integration
 
       - name: govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           govulncheck ./...
 
-      # Unit and golden tests. Integration tests (testcontainers) and the
-      # migration up/down check are added with slice 2.
+      - name: OpenAPI matches the swag annotations
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@v1.16.4
+          ./scripts/openapi.sh
+          git diff --exit-code internal/httpapi/openapi
+
+      # Unit, golden, route-guard and seed tests.
       - name: Test
         run: go test -race -count=1 -timeout=300s ./...
+
+      # PostgreSQL 17 through testcontainers: migrations up/down/up, row-level
+      # security across owners, one audit event per write, hash chain, step-up.
+      - name: Integration tests
+        run: go test -tags integration -race -count=1 -timeout=600s ./internal/itest
+
+      - name: Build with version stamping
+        run: |
+          go build -ldflags "-X github.com/ovander/backendkit/buildinfo.Version=${GITHUB_SHA::12} \
+            -X github.com/ovander/backendkit/buildinfo.GitCommit=${GITHUB_SHA} \
+            -X github.com/ovander/backendkit/buildinfo.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o tenure ./cmd/tenure
+          ./tenure version

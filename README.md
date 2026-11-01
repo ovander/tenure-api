@@ -14,7 +14,16 @@ contracts and guarantees, 10-year immutable archive.
 Phase 1 — Foundation. Not yet usable.
 
 ## Development
-See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CLAUDE.md](CLAUDE.md). Security reports: [SECURITY.md](SECURITY.md).
+
+```bash
+docker compose -f docker-compose.dev.yml up -d      # PostgreSQL 17 + gotenberg
+cp .env.example .env                                # then set the Socrate values
+set -a; . ./.env; set +a
+go run ./cmd/tenure migrate up
+go run ./cmd/tenure serve                           # API on 127.0.0.1:8080, scheduler in process
+go test ./... && go test -tags integration ./internal/itest
+```
 
 ## Licence
 Proprietary — see [LICENSE](LICENSE).
