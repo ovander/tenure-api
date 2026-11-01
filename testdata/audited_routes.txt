@@ -27,6 +27,7 @@ PUT /charges/{id}
 POST /reconciliations
 POST /reconciliations/{id}/transitions +
 PUT /reconciliations/{id}/lines/{lineId}
+POST /tax/summaries +
 POST /billing/runs +
 POST /billing/documents/{id}/cancel +
 PUT /params/irl/{quarter}

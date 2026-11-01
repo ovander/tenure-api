@@ -323,3 +323,54 @@ type RegularisationData struct {
 	NewProvisionCents money.Cents
 	SupportingUntil   period.Date
 }
+
+// TaxLine is one form line of a tax summary.
+type TaxLine struct {
+	Line        string
+	AmountCents money.Cents
+}
+
+// TaxAsset is one asset of a tax summary, for the owner's share.
+type TaxAsset struct {
+	Label              string
+	Furnished          bool
+	Lines              []TaxLine
+	NetCents           money.Cents
+	GrossReceiptsCents money.Cents
+}
+
+// TaxSummaryData is the data of the annual tax summary (template
+// tax_summary): both regimes side by side, the one issued, and the
+// supporting documents (RENT-SPEC-004).
+type TaxSummaryData struct {
+	Number    string
+	IssuedOn  period.Date
+	Owner     Party
+	TaxYear   int
+	Millesime int
+	Regime    string // micro or reel
+	Assets    []TaxAsset
+	Totals    []TaxLine
+	// Micro-foncier check.
+	MicroEligible       bool
+	MicroGrossCents     money.Cents
+	MicroAllowanceCents money.Cents
+	MicroTaxableCents   money.Cents
+	// Régime réel.
+	ReelIncomeCents     money.Cents
+	ReelExpensesCents   money.Cents
+	ReelNetCents        money.Cents
+	ReelTaxableCents    money.Cents
+	GlobalImputable     money.Cents
+	CarriedForward      []TaxDeficit
+	FurnishedGrossCents money.Cents
+	LockYears           int64
+	Flags               int
+	Supporting          []string
+}
+
+// TaxDeficit is a deficit carried forward.
+type TaxDeficit struct {
+	Year           int
+	RemainingCents money.Cents
+}

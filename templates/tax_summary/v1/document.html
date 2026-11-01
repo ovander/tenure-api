@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Récapitulatif fiscal {{.TaxYear}} {{.Number}}</title>{{template "style"}}
+<style>h2 { font-size: 11.5pt; margin: 7mm 0 2mm 0; } .cols { display: flex; justify-content: space-between; } .cols div { width: 48%; } .chosen { border: .5mm solid #111; padding: 2mm; }</style></head>
+<body>
+<h1>Récapitulatif des revenus fonciers {{.TaxYear}}</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}} · déclaration {{.Millesime}} (revenus {{.TaxYear}}) · régime retenu : {{if eq .Regime "micro"}}micro-foncier{{else}}régime réel (formulaire 2044){{end}}</p>
+<div class="parties"><div><p class="label">Propriétaire</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div></div>
+
+<h2>Détail par bien (quote-part du propriétaire)</h2>
+{{range .Assets}}<p><strong>{{.Label}}</strong>{{if .Furnished}} — location meublée (BIC) : recettes brutes {{euros .GrossReceiptsCents}}{{end}}</p>
+{{if not .Furnished}}<table><thead><tr><th>Ligne</th><th class="amount">Montant</th></tr></thead><tbody>
+{{range .Lines}}<tr><td>{{.Line}} — {{template "line" .Line}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+{{end}}<tr class="total"><td>Revenu net du bien</td><td class="amount">{{euros .NetCents}}</td></tr></tbody></table>{{end}}
+{{end}}
+
+<h2>Totaux du formulaire</h2>
+<table><thead><tr><th>Ligne</th><th class="amount">Montant</th></tr></thead><tbody>
+{{range .Totals}}<tr><td>{{.Line}} — {{template "line" .Line}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+{{end}}</tbody></table>
+
+<h2>Comparaison des régimes</h2>
+<div class="cols">
+<div{{if eq .Regime "micro"}} class="chosen"{{end}}><p class="label">Micro-foncier</p>
+{{if .MicroEligible}}<p>Recettes brutes : {{euros .MicroGrossCents}}<br>Abattement forfaitaire : {{euros .MicroAllowanceCents}}<br>Revenu imposable : <strong>{{euros .MicroTaxableCents}}</strong></p>
+{{else}}<p>Non ouvert : recettes brutes de {{euros .MicroGrossCents}} au-delà du seuil.</p>{{end}}</div>
+<div{{if eq .Regime "reel"}} class="chosen"{{end}}><p class="label">Régime réel</p>
+<p>Revenus : {{euros .ReelIncomeCents}}<br>Charges déductibles : {{euros .ReelExpensesCents}}<br>Résultat : <strong>{{euros .ReelNetCents}}</strong><br>
+Revenu imposable après déficits antérieurs : {{euros .ReelTaxableCents}}{{if .GlobalImputable}}<br>Déficit imputable sur le revenu global : {{euros .GlobalImputable}}{{end}}</p></div>
+</div>
+<p class="note">L’option pour le régime réel engage le propriétaire pendant {{.LockYears}} ans.</p>
+{{if .CarriedForward}}<p class="label">Déficits reportables</p><p>{{range $i, $d := .CarriedForward}}{{if $i}} ; {{end}}{{$d.Year}} : {{euros $d.RemainingCents}}{{end}}</p>{{end}}
+{{if .FurnishedGrossCents}}<p>Locations meublées (BIC, hors 2044) : recettes brutes {{euros .FurnishedGrossCents}}.</p>{{end}}
+{{if .Flags}}<p class="note">{{.Flags}} point(s) à vérifier (pièce justificative manquante, paiement non affecté, charge non validée) : voir le fichier CSV joint.</p>{{end}}
+
+<h2>Pièces justificatives archivées</h2>
+{{if .Supporting}}<ul>{{range .Supporting}}<li>{{.}}</li>{{end}}</ul>{{else}}<p>Aucune.</p>{{end}}
+<p class="note">Document d’aide à la déclaration établi à partir des paiements reçus et des charges payées dans l’année ; il ne se substitue pas à la déclaration. Le détail ligne à ligne, avec l’origine de chaque montant, figure dans le fichier CSV archivé avec ce récapitulatif.</p>
+{{define "line"}}{{if eq . "211"}}Loyers bruts{{else if eq . "212"}}Dépenses à la charge du locataire{{else if eq . "213"}}Recettes diverses{{else if eq . "221"}}Frais d’administration et de gestion{{else if eq . "222"}}Autres frais de gestion (forfait){{else if eq . "223"}}Primes d’assurance{{else if eq . "224"}}Réparations, entretien, amélioration{{else if eq . "225"}}Charges récupérables non récupérées{{else if eq . "227"}}Taxe foncière{{else if eq . "229"}}Provisions pour charges de copropriété{{else if eq . "230"}}Régularisation des provisions de l’année précédente{{else if eq . "250"}}Intérêts et assurance d’emprunt{{else}}Autre ligne{{end}}{{end}}
+</body></html>

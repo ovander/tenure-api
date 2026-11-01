@@ -420,6 +420,9 @@ the payments again.
 rent call, but `tax.Lines` counts only the rent lines (Q-08). Provisional, to be confirmed
 before slice 7: a matched amount is split between the rent call's lines in proportion to their
 amounts. This neither overstates nor understates line 211.
+Slice 7: implemented as `tax.SplitMatch`. The rent part is the matched amount × rent ÷ the rent call's
+total, rounded half-up and never above the rent line, and the provision part likewise. The rest
+goes to regularisation, so a credit line never reduces the rent received.
 
 **Q-66 Reading payments — Open (slice 4).** Provisional: owner, co-owner and accountant read
 payments, arrears and receipts (RENT-FE-001 §5, "billing month, payments: read"). Only the owner
@@ -647,4 +650,39 @@ Socrate for that itself. Provisional:
   and the owner audit chain starts with a scope;
 - logout revokes the refresh token and ends the tenure session; it does not end the user's
   Socrate SSO session, so the next login may not ask for a password.
+
+## Raised by slice 7
+
+**Q-87 Co-owned assets — Open (slice 7).** The data of an asset lives in its managing owner's
+scope, while its income splits between every owner by share. Provisional:
+- the summary computed in a scope holds every share-holder's figures (`summary.owners`);
+- the PDF and the issue are for the scope's owner, on their own share;
+- a co-owner whose share sits in another owner's portfolio reads it through their grant;
+- no summary aggregates several scopes in phase 1.
+
+**Q-88 What a summary counts — Open (slice 7).** Provisional:
+- payments by the date they were received;
+- charges by the date they were paid; a charge with no payment date is not counted;
+- a draft charge is flagged (`draft_charge`), never deducted;
+- an asset counts as furnished (gross receipts only, OD-01) when it is marked furnished or a
+  furnished or mobility lease covered it during the year;
+- the draft is recomputed by `tax.annual` and on every `POST /tax/summaries`;
+- a year is issued once and is final in phase 1: correcting a filed declaration is out of scope.
+
+**Q-89 Deficits carried — Open (slice 7).** Provisional:
+- the prior deficits are those the latest issued earlier year left;
+- issuing the réel keeps its carry-forward;
+- issuing micro-foncier keeps the prior deficits, which micro does not use, less those that
+  expired. The result is stored with the summary (`deficits_after`).
+
+**Q-90 Outputs and access — Open (slice 7).** Provisional:
+- the PDF is numbered `RF-<owner 8 hex>-<YYYY>-<seq>` like every document, the spec's
+  `RF-<owner>-<YYYY>` with the sequence added;
+- the CSV of the lines (one row per owner, asset and line with its source ids, then the flags and
+  the supporting documents) is archived beside it, class tax_summary, retained from the issue
+  date; the supporting documents are listed in both;
+- `POST /tax/summaries` is a step_up route whether it drafts or issues;
+- `GET …/lines.csv` is a step_up export, recorded as `tax.export`;
+- the labels of the 2044 lines are in the versioned template, as French text;
+- the réel option's lock-in is `reel_option_lock_years` (3, CGI art. 32-4).
 

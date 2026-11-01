@@ -35,6 +35,7 @@ import (
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
+	"github.com/ovander/tenure-api/internal/tax"
 )
 
 //go:embed openapi/swagger.json
@@ -52,6 +53,7 @@ type Deps struct {
 	Documents      document.Handler
 	Payments       payment.Handler
 	Charges        charge.Handler
+	Tax            tax.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -139,6 +141,10 @@ func Routes(d Deps) []Route {
 		{"GET", "/billing/documents", GuardScopeOwnerW, false, h(d.Billing.ListDocuments)},
 		{"GET", "/billing/documents/{id}", GuardScopeOwnerW, false, h(d.Billing.GetDocument)},
 		{"POST", "/billing/documents/{id}/cancel", GuardScopeOwnerW, false, h(d.Billing.Cancel)},
+		{"GET", "/tax/summaries", GuardScopeOwnerW, false, h(d.Tax.List)},
+		{"POST", "/tax/summaries", GuardScopeOwnerW, true, h(d.Tax.Create)},
+		{"GET", "/tax/summaries/{id}", GuardScopeOwnerW, false, h(d.Tax.Get)},
+		{"GET", "/tax/summaries/{id}/lines.csv", GuardScopeOwnerW, true, h(d.Tax.LinesCSV)},
 		{"GET", "/documents", GuardScopeOwnerW, false, h(d.Documents.List)},
 		{"GET", "/documents/{id}", GuardScopeOwnerW, false, h(d.Documents.Get)},
 		{"GET", "/documents/{id}/content", GuardScopeOwnerW, false, h(d.Documents.Content)},

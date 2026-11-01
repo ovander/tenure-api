@@ -26,6 +26,7 @@ import (
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
+	"github.com/ovander/tenure-api/internal/tax"
 )
 
 // Deps are the external dependencies of the service.
@@ -66,6 +67,7 @@ func New(d Deps) (*App, error) {
 	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer, Issuer: issuer}
 	docs := document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner, Now: d.Now, NewID: newID}
 	cs := charge.Service{DB: d.API, Lease: ls, Billing: bs, Docs: docs, Issuer: issuer, Now: d.Now, NewID: newID}
+	ts := tax.Service{DB: d.API, Issuer: issuer, Now: d.Now, NewID: newID}
 	reg := map[string]jobs.Job{}
 	for _, j := range []jobs.Job{
 		jobs.AuditVerify(),
@@ -75,6 +77,7 @@ func New(d Deps) (*App, error) {
 		billing.ReceiptsJob(bs, d.Jobs),
 		billing.RemindersJob(bs, d.Jobs),
 		charge.ReconcileJob(cs),
+		tax.AnnualJob(ts),
 	} {
 		reg[j.Name] = j
 	}
@@ -89,6 +92,7 @@ func New(d Deps) (*App, error) {
 		Billing:        billing.Handler{Service: bs, Runner: runner},
 		Documents:      document.Handler{Service: docs},
 		Charges:        charge.Handler{Service: cs},
+		Tax:            tax.Handler{Service: ts},
 		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,

@@ -223,10 +223,12 @@ variant; documents are French only.
 ## Slice 7 — Tax year
 
 - **Spec**: RENT-SPEC-004 (both regimes, outputs, rules), RENT-SPEC-005 (tax classes),
-  RENT-BE-001 §3 tax, §5 `tax.annual`, §8b step-up on tax issue.
+  RENT-BE-001 §3 tax, §5 `tax.annual`, §8b step-up on tax issue. Provisional readings: Q-65,
+  Q-87 to Q-90.
 - **Pkg**: `internal/tax` (repository, service and handler around `Lines`; prior deficits read
   from earlier summaries; CSV writer); `templates/tax_summary/v1`.
-- **Tables** `000006_tax.sql`: `tax_summaries` (with the carried deficits in `lines`).
+- **Tables** `000007_tax.sql` (000006 went to the BFF sessions): `tax_summaries` (draft or
+  issued, with the deficits carried in `deficits_after`); parameter `reel_option_lock_years`.
 - **API**: `GET /tax/summaries`, `POST /tax/summaries` (year, regime; `step_up`),
   `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv`.
 - **Jobs**: `tax.annual` (10 January, drafts only). It starts with a pre-check that fails the

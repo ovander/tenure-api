@@ -32,9 +32,12 @@ type Request struct {
 	Template        Class
 	TemplateVersion string
 	AssetID         uuid.UUID
-	LeaseID         *uuid.UUID
-	Period          *period.Period
-	Snapshot        any
+	// Code replaces the asset segment of the number for a document of no
+	// asset (the owner's tax summary): AssetID is then uuid.Nil.
+	Code     string
+	LeaseID  *uuid.UUID
+	Period   *period.Period
+	Snapshot any
 	// Data builds the template data once the number and date are known.
 	Data func(number string, issuedOn period.Date) any
 }
@@ -80,6 +83,9 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 		return Issued{}, err
 	}
 	code := AssetCode(req.AssetID)
+	if req.Code != "" {
+		code = req.Code
+	}
 	seq, err := i.Repo.ReserveNumber(ctx, sc.OwnerID, req.Class, code, issuedOn.Year)
 	if err != nil {
 		return Issued{}, fmt.Errorf("document: reserve number: %w", err)
@@ -112,7 +118,11 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 		return Issued{}, err
 	}
 	id := i.NewID()
-	row := documentRow{ID: id, OwnerID: sc.OwnerID, Class: string(req.Class), AssetID: &req.AssetID, LeaseID: req.LeaseID,
+	var asset *uuid.UUID
+	if req.AssetID != uuid.Nil {
+		asset = &req.AssetID
+	}
+	row := documentRow{ID: id, OwnerID: sc.OwnerID, Class: string(req.Class), AssetID: asset, LeaseID: req.LeaseID,
 		ObjectKey: key, ObjectVersion: version, SHA256: sum, SizeBytes: int64(len(pdf)),
 		TemplateVersion: string(tmpl) + "/" + req.TemplateVersion, IssuedAt: &now, CreatedAt: now, CreatedBy: actor(sc),
 		Source: SourceGenerated, ContentType: "application/pdf"}
@@ -129,6 +139,53 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 	}
 	return Issued{DocumentID: id, Number: number, IssuedAt: now, SHA256: sum, ObjectKey: key, ObjectVersion: version,
 		RetainUntil: retain, SnapshotHash: snapHash, PDF: pdf}, nil
+}
+
+// AttachRequest is a generated file archived beside a document, such as the
+// CSV of a tax summary.
+type AttachRequest struct {
+	Class Class
+	// Name is the object's file name under <owner>/<class>/<YYYY>/.
+	Name        string
+	Data        []byte
+	ContentType string
+	Period      *period.Period
+}
+
+// Attach archives a generated file that is not rendered (no number, no
+// template) under compliance lock, with its metadata row, in the caller's
+// scoped transaction.
+func (i Issuer) Attach(ctx context.Context, req AttachRequest, ps params.Set) (Issued, error) {
+	sc, ok := db.ScopeFrom(ctx)
+	if !ok || sc.OwnerID == uuid.Nil {
+		return Issued{}, errors.New("document: attach needs an owner scope")
+	}
+	now := i.Now().UTC().Truncate(time.Microsecond)
+	issuedOn := period.FromTime(now.In(paris()))
+	years, err := ps.Int64(KeyArchiveRetention, issuedOn)
+	if err != nil {
+		return Issued{}, err
+	}
+	sum := SHA256(req.Data)
+	retain := RetainUntil(now.In(paris()), years)
+	key := fmt.Sprintf("%s/%s/%04d/%s", sc.OwnerID, req.Class, issuedOn.Year, req.Name)
+	version, err := i.Store.Put(ctx, key, req.Data, req.ContentType, sum, retain.Time())
+	if err != nil {
+		return Issued{}, err
+	}
+	id := i.NewID()
+	rt := retain.Time()
+	row := documentRow{ID: id, OwnerID: sc.OwnerID, Class: string(req.Class), ObjectKey: key, ObjectVersion: version, SHA256: sum,
+		SizeBytes: int64(len(req.Data)), IssuedAt: &now, RetainUntil: &rt, CreatedAt: now, CreatedBy: actor(sc),
+		Source: SourceGenerated, ContentType: req.ContentType}
+	if req.Period != nil {
+		p := req.Period.String()
+		row.Period = &p
+	}
+	if err := i.Repo.Insert(ctx, row); err != nil {
+		return Issued{}, err
+	}
+	return Issued{DocumentID: id, IssuedAt: now, SHA256: sum, ObjectKey: key, ObjectVersion: version, RetainUntil: retain}, nil
 }
 
 func actor(sc db.Scope) string {
