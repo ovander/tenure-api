@@ -551,3 +551,78 @@ The acte de cautionnement is numbered with a new prefix CA (class surety).
   save;
 - the contract states the charges as a monthly flat rate (art. 25-18), so slice 6 must keep
   mobility leases out of the regularisation.
+
+## Raised by slice 6
+
+**Q-77 Charges ledger and syndic import — Open (slice 6).** Provisional:
+- a charge stores its recoverable part in cents, so no rounding is introduced. An imported line
+  also keeps `syndic_recoverable_cents`, the syndic's own split, so the owner's override stays
+  visible; the audit trail records the split before and after;
+- imported lines are drafts until the owner confirms them, and a draft charge in the exercise
+  blocks the allocation (`reconciliation/draft-charges`);
+- the import reads a CSV uploaded first through `POST /documents`, so it is scanned and archived,
+  with a JSON column mapping. The default delimiter is `;`; amounts read `1 234,56` (or
+  `1,234.56` with `decimal_point`);
+- every line becomes `copro_statement`. A negative line is refused (a correction is entered by
+  hand), and so is a recoverable part above the amount; a statement the mapping cannot read whole
+  imports nothing;
+- one `charge.import` audit event lists the charges created;
+- a charge used by an issued reconciliation is frozen (`charge/reconciled`), and released when
+  that reconciliation is cancelled.
+
+**Q-78 Exercise and provisions collected — Open (slice 6).** Provisional:
+- an exercise runs from the 1st of a month to the last day of a month, so rent-call periods fall
+  wholly inside it;
+- the provisions collected are taken from the live rent calls of the exercise's periods. For each
+  call, the payments matched to it are split between its lines in proportion to their amounts
+  (Q-65), and the provision part is rounded up to the cent, so the tenant's balance is never
+  overstated;
+- an unpaid call contributes nothing;
+- a mobility lease is left out (Q-76): its share of the days stays with the owner, with no
+  statement and no provision.
+
+**Q-79 Carrying the balance — Open (slice 6).** Provisional:
+- `regularisation_postings` holds what the next fees carry: one posting per balance, or per
+  instalment of a late statement;
+- a posting is due from the month after the statement is issued;
+- `billing.monthly`, and the reissue after a cancel, apply the oldest posting due, one per fee,
+  and record the rent call that carried it;
+- a credit larger than the fee leaves a carry-over posting for the next month (Q-17). A posting
+  whose rent call is cancelled is carried again by the reissue, and the carry-over of the
+  earlier carry is voided;
+- a reconciliation is settled once every posting is carried by a live rent call. Its payment is
+  then followed as arrears (RENT-SPEC-003).
+
+**Q-80 Statements — Open (slice 6).** Provisional:
+- one statement RG-… per lease that covered the asset, even with a zero balance, e-mailed to its
+  tenants with the PDF;
+- the allocation is computed again when the statement is issued, as of the issue date (payments
+  received since count), and the owner's choices on the lines are kept;
+- the new provision applies only when the owner validated it (`apply_provision`) and the lease is
+  still billed, from the next rent call;
+- the supporting documents stay available until the issue date plus
+  `regularisation_supporting_docs_months` (art. 23).
+
+**Q-81 Tenant who left — Open (slice 6).** Provisional:
+- a lease no longer billed settles against its deposit while one is held, otherwise directly;
+- the line records the mode, with no posting;
+- the deposit settlement statement itself comes with the exit flow of phase 2 (RENT-SPEC-009).
+
+**Q-82 Correction — Open (slice 6).** Provisional:
+- cancelling an issued or settled reconciliation issues a cancelling document per statement
+  (class regularisation, RG number, template cancellation);
+- it voids the postings not yet carried and reverses the carried ones with a negative posting
+  due next month;
+- it releases the charges;
+- a provision already applied stays: the owner amends it if needed;
+- the next reconciliation of the same exercise records `corrects_id`.
+
+**Q-83 charges.reconcile — Open (slice 6).** Provisional: on demand only, never scheduled; its
+period key is `<asset id>/<year>`. It allocates the asset's reconciliation of that exercise year
+when in draft or allocated (dry run: computes only), and issuing stays an owner action.
+
+**Q-84 Lines per lease — Open (slice 6).** RENT-BE-001 §2 gave `reconciliation_lines` a
+`charge_id`. Provisional: one line per lease, with its days, share, provisions, balance,
+instalments, provision proposal and settlement, while the charges used are listed on the
+reconciliation (`charge_ids`) and in each statement.
+

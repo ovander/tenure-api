@@ -223,6 +223,32 @@ func (s Service) Upload(ctx context.Context, p *auth.Principal, requestID string
 	return out, err
 }
 
+// ReadInTx returns, inside the current transaction, the metadata and the
+// content of an archived document of the scope, refusing one above max bytes
+// (the charge module reads an uploaded syndic statement this way).
+func (s Service) ReadInTx(ctx context.Context, id uuid.UUID, max int64) (View, []byte, error) {
+	d, err := s.Repo.Get(ctx, id)
+	if err != nil {
+		return View{}, nil, err
+	}
+	if d.SizeBytes > max {
+		return View{}, nil, invariant.New(TypeUploadTooLarge, d.ID.String())
+	}
+	obj, err := s.Store.Open(ctx, d.ObjectKey, d.ObjectVersion)
+	if err != nil {
+		return View{}, nil, err
+	}
+	defer func() { _ = obj.Close() }()
+	b, err := io.ReadAll(io.LimitReader(obj, max+1))
+	if err != nil {
+		return View{}, nil, err
+	}
+	if SHA256(b) != d.SHA256 {
+		return View{}, nil, fmt.Errorf("%w: %s", ErrChecksum, d.ObjectKey)
+	}
+	return view(d), b, nil
+}
+
 func (s Service) scan(ctx context.Context, key, version string) (Verdict, error) {
 	obj, err := s.Store.Open(ctx, key, version)
 	if err != nil {

@@ -26,6 +26,7 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/billing"
+	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
@@ -49,8 +50,13 @@ type Deps struct {
 	Billing        billing.Handler
 	Documents      document.Handler
 	Payments       payment.Handler
+	Charges        charge.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
+	// WriteBurst overrides the 60 writes a subject may make before being
+	// limited to one a second (RENT-BE-001 §8b); zero keeps 60. Only the
+	// integration suite raises it, to set up many records quickly.
+	WriteBurst int
 }
 
 // Guard is the authorisation a route requires on top of a valid token.
@@ -114,6 +120,16 @@ func Routes(d Deps) []Route {
 		{"GET", "/payments/{id}", GuardScopeOwnerW, false, h(d.Payments.Get)},
 		{"PUT", "/payments/{id}", GuardScopeOwnerW, false, h(d.Payments.Update)},
 		{"POST", "/payments/{id}/matches", GuardScopeOwnerW, false, h(d.Payments.Match)},
+		{"GET", "/charges", GuardScopeOwnerW, false, h(d.Charges.ListCharges)},
+		{"POST", "/charges", GuardScopeOwnerW, false, h(d.Charges.CreateCharge)},
+		{"POST", "/charges/import/syndic", GuardScopeOwnerW, false, h(d.Charges.ImportSyndic)},
+		{"GET", "/charges/{id}", GuardScopeOwnerW, false, h(d.Charges.GetCharge)},
+		{"PUT", "/charges/{id}", GuardScopeOwnerW, false, h(d.Charges.UpdateCharge)},
+		{"GET", "/reconciliations", GuardScopeOwnerW, false, h(d.Charges.ListRecons)},
+		{"POST", "/reconciliations", GuardScopeOwnerW, false, h(d.Charges.CreateRecon)},
+		{"GET", "/reconciliations/{id}", GuardScopeOwnerW, false, h(d.Charges.GetRecon)},
+		{"POST", "/reconciliations/{id}/transitions", GuardScopeOwnerW, false, h(d.Charges.Transition)},
+		{"PUT", "/reconciliations/{id}/lines/{lineId}", GuardScopeOwnerW, false, h(d.Charges.UpdateLine)},
 		{"POST", "/billing/runs", GuardScopeOwnerW, false, h(d.Billing.CreateRun)},
 		{"GET", "/billing/runs/{id}", GuardScopeOwnerW, false, h(d.Billing.GetRun)},
 		{"GET", "/billing/documents", GuardScopeOwnerW, false, h(d.Billing.ListDocuments)},
@@ -159,7 +175,11 @@ func NewRouter(d Deps) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	writes, err := httpware.NewKeyedRateLimiter(httpware.KeyedRateLimiterConfig{RPS: 1, Burst: 60})
+	burst := 60
+	if d.WriteBurst > 0 {
+		burst = d.WriteBurst
+	}
+	writes, err := httpware.NewKeyedRateLimiter(httpware.KeyedRateLimiterConfig{RPS: 1, Burst: burst})
 	if err != nil {
 		return nil, err
 	}

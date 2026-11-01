@@ -212,8 +212,8 @@ func setup(m *testing.M) (int, error) {
 		return 0, err
 	}
 	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL},
-		Scanner: document.Clamd{Addr: clamAddr},
-		Mailer:  notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
+		Scanner: document.Clamd{Addr: clamAddr}, WriteBurst: 10000,
+		Mailer: notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
 		Ready: func(ctx context.Context) error { return api.Ping(ctx) }}
 	if env.app, err = app.New(env.deps); err != nil {
 		return 0, err

@@ -329,7 +329,11 @@ func (s Service) MonthlyOwner(ctx context.Context, p period.Period, today period
 		if rdoc != nil {
 			out.Issued = append(out.Issued, *rdoc)
 		}
-		fee, err := ComputeFee(l, p, ps, FeeOptions{})
+		opts, post, err := s.regularisationFor(ctx, id, p)
+		if err != nil {
+			return out, fmt.Errorf("lease %s regularisation: %w", id, err)
+		}
+		fee, err := ComputeFee(l, p, ps, opts)
 		if errors.Is(err, ErrNotBillable) {
 			continue
 		}
@@ -343,6 +347,9 @@ func (s Service) MonthlyOwner(ctx context.Context, p period.Period, today period
 		doc, err := s.issueRentCall(ctx, l, v, r, p, fee, ps, gen+1, rr)
 		if err != nil {
 			return out, fmt.Errorf("lease %s rent call: %w", id, err)
+		}
+		if err := s.carry(ctx, post, doc.BillingDocumentID, fee); err != nil {
+			return out, fmt.Errorf("lease %s regularisation: %w", id, err)
 		}
 		out.Fees = append(out.Fees, fee)
 		out.Issued = append(out.Issued, doc)
@@ -415,6 +422,24 @@ func (s Service) RevisionsOwner(ctx context.Context, today period.Date, dry bool
 		}
 	}
 	return out, nil
+}
+
+// StatementDoc prepares the delivery of a document another module issued for
+// a lease (the regularisation statement of the charge module), inside the
+// current transaction: one pending delivery per tenant with an e-mail. The
+// caller sends it with Deliver after its commit.
+func (s Service) StatementDoc(ctx context.Context, leaseID uuid.UUID, kind Kind, iss document.Issued, periodLabel string) (IssuedDoc, error) {
+	r, err := s.Repo.Record(ctx, leaseID)
+	if err != nil {
+		return IssuedDoc{}, err
+	}
+	dels, err := s.deliveries(ctx, iss.DocumentID, r)
+	if err != nil {
+		return IssuedDoc{}, err
+	}
+	return IssuedDoc{DocumentID: iss.DocumentID, Kind: kind, Number: iss.Number, LeaseID: leaseID, Period: periodLabel,
+		SHA256: iss.SHA256, Deliveries: dels, pdf: iss.PDF,
+		mail: notify.DocumentMail{Kind: string(kind), Number: iss.Number, Period: periodLabel, Owner: r.OwnerName}}, nil
 }
 
 // Deliver sends the e-mails of documents committed in scope sc, recording each
@@ -559,7 +584,11 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 		if err != nil {
 			return err
 		}
-		fee, err := ComputeFee(l, per, ps, FeeOptions{})
+		opts, post, err := s.regularisationFor(ctx, cur.LeaseID, per)
+		if err != nil {
+			return err
+		}
+		fee, err := ComputeFee(l, per, ps, opts)
 		if errors.Is(err, ErrNotBillable) {
 			// Nothing to reissue: the payments become unapplied again.
 			return s.moveMatches(ctx, cur.ID, cur.ID, 0)
@@ -576,6 +605,9 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 			return err
 		}
 		reissued = &doc
+		if err := s.carry(ctx, post, doc.BillingDocumentID, fee); err != nil {
+			return err
+		}
 		return s.moveMatches(ctx, cur.ID, doc.BillingDocumentID, fee.TotalCents)
 	})
 	if err != nil {

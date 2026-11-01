@@ -68,7 +68,7 @@ type Owner struct {
 // Platform, when set, once in the platform scope (no owner).
 type Job struct {
 	Name     string
-	Schedule string // cron spec, Europe/Paris
+	Schedule string // cron spec, Europe/Paris; empty for a job run on demand only
 	Period   func(t time.Time) string
 	PerOwner func(ctx context.Context, o Owner) (any, error)
 	Platform func(ctx context.Context, o Owner) (any, error)
@@ -324,6 +324,9 @@ func (r *Runner) Start(ctx context.Context) error {
 	r.cron = cron.New(cron.WithLocation(Paris()))
 	for name, j := range r.Jobs {
 		name := name
+		if j.Schedule == "" {
+			continue // on demand only (charges.reconcile)
+		}
 		if _, err := r.cron.AddFunc(j.Schedule, func() {
 			if _, _, err := r.Trigger(ctx, name, Options{}); err != nil {
 				slog.ErrorContext(ctx, "scheduled job failed", "job", name, "error", err)

@@ -1071,6 +1071,416 @@
                 }
             }
         },
+        "/charges": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "List the scope's charges",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "exercise year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "draft or confirmed",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "charge category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-charge_View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Record a charge",
+                "parameters": [
+                    {
+                        "description": "charge",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/charge.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/charges/import/syndic": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The statement exported as CSV is uploaded first (POST /documents, scanned); one draft charge per line keeps the syndic's recoverable split. A statement the mapping cannot read whole imports nothing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Import a syndic statement into draft charges",
+                "parameters": [
+                    {
+                        "description": "import",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.ImportInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/charge.View"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/charges/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Get a charge",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "charge id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.View"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Confirms an imported line or overrides its recoverable part; a charge of an issued reconciliation never changes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Update a charge",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "charge id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "charge",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/diagnostics/{id}": {
             "put": {
                 "security": [
@@ -3786,6 +4196,448 @@
                 }
             }
         },
+        "/reconciliations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "List the scope's reconciliations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "reconciliations with a line for this lease",
+                        "name": "lease_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "exercise year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page, from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, 1 to 100",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.List-charge_ReconView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "In draft; the exercise runs from the 1st of a month to the last day of a month.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Start the reconciliation of an asset's exercise",
+                "parameters": [
+                    {
+                        "description": "reconciliation",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.ReconInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/charge.ReconView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/reconciliations/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Get a reconciliation and its lines",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reconciliation id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.ReconView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/reconciliations/{id}/lines/{lineId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "On an allocated reconciliation: the new provision to apply from the next month and how the balance is settled.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Validate a line's provision and settlement",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reconciliation id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "line id",
+                        "name": "lineId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version of the line",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "line",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.LineInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.LineView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/reconciliations/{id}/transitions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "allocate (again), issue (statements RG-…, postings on the next rent calls, validated provisions), settle, cancel (a correction).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Move a reconciliation along its steps",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reconciliation id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "action",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.TransitionInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.ReconView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/tenants": {
             "get": {
                 "security": [
@@ -4430,14 +5282,16 @@
                 "revision_notice",
                 "cancellation",
                 "receipt",
-                "partial_receipt"
+                "partial_receipt",
+                "regularisation"
             ],
             "x-enum-varnames": [
                 "KindRentCall",
                 "KindRevisionNotice",
                 "KindCancellation",
                 "KindReceipt",
-                "KindPartialReceipt"
+                "KindPartialReceipt",
+                "KindRegularisation"
             ]
         },
         "billing.Line": {
@@ -4586,6 +5440,499 @@
                 },
                 "run": {
                     "$ref": "#/definitions/jobs.Run"
+                }
+            }
+        },
+        "charge.Action": {
+            "type": "string",
+            "enum": [
+                "allocate",
+                "issue",
+                "settle",
+                "cancel"
+            ],
+            "x-enum-varnames": [
+                "ActionAllocate",
+                "ActionIssue",
+                "ActionSettle",
+                "ActionCancel"
+            ]
+        },
+        "charge.Category": {
+            "type": "string",
+            "enum": [
+                "copro_provision",
+                "copro_statement",
+                "copro_regularisation_prior",
+                "property_tax",
+                "teom",
+                "insurance",
+                "repairs",
+                "management",
+                "loan_interest",
+                "loan_insurance",
+                "recoverable_utilities",
+                "indemnity",
+                "owner_expense_charged_to_tenant",
+                "unrecovered_at_close"
+            ],
+            "x-enum-comments": {
+                "CategoryPropertyTax": "excluding TEOM"
+            },
+            "x-enum-varnames": [
+                "CategoryCoproProvision",
+                "CategoryCoproStatement",
+                "CategoryCoproRegularisationPrior",
+                "CategoryPropertyTax",
+                "CategoryTEOM",
+                "CategoryInsurance",
+                "CategoryRepairs",
+                "CategoryManagement",
+                "CategoryLoanInterest",
+                "CategoryLoanInsurance",
+                "CategoryRecoverableUtilities",
+                "CategoryIndemnity",
+                "CategoryOwnerExpenseChargedToTenant",
+                "CategoryUnrecoveredAtClose"
+            ]
+        },
+        "charge.ImportInput": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "charged_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "document_id": {
+                    "description": "DocumentID is the uploaded CSV.",
+                    "type": "string"
+                },
+                "exercise_year": {
+                    "type": "integer"
+                },
+                "mapping": {
+                    "$ref": "#/definitions/charge.Mapping"
+                },
+                "statement_document_id": {
+                    "description": "StatementDocumentID is the statement's PDF, attached to every line.",
+                    "type": "string"
+                }
+            }
+        },
+        "charge.Input": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "description": "AmountCents is the whole charge; RecoverableCents the part recoverable\nfrom the tenant (décret 87-713), 0 to the amount.",
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "category": {
+                    "enum": [
+                        "copro_provision",
+                        "copro_statement",
+                        "copro_regularisation_prior",
+                        "property_tax",
+                        "teom",
+                        "insurance",
+                        "repairs",
+                        "management",
+                        "loan_interest",
+                        "loan_insurance",
+                        "recoverable_utilities",
+                        "indemnity",
+                        "owner_expense_charged_to_tenant",
+                        "unrecovered_at_close"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/charge.Category"
+                        }
+                    ]
+                },
+                "charged_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "exercise_year": {
+                    "description": "ExerciseYear defaults to the year of charged_on.",
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "paid_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "recoverable_cents": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "Status is draft or confirmed (default); only confirmed charges are\nreconciled.",
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "confirmed"
+                    ]
+                }
+            }
+        },
+        "charge.LineInput": {
+            "type": "object",
+            "properties": {
+                "apply_provision": {
+                    "type": "boolean"
+                },
+                "new_provision_cents": {
+                    "type": "integer"
+                },
+                "settlement": {
+                    "type": "string",
+                    "enum": [
+                        "fee",
+                        "deposit",
+                        "direct"
+                    ]
+                }
+            }
+        },
+        "charge.LineView": {
+            "type": "object",
+            "properties": {
+                "allocated_cents": {
+                    "type": "integer"
+                },
+                "apply_provision": {
+                    "type": "boolean"
+                },
+                "balance_cents": {
+                    "type": "integer"
+                },
+                "days": {
+                    "type": "integer"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "instalments": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "new_provision_cents": {
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "proposed_provision_cents": {
+                    "type": "integer"
+                },
+                "provisions_cents": {
+                    "type": "integer"
+                },
+                "settlement": {
+                    "type": "string",
+                    "enum": [
+                        "fee",
+                        "deposit",
+                        "direct",
+                        "none"
+                    ]
+                },
+                "spread": {
+                    "type": "boolean"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "charge.Mapping": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string",
+                    "example": "Montant"
+                },
+                "decimal_point": {
+                    "description": "DecimalPoint reads amounts as 1234.56; by default they read 1 234,56.",
+                    "type": "boolean"
+                },
+                "delimiter": {
+                    "description": "Delimiter is one character; \";\" when empty (the usual French export).",
+                    "type": "string",
+                    "example": ";"
+                },
+                "label": {
+                    "type": "string",
+                    "example": "Libellé"
+                },
+                "recoverable": {
+                    "description": "Recoverable is the syndic's recoverable amount of the line (décret\n87-713); a line with an empty cell is recoverable for nothing.",
+                    "type": "string",
+                    "example": "Récupérable"
+                }
+            }
+        },
+        "charge.ReconInput": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "exercise_end": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "exercise_start": {
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
+        "charge.ReconView": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "cancellation_document_id": {
+                    "type": "string"
+                },
+                "charge_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "corrects_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "exercise_end": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "exercise_start": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "exercise_year": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.LineView"
+                    }
+                },
+                "state": {
+                    "enum": [
+                        "draft",
+                        "allocated",
+                        "issued",
+                        "settled",
+                        "cancelled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/charge.State"
+                        }
+                    ]
+                },
+                "totals": {
+                    "$ref": "#/definitions/charge.Totals"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "charge.State": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "allocated",
+                "issued",
+                "settled",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "StateDraft",
+                "StateAllocated",
+                "StateIssued",
+                "StateSettled",
+                "StateCancelled"
+            ]
+        },
+        "charge.Totals": {
+            "type": "object",
+            "properties": {
+                "cancellations": {
+                    "description": "Cancellations are the numbers of the documents that cancelled the\nstatements.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "exercise_days": {
+                    "type": "integer"
+                },
+                "non_recoverable_cents": {
+                    "type": "integer"
+                },
+                "recoverable_cents": {
+                    "type": "integer"
+                },
+                "total_cents": {
+                    "type": "integer"
+                },
+                "vacancy_cents": {
+                    "type": "integer"
+                },
+                "vacancy_days": {
+                    "type": "integer"
+                }
+            }
+        },
+        "charge.TransitionInput": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "enum": [
+                        "allocate",
+                        "issue",
+                        "settle",
+                        "cancel"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/charge.Action"
+                        }
+                    ]
+                },
+                "reason": {
+                    "description": "Reason is stated on the cancelling documents.",
+                    "type": "string"
+                }
+            }
+        },
+        "charge.View": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "description": "AmountCents is the whole charge; RecoverableCents the part recoverable\nfrom the tenant (décret 87-713), 0 to the amount.",
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "category": {
+                    "enum": [
+                        "copro_provision",
+                        "copro_statement",
+                        "copro_regularisation_prior",
+                        "property_tax",
+                        "teom",
+                        "insurance",
+                        "repairs",
+                        "management",
+                        "loan_interest",
+                        "loan_insurance",
+                        "recoverable_utilities",
+                        "indemnity",
+                        "owner_expense_charged_to_tenant",
+                        "unrecovered_at_close"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/charge.Category"
+                        }
+                    ]
+                },
+                "charged_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "exercise_year": {
+                    "description": "ExerciseYear defaults to the year of charged_on.",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "paid_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "reconciliation_id": {
+                    "type": "string"
+                },
+                "recoverable_cents": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "syndic",
+                        "invoice"
+                    ]
+                },
+                "status": {
+                    "description": "Status is draft or confirmed (default); only confirmed charges are\nreconciled.",
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "confirmed"
+                    ]
+                },
+                "syndic_recoverable_cents": {
+                    "description": "SyndicRecoverableCents is the syndic's own split of an imported line,\nkept beside an owner's override.",
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
                 }
             }
         },
@@ -4751,6 +6098,46 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/billing.DocView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-charge_ReconView": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.ReconView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.List-charge_View": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.View"
                     }
                 },
                 "page": {

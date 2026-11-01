@@ -4,6 +4,8 @@
 package charge
 
 import (
+	"errors"
+
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/period"
 )
@@ -53,13 +55,24 @@ type Charge struct {
 	PaidOn period.Date `json:"paid_on"`
 	// RecoverableBP is the recoverable share in basis points (10000 = all of
 	// it), from the syndic's split or the owner's override.
-	RecoverableBP int64  `json:"recoverable_bp"`
-	DocumentID    string `json:"document_id,omitempty"`
+	RecoverableBP int64 `json:"recoverable_bp"`
+	// RecoverableAmountCents, when set, is the recoverable part in cents as
+	// the ledger records it (the syndic's split or the owner's override); it
+	// takes precedence over RecoverableBP, so no rounding is introduced.
+	RecoverableAmountCents *money.Cents `json:"recoverable_amount_cents,omitempty"`
+	DocumentID             string       `json:"document_id,omitempty"`
 }
 
-// RecoverableCents returns the recoverable part of the charge, rounded
-// half-up to the cent.
+// RecoverableCents returns the recoverable part of the charge: the recorded
+// amount when there is one, otherwise its share rounded half-up to the cent.
 func (c Charge) RecoverableCents() (money.Cents, error) {
+	if c.RecoverableAmountCents != nil {
+		r := *c.RecoverableAmountCents
+		if r < 0 || r > c.AmountCents {
+			return 0, errors.New("charge: recoverable amount outside the charge amount")
+		}
+		return r, nil
+	}
 	return money.MulDivHalfUp(c.AmountCents, c.RecoverableBP, 10000)
 }
 

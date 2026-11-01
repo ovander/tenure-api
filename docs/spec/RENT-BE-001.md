@@ -40,15 +40,16 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | inventories | id, lease\_id, kind (entry/exit), done\_on, items jsonb, document\_id | One per kind and lease, from an uploaded document, recorded once (Q-70); structured items from phase 2 |
 | asset\_diagnostics | id, owner\_id, asset\_id, kind (dpe, erp, electricity, gas, lead, asbestos), done\_on, valid\_until, result, not\_required\_reason, document\_id | One per asset and kind (Q-23, Q-73); a kind not needed is declared with a reason |
 | lease\_documents | id, owner\_id, lease\_id, kind (contract, amendment, deposit\_receipt, surety\_act), number, lease\_version, guarantee\_id, document\_id, input\_snapshot, issued\_at | Created issued and never changed (trigger); a contract is current while the lease version and its guarantees match (Q-69) |
-| charges | id, owner\_id, asset\_id, charged\_on, paid\_on, category, amount\_cents, recoverable, recoverable\_pct, exercise\_year, document\_id, source (manual/syndic/invoice) | category enum drives 2044 line |
+| charges | id, owner\_id, asset\_id, charged\_on, paid\_on, category, label, amount\_cents, recoverable\_cents, syndic\_recoverable\_cents, exercise\_year, document\_id, source (manual/syndic/invoice), status (draft/confirmed), reconciliation\_id | category enum drives 2044 line; the recoverable part is stored in cents beside the syndic's own split; frozen once an issued reconciliation uses it (Q-77) |
 | billing\_documents | id, owner\_id, lease\_id, kind, period, generation, number, lines jsonb, total\_cents, issued\_at, cancels\_id, document\_id, input\_snapshot jsonb | Created issued and never changed (trigger); a correction is a cancellation row (cancels\_id) and the next generation of the same lease, kind and period |
 | document\_counters | owner\_id, class, asset\_code, year, last\_seq | Number sequence locked in the issuing transaction (Q-48) |
 | document\_deliveries | id, owner\_id, document\_id, recipient, channel, status (pending, sent, failed, skipped), attempts, last\_error | Delivery status per document and recipient (Q-24, Q-58) |
 | payments | id, owner\_id, lease\_id, paid\_on, amount\_cents, method, reference, bank\_line\_id | — |
 | payment\_matches | payment\_id, billing\_document\_id, amount\_cents | Partial matching; at most the payment and what remains due on a live rent call of the same lease (Q-60); moved to the reissue on cancel (Q-63) |
 | billing\_reminders | billing\_document\_id (unique), sent\_on, outstanding\_cents, recipients, failures | One reminder per rent call (Q-62) |
-| reconciliations | id, owner\_id, asset\_id, exercise\_year, state, statement\_document\_id, totals jsonb | One per asset and exercise |
-| reconciliation\_lines | reconciliation\_id, lease\_id, charge\_id, allocated\_cents, provisions\_cents, balance\_cents | Per lease allocation |
+| reconciliations | id, owner\_id, asset\_id, exercise\_year, exercise\_start, exercise\_end, state (draft, allocated, issued, settled, cancelled), totals jsonb, charge\_ids, issued\_at, corrects\_id, cancellation\_document\_id | One per asset and exercise while not cancelled; a correction cancels it and a new one records corrects\_id (Q-82) |
+| reconciliation\_lines | reconciliation\_id, lease\_id, days, allocated\_cents, provisions\_cents, balance\_cents, spread, instalments, proposed/new\_provision\_cents, apply\_provision, settlement (fee, deposit, direct, none), document\_id, number | Per lease allocation and its statement RG-… (Q-80, Q-84) |
+| regularisation\_postings | lease\_id, reconciliation\_id, line\_id, parent\_id, reference, instalment, of, amount\_cents, due\_from, billing\_document\_id, voided\_at | What the next fees carry: a balance, an instalment, a carry-over; billing reads them, charge writes them (Q-79) |
 | tax\_summaries | id, owner\_id, tax\_year, regime, lines jsonb, issued\_at, document\_id | One per owner and year |
 | documents | id, owner\_id, class, asset\_id, lease\_id, period, object\_key, object\_version, sha256, size\_bytes, template\_version, issued\_at, retain\_until, source (generated, upload), content\_type, original\_name, signs\_document\_id | Metadata of every archived file; an upload has no number and keeps its sniffed type; a signed copy points at the generated document it signs; retain\_until stays unset until the retention clock starts (Q-67, Q-68) |
 | legal\_params | key, value jsonb, effective\_from, source\_url | See section 7 |
@@ -73,7 +74,7 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 | portfolio | `GET/POST /assets`, `GET/PUT /assets/{id}`, `GET/POST /assets/{id}/diagnostics`, `PUT /diagnostics/{id}`, `GET/POST /tenants`, `GET/PUT /tenants/{id}`, `GET/PUT /me` | `/me` returns the caller, roles and grants; `PUT /me` creates the caller's owner profile (no `If-Match`) or updates it, language included (Q-06, Q-35) |
 | lease | `GET/POST /leases`, `GET/PUT /leases/{id}`, `POST /leases/{id}/transitions` (activate, notice, end, close), `POST /leases/{id}/contract` (generate), `GET /leases/{id}/blockers`, `GET /leases/{id}/documents`, `POST /leases/{id}/amendments`, `GET/POST /leases/{id}/guarantees`, `PUT /guarantees/{id}`, `POST /guarantees/{id}/document` (DG or CA), `GET/POST /leases/{id}/inventories` | Transitions validate the state machine and required documents; blockers lists what blocks generation and activation, and the warnings (Q-75) |
 | billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing; cancel issues the cancelling document and reissues the rent call (Q-56) |
-| charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (file + mapping), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
+| charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (an uploaded CSV + mapping, Q-77), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
 | payment | `GET/POST /payments`, `GET/PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer (Q-60); amount and date frozen once receipted (Q-64) |
 | tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed, one issued |
 | document | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/content` (signed URL), `POST /documents` (multipart upload with class and links, file last; scanned, sniffed, 25 MB, Q-67), `POST /documents/export` (year or asset ZIP, async) | Content never streamed through the API for large files: short-lived signed URL |
@@ -111,7 +112,7 @@ Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job,
 | billing.reminders | daily, 08:00 | YYYY-MM-DD | Reminder e-mails at due day + 5; arrears flags |
 | billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run, and partial receipts for new partial matches (Q-61) |
 | irl.fetch | 15th of Jan/Apr/Jul/Oct, 07:00 | YYYY-Qn | Fetches INSEE IRL; applies due revisions and issues notices |
-| charges.reconcile | on demand | asset + year | Reconciliation steps (RENT-SPEC-007) |
+| charges.reconcile | on demand | `<asset id>/<year>` | Allocates the asset's reconciliation of that exercise year (draft or allocated); issuing stays an owner action (Q-83) |
 | tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the income year; then drafts every owner’s summary for the previous year; owner issues it |
 | archive.retention | 1st, 03:00 | YYYY-MM | Lists documents past retain\_until for manual review; deletes nothing |
 | archive.verify | weekly, Sun 04:00 | YYYY-Www | Re-hashes a sample of objects against `documents.sha256` |
@@ -145,6 +146,7 @@ Every legal constant lives in `legal_params` with an effective date, and every c
 | rental\_min\_dpe\_class | F from 2025-01-01 | lease (a worse class blocks, Q-73) |
 | notice\_months.tenant.default / .tense\_zone / .furnished | 3 / 1 / 1 | lease (phase 2) |
 | regularisation\_spread\_after\_months | 12 | charge |
+| regularisation\_supporting\_docs\_months | 6 (loi 89-462 art. 23) | charge (statement) |
 | irl\_cap.applies / irl\_cap.rate | per decree, dated | billing |
 | receipt\_due\_days\_before\_reminder | 5 | billing |
 | archive\_retention\_years | 10 | document (retention and object lock, Q-54) |
@@ -237,4 +239,5 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-01 | 1.7 | Slice 6 (Q-77 to Q-84): charges in cents with the syndic split and draft status, reconciliation lines per lease, regularisation\_postings, charges.reconcile period key, supporting-documents parameter |
 | 2026-11-01 | 1.6 | Slice 5 (Q-67 to Q-76): upload pipeline, asset\_diagnostics, lease\_documents, inventories, guarantee rules, contract blockers and routes, CA prefix, diagnostics and DPE class parameters, retention clock of lease documents |

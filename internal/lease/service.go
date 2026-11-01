@@ -794,6 +794,35 @@ func (s Service) DomainInTx(ctx context.Context, id uuid.UUID) (Lease, View, err
 	return l, v, err
 }
 
+// SetProvisionInTx records a new monthly provision validated by the owner
+// after a charge reconciliation (RENT-SPEC-007 step 8), inside the current
+// transaction, with its audit event lease.provision; it applies from the next
+// rent call issued.
+func (s Service) SetProvisionInTx(ctx context.Context, id uuid.UUID, cents int64, by string) error {
+	st, err := s.Repo.Get(ctx, id, true)
+	if err != nil {
+		return err
+	}
+	before := map[string]any{"provision_cents": st.lease.ProvisionCents, "version": st.lease.Version}
+	if err := s.Repo.SetProvision(ctx, id, st.lease.Version, cents, s.now(), by); err != nil {
+		return err
+	}
+	return audit.Record(ctx, "lease.provision", audit.Entity{Type: "lease", ID: id.String()}, before,
+		map[string]any{"provision_cents": cents, "version": st.lease.Version + 1})
+}
+
+// DepositHeldInTx reports whether the lease still holds a deposit (held or
+// valid), against which a regularisation balance can be settled.
+func (s Service) DepositHeldInTx(ctx context.Context, id uuid.UUID) (bool, error) {
+	gs, err := s.Repo.Guarantees(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	return slices.ContainsFunc(gs, func(g guaranteeRow) bool {
+		return g.Kind == string(GuaranteeDeposit) && (g.Status == string(StatusHeld) || g.Status == string(StatusValid))
+	}), nil
+}
+
 // RevisionApplied is the audit view of an applied revision.
 type RevisionApplied struct {
 	RentCents     int64  `json:"rent_cents"`
