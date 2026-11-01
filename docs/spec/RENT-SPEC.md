@@ -120,7 +120,7 @@ On the 1st of each month a scheduled job issues one rent call per active lease; 
 
 **Receipt (quittance)**: issued when matched payments cover the month’s rent call in full; a partial payment produces a reçu partiel, not a quittance. Receipts are numbered `QL-<asset>-<YYYY>-<seq>` and cite the rent and charges amounts separately, as required by law.
 
-**Rent revision (IRL)**: at the lease’s revision month, new rent = base rent × (current IRL / reference IRL), rounded to the cent, capped by any applicable rent-control rule stored on the asset. The job fetches the quarterly INSEE IRL index, issues a revision notice, and updates the lease’s reference index. A revision older than 12 months is not applied retroactively.
+**Rent revision (IRL)**: at the lease’s revision month, new rent = base rent × (current IRL / reference IRL), rounded to the cent, capped by the rent-control rule in legal\_params when the asset is flagged as being in a controlled zone. The job fetches the quarterly INSEE IRL index, issues a revision notice, and updates the lease’s reference index. A revision older than 12 months is not applied retroactively.
 
 **Annual charge regularisation**: handled by RENT-SPEC-007; the resulting balance is billed or credited on the next monthly fee.
 
@@ -169,20 +169,23 @@ In January the platform produces, per owner, a tax summary of the previous calen
 
 **Summary content (per owner, with per-asset detail)**
 
-| Block | Line | Source |
+| Block | 2044 line (millésime 2025, map kept in legal\_params) | Source |
 | --- | --- | --- |
-| Income | Rents and recoverable charges received (2044 line 211) | Payments matched to rent calls and regularisations |
-| Income | Other income (insurance indemnities, subsidies) | Charge entries with negative sign, category « indemnité » |
-| Expenses | Repairs and maintenance (221) | Charges, category repairs, non-recoverable |
-| Expenses | Non-recoverable copropriété charges (229/230) | Syndic provisions paid, then the prior-year regularisation |
-| Expenses | Management fees and insurance (222/223) | Charges, category management / insurance |
-| Expenses | Taxe foncière excl. TEOM (227) | Charge, category property tax |
-| Expenses | Loan interest and loan insurance (250) | Charges, category loan interest |
-| Result | Net per asset, net per owner share, deficit carry-forward | Computed |
+| Income | 211 Loyers bruts — rent only, excluding provisional charges received | Payments matched to rent lines of rent calls |
+| Income | 212 Dépenses mises par convention à la charge du locataire; 213 recettes diverses (indemnités, subventions) | Charge entries flagged as such |
+| Expenses | 221 Frais d’administration et de gestion | Charges, category management |
+| Expenses | 222 Autres frais de gestion — flat amount per property from legal\_params | Computed |
+| Expenses | 223 Primes d’assurance | Charges, category insurance |
+| Expenses | 224 Réparations, entretien, amélioration | Charges, category repairs, non-recoverable |
+| Expenses | 225 Charges récupérables non récupérées au départ du locataire | Reconciliation balance left unpaid at lease close |
+| Expenses | 227 Taxe foncière excluding TEOM | Charge, category property tax |
+| Expenses | 229 Provisions pour charges de copropriété N; 230 régularisation des provisions N-1 | Syndic provisions paid, then prior-year statement |
+| Expenses | 250 Intérêts d’emprunt and loan insurance | Charges, category loan interest |
+| Result | Net per asset, net per owner share; deficit against global income capped per legal\_params, remainder carried forward per legal\_params | Computed |
 
 **Outputs**: PDF summary `RF-<owner>-<YYYY>`, CSV of the underlying lines, and the list of supporting documents (invoices, syndic statements) archived for audit. All three go to the archive (RENT-SPEC-005).
 
-**Rules**: a charge dated in year N but paid in N+1 is counted in N+1; a charge with no supporting document is flagged, not excluded; every figure is traceable to its payment or charge ids.
+**Rules**: a charge dated in year N but paid in N+1 is counted in N+1; a charge with no supporting document is flagged, not excluded; provisional charges received from tenants are never income and recoverable expenses are never deducted (only line 225 at lease close); the 2044 line map is verified against the current year’s notice before tax.annual runs; every figure is traceable to its payment or charge ids.
 
 ## RENT-SPEC-005 — Document retention and archive
 
@@ -392,7 +395,7 @@ From the first release every business change is recorded in an append-only, hash
 
 | Control | Day-1 rule |
 | --- | --- |
-| Authentication | Socrate OIDC with PKCE; MFA mandatory for owner and admin roles; access tokens 15 min, refresh 8 h, revocable; step-up re-authentication before issuing a tax summary, changing grants or parameters |
+| Authentication | Socrate OIDC with PKCE; MFA mandatory for owner and admin roles; access tokens 15 min, refresh 8 h, revocable; step-up re-authentication before issuing a tax summary, changing grants or parameters, defined as auth\_time at most 5 minutes old and mfa present in amr; a token without auth\_time is refused for these routes |
 | Authorisation | RLS on every owner table, API role without BYPASSRLS, grants table reviewed in the audit log, deny-by-default routes |
 | Transport and headers | TLS 1.2+ only via Caddy, HSTS, CSP without inline scripts, no tokens in localStorage, SameSite cookies if used |
 | Data at rest | Encrypted PostgreSQL volume and bucket (SSE), encrypted backups, keys managed by the hosting provider’s KMS, rotation yearly |
@@ -446,3 +449,4 @@ From the first release every business change is recorded in an append-only, hash
 | 2026-11-01 | 0.8 | Language rule made explicit: French default for all user interaction, English optional per user, legal documents always French |
 | 2026-11-01 | 0.9 | OD-07 finalised: two repositories ovander/tenure-api and ovander/tenure-web created on GitHub; architecture table updated |
 | 2026-11-01 | 1.0 | All open decisions OD-01 to OD-09 decided; phase 1 slice order and dev environment added to the roadmap; corpus frozen as the phase 1 baseline |
+| 2026-11-01 | 1.1 | Implementation feedback (OPEN-QUESTIONS Q-02, Q-07, Q-08, Q-12): 2044 line map corrected to the real form, provisional charges excluded from income, IRL cap moved to legal\_params, step-up defined by auth\_time and amr |

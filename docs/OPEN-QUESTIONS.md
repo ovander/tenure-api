@@ -10,36 +10,35 @@ Status: **Open** (provisional reading applies), **Needs answer** (blocks the sli
 
 ## Identity and security
 
-**Q-01 Socrate dev values — Open (slice 2).** The issuer URL, API audience, role claim and step-up
+**Q-01 Socrate dev values — Open (slice 2), values to follow from the owner.** The issuer URL, API audience, role claim and step-up
 value were not supplied. Provisional: `TENURE_SOCRATE_ISSUER`, `TENURE_SOCRATE_JWKS_URL`,
 `TENURE_SOCRATE_AUDIENCE` and `TENURE_SOCRATE_ADMIN_ROLE` are required and have no default, so
 `tenure serve` refuses to start without them. `.env.example` holds obvious placeholders. The
 admin role is read from backendkit's `role` claim (`ctxutil.GetUserRole`).
+2026-11-01: the owner confirmed the reading. The four settings stay required, with no default.
 
-**Q-02 Step-up freshness — Open (slice 2).** RENT-BE-001 §8b asks for "an `acr` fresh within 5
-minutes". backendkit v1.27.0 does not expose `acr`; it exposes `auth_time` and `amr`
-(`ctxutil.GetAuthTime`, `ctxutil.GetAMR`), and `acr` carries no time anyway. Provisional: a
-`step_up` route requires `auth_time` to be set and at most 5 minutes old, and `amr` to contain
-`mfa`. A missing `auth_time` (0) means "unknown" and is refused. The 5-minute window is a
-security setting, not a legal constant: `TENURE_STEP_UP_MAX_AGE`, default 5m, never above it. Asking backendkit to expose `acr` would be a separate
-backendkit PR.
+**Q-02 Step-up freshness — Answered 2026-11-01.** The owner adopted the reading. A `step_up`
+route requires `auth_time` at most 5 minutes old and `mfa` in `amr`; a missing `auth_time` is
+refused. backendkit v1.27.0 already exposes both claims (`ctxutil.GetAuthTime`,
+`ctxutil.GetAMR`), so no backendkit issue is needed. Only `internal/auth` reads them, through an
+exported accessor; nothing else parses the JWT. The window is `TENURE_STEP_UP_MAX_AGE`, at most
+5m. Spec: RENT-BE-001 §4, §8b.
 
-**Q-03 Database role names — Open (slice 2).** RENT-BE-001 §8b names `rent_api`, `rent_migrate`
-and `rent_jobs`. These names predate the rename to Tenure (BE-001 v0.3), and the slice 2 brief
-uses `tenure_api`, `tenure_migrate` and `tenure_jobs`. Provisional: use `tenure_*`, and amend §8b
-in the slice 2 PR.
+**Q-03 Database role names — Answered 2026-11-01.** `tenure_api`, `tenure_migrate` and
+`tenure_jobs`. Spec: RENT-BE-001 §8b corrected.
 
 **Q-04 Subject format — Open (slice 2).** backendkit documents Socrate's `sub` as a numeric
 string, not a UUID. Provisional: `owners.socrate_sub` is `text`, unique, and is read with
 `ctxutil.GetUserSub`, never `GetUserID`.
 
-**Q-05 Grants in RLS — Open (slice 2).** RENT-BE-001 §2 says grants are "joined in the policy",
-but `owner_grants` is missing from the migration 000001 table list. Provisional: create
-`owner_grants` in 000001. The policy is `owner_id = app.owner_id AND tenure_scope_allowed(owner_id)`,
-where the function checks either `owners.socrate_sub = app.actor_sub` or a grant row. Write
-policies also require the owner role, so co-owners and accountants are read-only in the
-database, not only in the API. The grant endpoints come in slice 8, and BE-001 §3 lists none.
-They will be `GET/POST /grants` and `DELETE /grants/{id}`, all tagged `step_up`.
+**Q-05 Grants in RLS — Answered 2026-11-01.** `owner_grants (id, owner_id, grantee_sub,
+role, granted_at, revoked_at)` is created in migration 000001 and is part of the data model.
+Only rows with `revoked_at` null grant access. Every change is audited. The policy is
+`owner_id = app.owner_id AND tenure_scope_allowed(owner_id)`, where the function checks either
+`owners.socrate_sub = app.actor_sub` or a live grant. Write policies require the owner, so
+co-owners and accountants are read-only in the database too. The grant endpoints come in
+slice 8: `GET/POST /grants` and `DELETE /grants/{id}` (which sets `revoked_at`), all `step_up`.
+Spec: RENT-BE-001 §2.
 
 **Q-06 `PUT /me` — Open (slice 2).** RENT-FE-001 §7 persists the language with `PUT /me`, but
 BE-001 §3 lists only `GET /me`. Provisional: add `PUT /me` (language only) in slice 2, and amend
@@ -47,26 +46,28 @@ BE-001 §3 lists only `GET /me`. Provisional: add `PUT /me` (language only) in s
 
 ## Calculation engine (slice 1)
 
-**Q-07 2044 line numbers — Needs answer (slice 1 fixtures).** RENT-SPEC-004 maps repairs to line
-221 and management fees and insurance to 222/223. On form 2044 as we read it, 221 is "frais
-d'administration et de gestion", 222 is "autres frais de gestion" (a flat amount per property),
-223 is insurance premiums, 224 is repairs, maintenance and improvement, and 213 is subsidies and
-insurance indemnities. The map is a parameter (`form_2044_line_map`), so only fixture data
-depends on the answer. Provisional: the fixture follows the spec table as written, and this
-entry stays open until checked against the current year's 2044 notice.
+**Q-07 2044 line numbers — Answered 2026-11-01.** Use the real form 2044 map:
+- income: 211 gross rents, 212 owner expenses charged to the tenant, 213 subsidies and
+  insurance indemnities;
+- expenses: 221 administration and management, 222 flat amount per property, 223 insurance,
+  224 repairs, maintenance and improvement, 225 recoverable charges not recovered at lease
+  close, 227 taxe foncière excluding TEOM, 229 copropriété provisions paid in N, 230
+  regularisation of N−1 provisions, 250 loan interest and insurance.
 
-**Q-08 Recoverable charges on line 211 — Needs answer (slice 1).** RENT-SPEC-004 puts "rents and
-recoverable charges received" on line 211. Normally, recovered charges are left out of income
-when the matching expenses are not deducted (line 225 handles the exception). Provisional: follow
-the spec. Recoverable provisions received go to 211, and recoverable charges paid are not
-deducted twice. Each line carries the ids of its sources, so the figure can be reviewed.
+The map is the parameter `form_2044_line_map`, keyed by millésime (the form's year, i.e. income
+year + 1). `tax.Lines` returns an error when the target millésime has no map, and `tax.annual`
+runs the same pre-check before drafting (slice 7). Fixtures and golden files follow the map.
+Spec: RENT-SPEC-004, RENT-BE-001 §5 and §7.
 
-**Q-09 Missing legal parameters — Open (slice 1).** The tax and charge rules need constants that
-RENT-BE-001 §7 does not list: the micro-foncier allowance (30 %), the 222 flat amount per
-property, the cap on deficit imputation against global income and the deficit carry-forward period. Provisional: add them as `legal_params` keys with a `source_url`
-(`micro_foncier_allowance_pct`, `form_2044_flat_fee_per_property_cents`,
-`deficit_global_income_cap_cents`, `deficit_carry_forward_years`),
-and amend §7.
+**Q-08 Recoverable charges on line 211 — Answered 2026-11-01.** Excluded. Provisional
+charges received are not income, and recoverable expenses are not deducted. The only exception
+is line 225, at lease close. `tax.Lines` takes rent income only from payment amounts matched to
+rent lines. Spec: RENT-SPEC-004.
+
+**Q-09 Missing legal parameters — Answered 2026-11-01.** Approved, effective 2025-01-01:
+`micro_foncier_allowance_pct` 30, `forfait_222_cents` 2000, `deficit_global_cap_cents` 1070000,
+`deficit_carryforward_years` 10. They are in the params fixtures and will be in the 000001 seed.
+Spec: RENT-BE-001 §7.
 
 **Q-10 Deficit carry-forward — Open (slice 1).** The spec only says "deficit carry-forward".
 Provisional: `tax.Lines` takes prior-year deficits as input. It applies them, oldest first,
@@ -80,11 +81,10 @@ has. Provisional: the actual number of days in the calendar month. Occupied days
 start date and the end date. Rent and provision are prorated separately, each rounded half-up to
 the cent.
 
-**Q-12 IRL cap source — Open (slice 1).** RENT-SPEC-003 caps the revision by "any applicable
-rent-control rule stored on the asset". RENT-BE-001 §7 uses `irl_cap.applies` and
-`irl_cap.rate` from params. Provisional: follow BE-001. The cap is a maximum variation from
-params, effective as of the revision date. An asset-level rent-control ceiling (encadrement des
-loyers) is out of phase 1 unless confirmed.
+**Q-12 IRL cap source — Answered 2026-11-01.** Two dated parameters in `legal_params`:
+`irl_cap` (national, applies to every lease) and `rent_control.zone_rules`, which applies only
+when `assets.controlled_zone` is set. That boolean column is added to `assets` in migration
+000001. Spec: RENT-SPEC-003, RENT-BE-001 §2 and §7. The shape of the zone rules is Q-28.
 
 **Q-13 IRL retroactivity — Open (slice 1).** RENT-SPEC-003 says "A revision older than 12 months
 is not applied retroactively." Provisional: a revision never creates arrears for past months. It
@@ -154,3 +154,34 @@ uses a JSON formatter with the same field names.
 **Q-26 Box-only lease deposit — Open (slice 5).** A box let on its own is not governed by the loi
 de 1989, so `deposit_max_months` does not apply to it. Provisional: there is no legal cap. A
 warning is shown above 2 months of rent.
+
+## Raised by the 2026-11-01 decisions
+
+**Q-27 What counts as a property for line 222 — Open (slice 1).** `forfait_222_cents` is due
+"per property" (par local). Provisional, so as never to overstate a deduction: one flat amount
+per unfurnished asset that earned rent in the year. A box let with a dwelling counts with that
+dwelling, not separately; a box let on its own counts as one property.
+
+**Q-28 Shape of `rent_control.zone_rules` — Open (slice 1).** The decision does not say what a
+zone rule contains. Provisional: a dated maximum variation of the rent at revision, in basis
+points, applied after the national `irl_cap` (the stricter wins). A per-m² reference-rent
+ceiling (loyer de référence majoré) would need per-asset zone data and is not modelled.
+
+**Q-29 Copropriété provisions on line 229 — Open (slice 1).** On the form, line 229 takes the
+provisions paid in N, and line 230 takes back the non-deductible part the next year. Under
+Q-08, recoverable expenses are not deducted. Provisional (the conservative reading): line 229
+takes only the non-recoverable share of the provisions paid (`recoverable_pct` from the syndic's
+call). Line 230 takes the N−1 regularisation amount, entered as a charge of category
+`copro_regularisation_prior`, and is subtracted from the expenses.
+
+**Q-30 `tax.Lines` inputs — Open (slice 1).** The signature `Lines(payments, charges, shares,
+year, params)` does not carry the prior-year deficits, nor the furnished flag and the
+dwelling/box kind that line 222 needs. Provisional: `shares` is a list of assets, each with its
+owners' shares, `Furnished` and `Kind`, and a final argument takes the prior deficits per owner.
+
+**Q-31 Which year a millésime names — Open (slice 1).** The re-exported RENT-SPEC-004 table header
+reads "millésime 2025". By the DGFiP convention, the form for income year N carries millésime
+N+1 (the 2044 filed in 2026 for 2025 income is millésime 2026). Provisional: millésime = income
+year + 1, so `tax.Lines` for income year 2025 needs the 2026 map. The fixtures hold the map
+under millésime 2026 for income year 2025. If the header means "income year 2025", only its
+wording changes.

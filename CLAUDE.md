@@ -84,8 +84,9 @@ testdata/golden/<year>/        golden files per calculation and tax year
 - `app.owner_id` is set with `set_config(…, true)` inside the transaction, by the auth/db layer,
   before any repository call. gorm models never add an owner filter themselves.
 - Roles: `tenure_api` (no BYPASSRLS, no DDL), `tenure_migrate` (DDL, used only by
-  `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner iteration, no DDL). See
-  `docs/OPEN-QUESTIONS.md` on the `rent_*` names still in RENT-BE-001 §8b.
+  `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner iteration, no DDL).
+- Co-owner and accountant access comes from `owner_grants` rows with `revoked_at` null, joined
+  in the policy; a grant is revoked, never deleted.
 - A cross-owner integration test must read zero rows for every owner table; a new owner table
   gets added to it.
 
@@ -115,9 +116,9 @@ testdata/golden/<year>/        golden files per calculation and tax year
   (default: their own); an unknown or ungranted scope is 403.
 - Deny by default: every route requires a valid token except `/healthz` and `/readyz`; a CI test
   walks the router and fails if any other route answers without one.
-- Routes tagged `step_up` (tax issue, grants, params, exports) require a fresh strong
-  authentication or answer 401 `type: auth/step-up-required` (see OPEN-QUESTIONS for how
-  freshness is read from backendkit's claims).
+- Routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most
+  5 minutes old and `mfa` in `amr` (read through `internal/auth`'s accessor over backendkit's
+  `ctxutil`), otherwise 401 `type: auth/step-up-required`; a missing `auth_time` is refused.
 
 ## Money, time and legal constants
 
