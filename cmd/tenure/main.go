@@ -26,11 +26,14 @@ import (
 	_ "time/tzdata"
 
 	"github.com/google/uuid"
+	bffkit "github.com/ovander/backendkit/bff"
 	"github.com/ovander/backendkit/buildinfo"
+	"github.com/ovander/backendkit/socrate"
 	"github.com/sirupsen/logrus"
 
 	"github.com/ovander/tenure-api/internal/app"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/config"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
@@ -188,6 +191,10 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	}
 	d.Scanner = document.Clamd{Addr: cfg.ClamAVAddr}
 	d.Auth, d.Ready = authMW, readiness(api, cfg.Socrate.JWKSURL, store, pdf, d.Scanner)
+	if d.BFF, err = browserSessions(ctx, cfg, api); err != nil {
+		return err
+	}
+	go d.BFF.Sweep(ctx)
 	a, err := app.New(d)
 	if err != nil {
 		return err
@@ -215,6 +222,30 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	shutdown, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdown)
+}
+
+// browserSessions builds the BFF (RENT-BE-001 §4): tenure as Socrate's
+// confidential client, sessions and pending logins encrypted in PostgreSQL
+// (tables of migration 000006, so the stores run no DDL).
+func browserSessions(ctx context.Context, cfg config.Config, api *db.DB) (*bff.Server, error) {
+	client, err := socrate.NewClient(socrate.ClientConfig{BaseURL: cfg.Socrate.Issuer, ClientID: cfg.Socrate.ClientID,
+		ClientSecret: cfg.Socrate.ClientSecret, Timeout: 10 * time.Second})
+	if err != nil {
+		return nil, err
+	}
+	onErr := func(op string, err error) { slog.ErrorContext(ctx, "bff store", "op", op, "error", err) }
+	sessions, err := bffkit.NewPostgresStore(ctx, api.SQL(), cfg.SessionKey, bff.IdleTimeout, bff.AbsoluteTimeout,
+		bffkit.WithPostgresManagedSchema(), bffkit.WithPostgresErrorHandler(onErr))
+	if err != nil {
+		return nil, fmt.Errorf("bff sessions: %w", err)
+	}
+	pending, err := bffkit.NewPostgresPendingLoginStore(ctx, api.SQL(), cfg.SessionKey, bffkit.DefaultPendingLoginTTL,
+		bffkit.WithPendingLoginManagedSchema(), bffkit.WithPendingLoginErrorHandler(onErr))
+	if err != nil {
+		return nil, fmt.Errorf("bff pending logins: %w", err)
+	}
+	return bff.New(bff.Config{Issuer: cfg.Socrate.Issuer, ClientID: cfg.Socrate.ClientID, PublicURL: cfg.PublicURL},
+		client, sessions, pending, nil), nil
 }
 
 func deps(cfg config.Config, api, jdb *db.DB) (app.Deps, *document.S3, document.Gotenberg, error) {

@@ -10,13 +10,18 @@ func env(m map[string]string) func(string) string { return func(k string) string
 
 func valid() map[string]string {
 	return map[string]string{
-		"TENURE_DB_URL":             "postgres://tenure_api:x@db.internal:5432/tenure?sslmode=verify-full",
-		"TENURE_JOBS_DB_URL":        "postgres://tenure_jobs:x@localhost:5432/tenure",
-		"TENURE_SOCRATE_ISSUER":     "https://socrate.example.test",
-		"TENURE_SOCRATE_JWKS_URL":   "https://socrate.example.test/.well-known/jwks.json",
-		"TENURE_SOCRATE_AUDIENCE":   "tenure-api",
-		"TENURE_SOCRATE_ADMIN_ROLE": "admin",
-		"TENURE_CLAMAV_ADDR":        "clamav.internal:3310",
+		"TENURE_DB_URL":                "postgres://tenure_api:x@db.internal:5432/tenure?sslmode=verify-full",
+		"TENURE_JOBS_DB_URL":           "postgres://tenure_jobs:x@localhost:5432/tenure",
+		"TENURE_SOCRATE_ISSUER":        "https://socrate.example.test",
+		"TENURE_SOCRATE_JWKS_URL":      "https://socrate.example.test/.well-known/jwks.json",
+		"TENURE_SOCRATE_AUDIENCE":      "tenure-api",
+		"TENURE_SOCRATE_ADMIN_ROLE":    "admin",
+		"TENURE_CLAMAV_ADDR":           "clamav.internal:3310",
+		"TENURE_SOCRATE_CLIENT_ID":     "tenure-web",
+		"TENURE_SOCRATE_CLIENT_SECRET": "placeholder-client-secret",
+		"TENURE_PUBLIC_URL":            "https://tenure.example.test",
+		// 32 zero bytes: an obviously fake key.
+		"TENURE_SESSION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	}
 }
 
@@ -50,6 +55,11 @@ func TestLoadDocuments(t *testing.T) {
 		"missing antivirus":      {"TENURE_CLAMAV_ADDR", ""},
 		"antivirus without port": {"TENURE_CLAMAV_ADDR", "clamav.internal"},
 		"antivirus with scheme":  {"TENURE_CLAMAV_ADDR", "tcp://clamav.internal:3310"},
+		"missing client secret":  {"TENURE_SOCRATE_CLIENT_SECRET", ""},
+		"public url over http":   {"TENURE_PUBLIC_URL", "http://tenure.example.test"},
+		"public url with a path": {"TENURE_PUBLIC_URL", "https://tenure.example.test/app"},
+		"short session key":      {"TENURE_SESSION_KEY", "c2hvcnQ="},
+		"missing session key":    {"TENURE_SESSION_KEY", ""},
 	}
 	for name, kv := range bad {
 		m := withDocs(valid())

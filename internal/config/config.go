@@ -5,6 +5,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -37,6 +38,10 @@ type Socrate struct {
 	JWKSURL   string
 	Audience  string
 	AdminRole string
+	// ClientID and ClientSecret are tenure's confidential client, used by
+	// the BFF for the browser login (RENT-BE-001 §4).
+	ClientID     string
+	ClientSecret string
 }
 
 // S3 holds the object-store settings (Scaleway in production, OD-04).
@@ -71,6 +76,12 @@ type Config struct {
 	S3           S3
 	SMTP         SMTP
 	PDFEngineURL string // gotenberg
+	// PublicURL is the origin browsers use (https, or http on loopback in
+	// development); the BFF's callback is <PublicURL>/bff/callback.
+	PublicURL *url.URL
+	// SessionKey encrypts the BFF's sessions and pending logins (32 bytes,
+	// TENURE_SESSION_KEY in standard base64); changing it signs everyone out.
+	SessionKey []byte
 	// ClamAVAddr is the clamd sidecar (host:port) scanning uploads; required
 	// to serve, since an upload without a scan is refused.
 	ClamAVAddr string
@@ -98,10 +109,12 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 		JobsDBURL:    get("TENURE_JOBS_DB_URL", need&(NeedAPI|NeedJobs) != 0),
 		MigrateDBURL: get("TENURE_MIGRATE_DB_URL", need&NeedMigrate != 0),
 		Socrate: Socrate{
-			Issuer:    get("TENURE_SOCRATE_ISSUER", need&NeedAPI != 0),
-			JWKSURL:   get("TENURE_SOCRATE_JWKS_URL", need&NeedAPI != 0),
-			Audience:  get("TENURE_SOCRATE_AUDIENCE", need&NeedAPI != 0),
-			AdminRole: get("TENURE_SOCRATE_ADMIN_ROLE", need&NeedAPI != 0),
+			Issuer:       get("TENURE_SOCRATE_ISSUER", need&NeedAPI != 0),
+			JWKSURL:      get("TENURE_SOCRATE_JWKS_URL", need&NeedAPI != 0),
+			Audience:     get("TENURE_SOCRATE_AUDIENCE", need&NeedAPI != 0),
+			AdminRole:    get("TENURE_SOCRATE_ADMIN_ROLE", need&NeedAPI != 0),
+			ClientID:     get("TENURE_SOCRATE_CLIENT_ID", need&NeedAPI != 0),
+			ClientSecret: get("TENURE_SOCRATE_CLIENT_SECRET", need&NeedAPI != 0),
 		},
 		StepUpMaxAge: MaxStepUpAge,
 	}
@@ -144,6 +157,25 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 		errs = append(errs, errors.New("TENURE_SMTP_FROM must be an e-mail address"))
 	}
 	c.PDFEngineURL = get("TENURE_PDF_ENGINE_URL", docs)
+	if v := get("TENURE_PUBLIC_URL", need&NeedAPI != 0); v != "" {
+		u, err := url.Parse(v)
+		switch {
+		case err != nil || u.Host == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "":
+			errs = append(errs, errors.New("TENURE_PUBLIC_URL must be an origin such as https://tenure.example.fr"))
+		case checkHTTPS(v) != nil:
+			errs = append(errs, errors.New("TENURE_PUBLIC_URL must use https (http only on loopback)"))
+		default:
+			u.Path = ""
+			c.PublicURL = u
+		}
+	}
+	if v := get("TENURE_SESSION_KEY", need&NeedAPI != 0); v != "" {
+		k, err := base64.StdEncoding.DecodeString(v)
+		if err != nil || len(k) != 32 {
+			errs = append(errs, errors.New("TENURE_SESSION_KEY must be 32 random bytes in standard base64"))
+		}
+		c.SessionKey = k
+	}
 	c.ClamAVAddr = get("TENURE_CLAMAV_ADDR", need&NeedAPI != 0)
 	if c.ClamAVAddr != "" {
 		if _, port, err := net.SplitHostPort(c.ClamAVAddr); err != nil || port == "" || strings.Contains(c.ClamAVAddr, "://") {
