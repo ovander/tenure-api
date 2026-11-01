@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/ovander/tenure-api/internal/period"
 )
 
 // TestNoLegalConstantInCode enforces CLAUDE.md: legal constants live in
@@ -32,7 +30,7 @@ func TestNoLegalConstantInCode(t *testing.T) {
 			addPattern(fmt.Sprintf(`\b%d\b`, n))
 		}
 	}
-	m, err := set.Form2044LineMap(period.NewDate(2025, 1, 1).Year + 1)
+	m, err := set.Form2044LineMap(2025)
 	if err != nil {
 		t.Fatal(err)
 	}

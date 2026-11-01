@@ -60,6 +60,28 @@ type Lease struct {
 	IRLRefQuarter string     `json:"irl_ref_quarter"`
 	IRLRefValue   int64      `json:"irl_ref_value"`
 	RevisionMonth time.Month `json:"revision_month"`
+	// RentExemption lifts the relocation rule when recorded (Q-28).
+	RentExemption RentExemption `json:"rent_exemption,omitempty"`
+	// RentBreakdown optionally splits RentCents by asset, for reporting from
+	// phase 3; tax ignores it, since all assets of a lease share one ownership.
+	RentBreakdown []AssetRent `json:"rent_breakdown,omitempty"`
+}
+
+// RentExemption is a recorded reason for a new lease's rent to exceed the
+// relocation rule.
+type RentExemption string
+
+// Rent exemptions (rent_control.relocation_rule).
+const (
+	ExemptionNone        RentExemption = ""
+	ExemptionWorks       RentExemption = "works"
+	ExemptionUnderValued RentExemption = "under_valued"
+)
+
+// AssetRent is the part of the lease's rent attributed to one asset.
+type AssetRent struct {
+	AssetID   string      `json:"asset_id"`
+	RentCents money.Cents `json:"rent_cents"`
 }
 
 // ControlledZone reports whether any asset of the lease is in a
@@ -84,7 +106,8 @@ func (l Lease) Covers(assetID string) bool {
 }
 
 // PrincipalAsset returns the asset a lease's rent is attributed to: its first
-// dwelling, or its first asset when it lets only a box (OPEN-QUESTIONS Q-32).
+// dwelling, or its first asset when it lets only a box (Q-32: valid because
+// every asset of a lease has the same ownership shares).
 func (l Lease) PrincipalAsset() (portfolio.Asset, bool) {
 	for _, a := range l.Assets {
 		if a.Dwelling() {

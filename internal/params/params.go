@@ -17,19 +17,20 @@ import (
 
 // Keys of the parameters the calculation engine reads.
 const (
-	KeyMicroFoncierThreshold = "micro_foncier_threshold_cents"
-	KeyMicroFoncierAllowance = "micro_foncier_allowance_pct"
-	KeyForfait222            = "forfait_222_cents"
-	KeyDeficitGlobalCap      = "deficit_global_cap_cents"
-	KeyDeficitCarryForward   = "deficit_carryforward_years"
-	KeyDepositMaxUnfurnished = "deposit_max_months.unfurnished"
-	KeyDepositMaxFurnished   = "deposit_max_months.furnished"
-	KeyDepositMaxMobility    = "deposit_max_months.mobility"
-	KeyRegularisationSpread  = "regularisation_spread_after_months"
-	KeyReceiptReminderDays   = "receipt_due_days_before_reminder"
-	KeyIRLCap                = "irl_cap"
-	KeyRentControlZoneRules  = "rent_control.zone_rules"
-	KeyForm2044LineMap       = "form_2044_line_map"
+	KeyMicroFoncierThreshold  = "micro_foncier_threshold_cents"
+	KeyMicroFoncierAllowance  = "micro_foncier_allowance_pct"
+	KeyForfait222             = "forfait_222_cents"
+	KeyDeficitGlobalCap       = "deficit_global_cap_cents"
+	KeyDeficitCarryForward    = "deficit_carryforward_years"
+	KeyDepositMaxUnfurnished  = "deposit_max_months.unfurnished"
+	KeyDepositMaxFurnished    = "deposit_max_months.furnished"
+	KeyDepositMaxMobility     = "deposit_max_months.mobility"
+	KeyRegularisationSpread   = "regularisation_spread_after_months"
+	KeyReceiptReminderDays    = "receipt_due_days_before_reminder"
+	KeyIRLCap                 = "irl_cap"
+	KeyRentControlZoneCeiling = "rent_control.zone_ceiling"
+	KeyRentControlRelocation  = "rent_control.relocation_rule"
+	KeyForm2044LineMap        = "form_2044_line_map"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -52,7 +53,7 @@ type Set struct {
 
 // New builds a Set, rejecting an entry without key, date, value or source,
 // and two entries of one key with the same effective date (two
-// form_2044_line_map entries may share a date when their millésimes differ).
+// form_2044_line_map entries may share a date when their income years differ).
 func New(entries ...Entry) (Set, error) {
 	s := Set{entries: map[string][]Entry{}}
 	seen := map[string]bool{}
@@ -63,11 +64,11 @@ func New(entries ...Entry) (Set, error) {
 		id := e.Key + "@" + e.EffectiveFrom.String()
 		if e.Key == KeyForm2044LineMap {
 			var m LineMap
-			if err := json.Unmarshal(e.Value, &m); err != nil || m.Millesime == 0 || len(m.Lines) == 0 ||
-				len(m.IncomeLines) == 0 || len(m.InterestLines) == 0 {
+			if err := json.Unmarshal(e.Value, &m); err != nil || m.TaxYear == 0 || m.Millesime == 0 ||
+				len(m.Lines) == 0 || len(m.IncomeLines) == 0 || len(m.InterestLines) == 0 {
 				return Set{}, fmt.Errorf("params: invalid %s entry", KeyForm2044LineMap)
 			}
-			id += fmt.Sprintf("#%d", m.Millesime)
+			id += fmt.Sprintf("#%d", m.TaxYear)
 		}
 		if seen[id] {
 			return Set{}, fmt.Errorf("params: duplicate entry %s", id)
@@ -168,8 +169,9 @@ func (s Set) Int64(key string, asOf period.Date) (int64, error) {
 	return v, err
 }
 
-// Cap is the national IRL revision cap (irl_cap): when Applies, a revision may
-// not raise the rent by more than RateBP basis points.
+// Cap is the national cap on the IRL variation itself (irl_cap), as the
+// 2022–2024 « bouclier » was: when Applies, the index variation used in a
+// revision may not exceed RateBP basis points, whatever the asset.
 type Cap struct {
 	Applies bool  `json:"applies"`
 	RateBP  int64 `json:"rate_bp"`
@@ -182,24 +184,48 @@ func (s Set) IRLCap(asOf period.Date) (Cap, error) {
 	return c, err
 }
 
-// ZoneRule is the rent-control rule for assets in a controlled zone
-// (rent_control.zone_rules, OPEN-QUESTIONS Q-28): a maximum rent variation at
-// revision in basis points, or no limit when MaxVariationBP is nil.
-type ZoneRule struct {
-	MaxVariationBP *int64 `json:"max_variation_bp"`
+// ZoneCeiling is the rent-control ceiling table (rent_control.zone_ceiling):
+// the loyer de référence majoré in cents per m² per month, by zone and then by
+// category. It applies only to assets with controlled_zone set.
+type ZoneCeiling struct {
+	Zones map[string]map[string]int64 `json:"zones"`
 }
 
-// ZoneRule returns the rent-control rule in force on asOf.
-func (s Set) ZoneRule(asOf period.Date) (ZoneRule, error) {
-	var z ZoneRule
-	err := s.Decode(KeyRentControlZoneRules, asOf, &z)
+// PerSquareMetre returns the ceiling of zone and category, and false when the
+// table has no value for them.
+func (z ZoneCeiling) PerSquareMetre(zone, category string) (int64, bool) {
+	v, ok := z.Zones[zone][category]
+	return v, ok
+}
+
+// ZoneCeiling returns the ceiling table in force on asOf.
+func (s Set) ZoneCeiling(asOf period.Date) (ZoneCeiling, error) {
+	var z ZoneCeiling
+	err := s.Decode(KeyRentControlZoneCeiling, asOf, &z)
 	return z, err
+}
+
+// RelocationRule is rent_control.relocation_rule: when Applies, the rent of a
+// new lease on a controlled-zone asset may not exceed the previous lease's
+// rent revised by IRL, unless the lease records an exemption.
+type RelocationRule struct {
+	Applies bool `json:"applies"`
+}
+
+// RelocationRule returns the relocation rule in force on asOf.
+func (s Set) RelocationRule(asOf period.Date) (RelocationRule, error) {
+	var r RelocationRule
+	err := s.Decode(KeyRentControlRelocation, asOf, &r)
+	return r, err
 }
 
 // LineMap is the form 2044 map of one millésime: category → line ("" when the
 // category is deliberately not on the form, for example a recoverable charge),
 // and the role of each line, so that no line number is written in Go code.
 type LineMap struct {
+	// TaxYear is the income year the map is for; it is the lookup key.
+	TaxYear int `json:"tax_year"`
+	// Millesime is the form's year (TaxYear + 1), a label only.
 	Millesime int               `json:"millesime"`
 	Lines     map[string]string `json:"lines"`
 	// IncomeLines are the receipt lines (211, 212, 213 on the form).
@@ -221,20 +247,25 @@ func Has(lines []string, line string) bool {
 	return false
 }
 
-// Form2044LineMap returns the map for millésime (the form's year: income year
-// + 1, OPEN-QUESTIONS Q-31). When several entries carry that millésime, the
-// latest effective one wins. A missing millésime is ErrNotFound: tax.Lines and
-// the tax.annual pre-check refuse to compute without it.
-func (s Set) Form2044LineMap(millesime int) (LineMap, error) {
+// Form2044LineMap returns the map for income year taxYear (OPEN-QUESTIONS
+// Q-31: every tax parameter is keyed by income year, the millésime is a
+// label). When several entries carry that year, the latest effective one wins.
+// A missing year is ErrNotFound: tax.Lines and the tax.annual pre-check refuse
+// to compute without it.
+func (s Set) Form2044LineMap(taxYear int) (LineMap, error) {
 	list := s.entries[KeyForm2044LineMap]
 	for i := len(list) - 1; i >= 0; i-- {
 		var m LineMap
 		if err := json.Unmarshal(list[i].Value, &m); err != nil {
 			return LineMap{}, err
 		}
-		if m.Millesime == millesime {
+		if m.TaxYear == taxYear {
 			return m, nil
 		}
 	}
-	return LineMap{}, fmt.Errorf("%w: %s for millésime %d", ErrNotFound, KeyForm2044LineMap, millesime)
+	return LineMap{}, fmt.Errorf("%w: %s for income year %d", ErrNotFound, KeyForm2044LineMap, taxYear)
 }
+
+// TaxYearEnd is the date the parameters of income year taxYear are read at:
+// 31 December of that year.
+func TaxYearEnd(taxYear int) period.Date { return period.NewDate(taxYear, 12, 31) }

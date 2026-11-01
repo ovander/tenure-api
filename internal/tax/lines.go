@@ -14,7 +14,6 @@ import (
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
-	"github.com/ovander/tenure-api/internal/period"
 )
 
 // Map keys that are not charge categories.
@@ -121,13 +120,18 @@ type Summary struct {
 var ErrUnmapped = errors.New("tax: category missing from the 2044 line map")
 
 // Lines computes the summary of income year (RENT-SPEC-004):
-//   - the line map is the millésime year+1 (Q-31); none means an error, the
-//     same check the tax.annual job makes before drafting;
+//   - the line map and every parameter are those of income year year, read on
+//     31 December of it; the millésime (year + 1) is the map's label (Q-31). No
+//     map for the year is an error, the check tax.annual makes before drafting;
 //   - cash basis: payments and charges count in the year they were paid;
 //   - rent income only from amounts matched to rent lines; provisions and
 //     regularisations received are not income, recoverable shares are not
 //     deducted, except the category for line 225 at lease close (Q-08);
-//   - one forfait_222_cents per unfurnished asset that earned rent (Q-27);
+//   - one forfait_222_cents per local: per lease of unfurnished assets that
+//     produced rent in the year, put on the lease's principal asset; furnished
+//     assets never count (Q-27);
+//   - line 229 takes the non-recoverable share of syndic provisions paid; the
+//     category for line 230 is signed, the line being subtracted (Q-29);
 //   - each line split between owners by largest remainder (Q-14);
 //   - per owner: the micro-foncier check, and the réel result with prior
 //     deficits applied oldest first, the deficit split between global income
@@ -136,12 +140,11 @@ var ErrUnmapped = errors.New("tax: category missing from the 2044 line map")
 //
 // prior holds each owner's unused deficits of earlier years.
 func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetShares, year int, ps params.Set, prior map[string][]Deficit) (Summary, error) {
-	millesime := year + 1
-	lm, err := ps.Form2044LineMap(millesime)
+	lm, err := ps.Form2044LineMap(year)
 	if err != nil {
 		return Summary{}, err
 	}
-	asOf := period.NewDate(year, 12, 31)
+	asOf := params.TaxYearEnd(year)
 	get := func(key string) (int64, error) { return ps.Int64(key, asOf) }
 	threshold, err := get(params.KeyMicroFoncierThreshold)
 	if err != nil {
@@ -200,6 +203,7 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 		la.Sources = append(la.Sources, source)
 	}
 	var flags []Flag
+	rentByLease := map[string]string{} // lease id → asset id, for line 222
 
 	for _, p := range payments {
 		if p.PaidOn.Year != year {
@@ -222,6 +226,9 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 			continue
 		}
 		add(p.AssetID, rentLine, rent, p.ID)
+		if rent > 0 && rentByLease[p.LeaseID] == "" {
+			rentByLease[p.LeaseID] = p.AssetID
+		}
 	}
 
 	for _, c := range charges {
@@ -252,6 +259,9 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 		if amount == 0 {
 			continue
 		}
+		if amount < 0 && !params.Has(lm.SubtractedLines, line) {
+			return Summary{}, fmt.Errorf("tax: charge %s is negative on line %s", c.ID, line)
+		}
 		if c.DocumentID == "" {
 			flags = append(flags, Flag{FlagMissingDocument, c.ID})
 		}
@@ -259,10 +269,8 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 	}
 
 	if forfaitLine := lm.Lines[mapKeyForfait]; forfaitLine != "" {
-		for id, a := range byAsset {
-			if r := a.lines[rentLine]; r != nil && r.AmountCents > 0 {
-				add(id, forfaitLine, money.Cents(forfait), mapKeyForfait+":"+id)
-			}
+		for leaseID, assetID := range rentByLease {
+			add(assetID, forfaitLine, money.Cents(forfait), mapKeyForfait+":"+leaseID)
 		}
 	}
 
@@ -302,12 +310,21 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 		sort.Strings(lines)
 		for _, l := range lines {
 			la := a.lines[l]
-			if la.AmountCents < 0 {
+			if la.AmountCents < 0 && !params.Has(lm.SubtractedLines, l) {
 				return Summary{}, fmt.Errorf("tax: line %s of asset %s is negative", l, id)
 			}
-			parts, err := money.Split(la.AmountCents, weights)
+			abs := la.AmountCents
+			if abs < 0 {
+				abs = -abs
+			}
+			parts, err := money.Split(abs, weights)
 			if err != nil {
 				return Summary{}, err
+			}
+			if la.AmountCents < 0 {
+				for k := range parts {
+					parts[k] = -parts[k]
+				}
 			}
 			sort.Strings(la.Sources)
 			for i := range perOwner {
@@ -325,7 +342,7 @@ func Lines(payments []payment.Payment, charges []charge.Charge, assets []AssetSh
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	sum := Summary{Year: year, Millesime: millesime}
+	sum := Summary{Year: year, Millesime: lm.Millesime}
 	for _, id := range ids {
 		o := owners[id]
 		totals := map[string]*LineAmount{}

@@ -107,36 +107,49 @@ func TestNewRejects(t *testing.T) {
 	if _, err := New(noDate); err == nil {
 		t.Error("entry without date accepted")
 	}
-	badMap := Entry{Key: KeyForm2044LineMap, EffectiveFrom: d(2025, 1, 1), Value: json.RawMessage(`{"lines":{}}`), Source: "s"}
+	badMap := Entry{Key: KeyForm2044LineMap, EffectiveFrom: d(2025, 1, 1), Value: json.RawMessage(`{"millesime":2026,"lines":{"rent":"211"},"income_lines":["211"],"interest_lines":["250"]}`), Source: "s"}
 	if _, err := New(badMap); err == nil {
-		t.Error("line map without millésime accepted")
+		t.Error("line map without income year accepted")
 	}
 }
 
 func TestForm2044LineMap(t *testing.T) {
 	s := fixtures(t)
-	m, err := s.Form2044LineMap(2026)
+	m, err := s.Form2044LineMap(2025)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if m.TaxYear != 2025 || m.Millesime != 2026 {
+		t.Errorf("map keyed %d labelled %d; want income year 2025, millésime 2026", m.TaxYear, m.Millesime)
+	}
 	for cat, line := range map[string]string{"rent": "211", "repairs": "224", "copro_regularisation_prior": "230", "teom": ""} {
 		if got, ok := m.Lines[cat]; !ok || got != line {
-			t.Errorf("millésime 2026 %s → %q (present %v); want %q", cat, got, ok, line)
+			t.Errorf("income year 2025 %s → %q (present %v); want %q", cat, got, ok, line)
 		}
 	}
-	if _, err := s.Form2044LineMap(2027); !errors.Is(err, ErrNotFound) {
-		t.Errorf("millésime 2027: %v; want ErrNotFound (no map published yet)", err)
+	if _, err := s.Form2044LineMap(2026); !errors.Is(err, ErrNotFound) {
+		t.Errorf("income year 2026: %v; want ErrNotFound (form not published yet)", err)
 	}
 }
 
-func TestCapAndZoneRule(t *testing.T) {
+func TestRentControlFixtures(t *testing.T) {
 	s := fixtures(t)
 	c, err := s.IRLCap(d(2025, 7, 1))
 	if err != nil || c.Applies {
-		t.Errorf("IRLCap 2025 = %+v, %v; want not applying", c, err)
+		t.Errorf("IRLCap 2025 = %+v, %v; want not in force", c, err)
 	}
-	z, err := s.ZoneRule(d(2025, 7, 1))
-	if err != nil || z.MaxVariationBP != nil {
-		t.Errorf("ZoneRule 2025 = %+v, %v; want no limit", z, err)
+	z, err := s.ZoneCeiling(d(2025, 7, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := z.PerSquareMetre("Z1", "T2"); ok {
+		t.Error("the 2025 fixture has no zone yet")
+	}
+	r, err := s.RelocationRule(d(2025, 7, 1))
+	if err != nil || !r.Applies {
+		t.Errorf("RelocationRule 2025 = %+v, %v; want applying", r, err)
+	}
+	if _, err := s.ZoneCeiling(d(2024, 12, 31)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("ceiling before the fixtures: %v; want ErrNotFound", err)
 	}
 }

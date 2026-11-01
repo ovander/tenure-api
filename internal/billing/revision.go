@@ -40,10 +40,15 @@ type Revision struct {
 	IndexedRentCents money.Cents `json:"indexed_rent_cents"`
 	NewRentCents     money.Cents `json:"new_rent_cents"`
 	// CappedBy names the rule that limited the rent: "irl_cap" or
-	// "rent_control.zone_rules"; empty when uncapped.
-	CappedBy      string `json:"capped_by,omitempty"`
-	NewRefQuarter string `json:"new_ref_quarter"`
-	NewRefValue   int64  `json:"new_ref_value"`
+	// "rent_control.zone_ceiling"; empty when uncapped.
+	CappedBy string `json:"capped_by,omitempty"`
+	// CeilingCents is the zone ceiling of a controlled-zone lease (0 when none
+	// applies). AboveCeiling is set when the current rent already exceeds it:
+	// the revision then leaves the rent unchanged and the owner is told (Q-34).
+	CeilingCents  money.Cents `json:"ceiling_cents,omitempty"`
+	AboveCeiling  bool        `json:"above_ceiling,omitempty"`
+	NewRefQuarter string      `json:"new_ref_quarter"`
+	NewRefValue   int64       `json:"new_ref_value"`
 }
 
 // Apply returns l with the revised rent and reference index. A forfeited
@@ -58,12 +63,18 @@ func (r Revision) Apply(l lease.Lease) lease.Lease {
 }
 
 // Revise computes the IRL revision of l due on anniversary and first billed in
-// from (RENT-SPEC-003): new rent = rent × current IRL ÷ reference IRL, rounded
-// half-up to the cent, then capped by irl_cap and, when an asset of the lease
-// is in a controlled zone, by rent_control.zone_rules, both in force on the
-// anniversary (Q-12, Q-28); the stricter cap wins. idx must be the index of
-// the lease's reference quarter, one or more years later. A revision whose
-// anniversary is more than 12 months before from is forfeited (Q-13).
+// from (RENT-SPEC-003, Q-28):
+//   - new rent = rent × current IRL ÷ reference IRL, rounded half-up to the
+//     cent, where the index variation is capped by irl_cap when one is in force
+//     on the anniversary, for every asset;
+//   - for a lease with controlled-zone dwellings, the revised rent may not
+//     exceed the zone ceiling (lease.ZoneCeiling); a rent already above it is
+//     not raised (AboveCeiling);
+//   - a revision whose anniversary is more than 12 months before from is
+//     forfeited, and none is ever billed retroactively (Q-13).
+//
+// idx must be the index of the lease's reference quarter, one or more years
+// later.
 func Revise(l lease.Lease, idx Index, anniversary period.Date, from period.Period, ps params.Set) (Revision, error) {
 	refYear, refQ, err := parseQuarter(l.IRLRefQuarter)
 	if err != nil {
@@ -89,40 +100,40 @@ func Revise(l lease.Lease, idx Index, anniversary period.Date, from period.Perio
 		r.IndexedRentCents, r.NewRentCents = l.RentCents, l.RentCents
 		return r, nil
 	}
-	indexed, err := money.MulDivHalfUp(l.RentCents, idx.Value, l.IRLRefValue)
+	c, err := ps.IRLCap(anniversary)
+	if err != nil {
+		return Revision{}, err
+	}
+	num, den := idx.Value, l.IRLRefValue
+	// Cap the variation itself: current/reference ≤ 1 + rate.
+	if c.Applies && idx.Value*10000 > l.IRLRefValue*(10000+c.RateBP) {
+		num, den = 10000+c.RateBP, 10000
+		r.CappedBy = params.KeyIRLCap
+	}
+	indexed, err := money.MulDivHalfUp(l.RentCents, num, den)
 	if err != nil {
 		return Revision{}, err
 	}
 	r.IndexedRentCents, r.NewRentCents = indexed, indexed
 
-	limit := func(bp int64, rule string) error {
-		ceiling, err := money.MulDivHalfUp(l.RentCents, 10000+bp, 10000)
-		if err != nil {
-			return err
-		}
-		if r.NewRentCents > ceiling {
-			r.NewRentCents, r.CappedBy = ceiling, rule
-		}
-		return nil
-	}
-	c, err := ps.IRLCap(anniversary)
+	ceiling, applies, inv, err := lease.ZoneCeiling(l, anniversary, ps)
 	if err != nil {
 		return Revision{}, err
 	}
-	if c.Applies {
-		if err := limit(c.RateBP, params.KeyIRLCap); err != nil {
-			return Revision{}, err
-		}
+	if inv != nil {
+		return Revision{}, inv
 	}
-	if l.ControlledZone() {
-		z, err := ps.ZoneRule(anniversary)
-		if err != nil {
-			return Revision{}, err
-		}
-		if z.MaxVariationBP != nil {
-			if err := limit(*z.MaxVariationBP, params.KeyRentControlZoneRules); err != nil {
-				return Revision{}, err
+	if applies {
+		r.CeilingCents = ceiling
+		switch {
+		case l.RentCents > ceiling:
+			// Already above: no increase, but a falling index still applies.
+			r.AboveCeiling = true
+			if r.NewRentCents > l.RentCents {
+				r.NewRentCents, r.CappedBy = l.RentCents, params.KeyRentControlZoneCeiling
 			}
+		case r.NewRentCents > ceiling:
+			r.NewRentCents, r.CappedBy = ceiling, params.KeyRentControlZoneCeiling
 		}
 	}
 	return r, nil

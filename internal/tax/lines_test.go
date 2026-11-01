@@ -14,6 +14,61 @@ import (
 	"github.com/ovander/tenure-api/internal/period"
 )
 
+func TestLinesForfaitPerLocal(t *testing.T) {
+	// Apartment A let with box B on lease L1 (one local), and box C let on its
+	// own lease L2 (another local), all owned by O1; furnished studio S never counts.
+	assets := []AssetShares{
+		{AssetID: "A", Shares: []OwnerShare{{OwnerID: "O1", BP: 10000}}},
+		{AssetID: "B", Shares: []OwnerShare{{OwnerID: "O1", BP: 10000}}},
+		{AssetID: "C", Shares: []OwnerShare{{OwnerID: "O1", BP: 10000}}},
+		{AssetID: "S", Furnished: true, Shares: []OwnerShare{{OwnerID: "O1", BP: 10000}}},
+	}
+	pay := func(id, leaseID, asset string, rent money.Cents) payment.Payment {
+		p := rentPayment(id, asset, d(2025, 1, 5), rent, 0)
+		p.LeaseID = leaseID
+		return p
+	}
+	pays := []payment.Payment{
+		pay("p1", "L1", "A", 85000), pay("p2", "L1", "A", 85000),
+		pay("p3", "L2", "C", 7000),
+		pay("p4", "L3", "S", 60000),
+		pay("p5", "L4", "A", 0), // matched nothing to rent: no local
+	}
+	s, err := Lines(pays, nil, assets, 2025, fixtures(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := line(s.Owners[0].Totals, "222"); got != 4000 {
+		t.Errorf("222 = %d; want two locals × 20,00 €", got)
+	}
+}
+
+func TestLinesSignedRegularisation(t *testing.T) {
+	charges := []charge.Charge{
+		{ID: "prov", AssetID: "A", Category: charge.CategoryCoproProvision, AmountCents: 100000, PaidOn: d(2025, 4, 1), RecoverableBP: 3000, DocumentID: "d"},
+		// N-1 actual non-recoverable charges exceeded the provisions deducted:
+		// a negative line 230 adds to the expenses.
+		{ID: "reg", AssetID: "A", Category: charge.CategoryCoproRegularisationPrior, AmountCents: -5001, PaidOn: d(2025, 5, 1), DocumentID: "d"},
+	}
+	co := []AssetShares{{AssetID: "A", Shares: []OwnerShare{{OwnerID: "O1", BP: 5000}, {OwnerID: "O2", BP: 5000}}}}
+	s, err := Lines(nil, charges, co, 2025, fixtures(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o1, o2 := s.Owners[0], s.Owners[1]
+	if line(o1.Totals, "229") != 35000 || line(o1.Totals, "230") != -2501 || line(o2.Totals, "230") != -2500 {
+		t.Errorf("229 %d, 230 %d / %d", line(o1.Totals, "229"), line(o1.Totals, "230"), line(o2.Totals, "230"))
+	}
+	// expenses = 35000 − (−2501) = 37501
+	if o1.Reel.OtherExpensesCents != 37501 || o1.Reel.NetCents != -37501 || o1.Assets[0].NetCents != -37501 {
+		t.Errorf("reel %+v asset net %d", o1.Reel, o1.Assets[0].NetCents)
+	}
+	neg := []charge.Charge{{ID: "x", AssetID: "A", Category: charge.CategoryRepairs, AmountCents: -1, PaidOn: d(2025, 1, 1)}}
+	if _, err := Lines(nil, neg, single, 2025, fixtures(t), nil); err == nil {
+		t.Error("negative repair accepted")
+	}
+}
+
 func fixtures(t *testing.T) params.Set {
 	t.Helper()
 	var sets []*os.File
@@ -71,7 +126,7 @@ func TestLinesIncomeAndExpenses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Millesime != 2026 || len(s.Owners) != 1 {
+	if s.Year != 2025 || s.Millesime != 2026 || len(s.Owners) != 1 {
 		t.Fatalf("summary %+v", s)
 	}
 	o := s.Owners[0]
@@ -106,7 +161,7 @@ func TestLinesIncomeAndExpenses(t *testing.T) {
 func TestLinesRefuses(t *testing.T) {
 	ps := fixtures(t)
 	if _, err := Lines(nil, nil, single, 2026, ps, nil); !errors.Is(err, params.ErrNotFound) {
-		t.Errorf("no map for millésime 2027: %v; want ErrNotFound", err)
+		t.Errorf("no map for income year 2026: %v; want ErrNotFound", err)
 	}
 	odd := []charge.Charge{{ID: "x", AssetID: "A", Category: "boat", AmountCents: 1, PaidOn: d(2025, 1, 1)}}
 	if _, err := Lines(nil, odd, single, 2025, ps, nil); !errors.Is(err, ErrUnmapped) {

@@ -13,14 +13,28 @@ const (
 	KindBox       AssetKind = "box"
 )
 
+// Share is one owner's share of an asset, in basis points (10000 = 100 %).
+type Share struct {
+	OwnerID string `json:"owner_id"`
+	BP      int64  `json:"bp"`
+}
+
 // Asset is a rentable unit.
 type Asset struct {
-	ID             string    `json:"id"`
-	Kind           AssetKind `json:"kind"`
-	Furnished      bool      `json:"furnished"`
-	ControlledZone bool      `json:"controlled_zone"`
+	ID        string    `json:"id"`
+	Kind      AssetKind `json:"kind"`
+	Furnished bool      `json:"furnished"`
+	// SurfaceHundredthsM2 is the living surface in hundredths of a square
+	// metre (45,30 m² → 4530).
+	SurfaceHundredthsM2 int64 `json:"surface_hundredths_m2,omitempty"`
+	// ControlledZone puts the asset under rent control; RentControlZone and
+	// RentControlCategory key its row in rent_control.zone_ceiling.
+	ControlledZone      bool   `json:"controlled_zone"`
+	RentControlZone     string `json:"rent_control_zone,omitempty"`
+	RentControlCategory string `json:"rent_control_category,omitempty"`
 	// ParentAssetID links a box to the dwelling it is let with.
-	ParentAssetID string `json:"parent_asset_id,omitempty"`
+	ParentAssetID string  `json:"parent_asset_id,omitempty"`
+	Shares        []Share `json:"shares,omitempty"`
 }
 
 // Dwelling reports whether the asset is a dwelling (house or apartment).

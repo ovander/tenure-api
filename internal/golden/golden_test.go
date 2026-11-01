@@ -1,7 +1,8 @@
 // Package golden replays the golden cases under testdata/golden/<year>/
 // through the calculation engine (RENT-BE-001 §10). Each case file holds the
 // inputs (leases, charges, payments, owner shares, parameter overrides) and a
-// list of steps — fee, revise, allocate, tax — each with its expected result.
+// list of steps — fee, revise, allocate, validate, tax — each with its
+// expected result.
 // A case of year Y only sees parameters effective on or before 31 December Y.
 //
 // Regenerate the expected results with:
@@ -24,6 +25,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/charge"
+	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
@@ -53,6 +55,7 @@ type step struct {
 	Revise   *reviseStep     `json:"revise,omitempty"`
 	Allocate *allocateStep   `json:"allocate,omitempty"`
 	Tax      *taxStep        `json:"tax,omitempty"`
+	Validate *validateStep   `json:"validate,omitempty"`
 	Expected json.RawMessage `json:"expected"`
 }
 
@@ -74,6 +77,13 @@ type reviseStep struct {
 type allocateStep struct {
 	Exercise   charge.Exercise        `json:"exercise"`
 	Provisions map[string]money.Cents `json:"provisions"`
+}
+
+type validateStep struct {
+	LeaseID  string          `json:"lease_id"`
+	Event    lease.Event     `json:"event"`
+	AsOf     period.Date     `json:"as_of"`
+	Previous *lease.Previous `json:"previous,omitempty"`
 }
 
 type taxStep struct {
@@ -227,6 +237,16 @@ func runStep(s *step, leases map[string]lease.Lease, c caseFile, ps params.Set) 
 			}
 		}
 		return charge.Allocate(cs, c.Leases, s.Allocate.Exercise, s.Allocate.Provisions, ps)
+	case s.Validate != nil:
+		l, ok := leases[s.Validate.LeaseID]
+		if !ok {
+			return nil, fmt.Errorf("unknown lease %s", s.Validate.LeaseID)
+		}
+		errs, err := lease.Validate(l, lease.Check{Event: s.Validate.Event, AsOf: s.Validate.AsOf, Previous: s.Validate.Previous}, ps)
+		if errs == nil {
+			errs = []*invariant.Error{}
+		}
+		return errs, err
 	case s.Tax != nil:
 		return tax.Lines(c.Payments, c.Charges, c.Assets, s.Tax.Year, ps, s.Tax.Prior)
 	}
