@@ -284,3 +284,42 @@ type SuretyData struct {
 	IRLRefQuarter  string
 	RevisionMonth  int
 }
+
+// RegularisationCharge is one charge line of a regularisation statement.
+type RegularisationCharge struct {
+	Category         string
+	Label            string
+	ChargedOn        period.Date
+	AmountCents      money.Cents
+	RecoverableCents money.Cents
+}
+
+// RegularisationData is the data of a charge regularisation statement, one
+// per lease (template regularisation, RENT-SPEC-007 step 6).
+type RegularisationData struct {
+	Number           string
+	IssuedOn         period.Date
+	Owner            Party
+	Tenants          []string
+	Asset            string
+	ExerciseStart    period.Date
+	ExerciseEnd      period.Date
+	Charges          []RegularisationCharge
+	TotalCents       money.Cents
+	RecoverableCents money.Cents
+	ExerciseDays     int
+	LeaseDays        int
+	AllocatedCents   money.Cents
+	ProvisionsCents  money.Cents
+	BalanceCents     money.Cents
+	// Settlement says how the balance is settled: fee (next rent calls),
+	// deposit, direct.
+	Settlement  string
+	Spread      bool
+	Instalments []money.Cents
+	FirstPeriod period.Period
+	// NewProvisionCents is the provision applied from the next month, when
+	// the owner validated one.
+	NewProvisionCents money.Cents
+	SupportingUntil   period.Date
+}

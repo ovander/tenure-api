@@ -178,6 +178,7 @@ var subjects = map[string]map[string]string{
 	"cancellation":    {"fr": "Annulation d’un document — %[2]s", "en": "Cancelled document — %[2]s"},
 	"receipt":         {"fr": "Quittance de loyer %s — %s", "en": "Rent receipt %s — %s"},
 	"partial_receipt": {"fr": "Reçu de paiement partiel %s — %s", "en": "Partial payment receipt %s — %s"},
+	"regularisation":  {"fr": "Régularisation des charges %s — %s", "en": "Charge reconciliation statement %s — %s"},
 }
 
 // Reminder is a reminder of an unpaid rent call (RENT-SPEC-003, due day + 5).

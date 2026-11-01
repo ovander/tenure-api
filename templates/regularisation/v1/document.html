@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Régularisation des charges {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Décompte de régularisation des charges</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}} · exercice du {{date .ExerciseStart}} au {{date .ExerciseEnd}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Bien</p>
+<p>{{.Asset}}</p>
+<table>
+  <thead><tr><th>Charge</th><th>Date</th><th class="amount">Montant</th><th class="amount">Dont récupérable</th></tr></thead>
+  <tbody>
+  {{range .Charges}}<tr><td>{{template "category" .Category}}{{if .Label}} — {{.Label}}{{end}}</td><td>{{date .ChargedOn}}</td><td class="amount">{{euros .AmountCents}}</td><td class="amount">{{euros .RecoverableCents}}</td></tr>
+  {{end}}<tr class="total"><td colspan="2">Total de l’exercice</td><td class="amount">{{euros .TotalCents}}</td><td class="amount">{{euros .RecoverableCents}}</td></tr>
+  </tbody>
+</table>
+<table>
+  <thead><tr><th>Répartition</th><th class="amount">Montant</th></tr></thead>
+  <tbody>
+  <tr><td>Quote-part du locataire : {{.LeaseDays}} jours d’occupation sur {{.ExerciseDays}} jours de l’exercice</td><td class="amount">{{euros .AllocatedCents}}</td></tr>
+  <tr><td>Provisions pour charges effectivement versées sur l’exercice</td><td class="amount">{{euros .ProvisionsCents}}</td></tr>
+  <tr class="total"><td>{{if gt .BalanceCents 0}}Solde dû par le locataire{{else if lt .BalanceCents 0}}Solde en faveur du locataire{{else}}Solde{{end}}</td><td class="amount">{{euros .BalanceCents}}</td></tr>
+  </tbody>
+</table>
+{{if eq .Settlement "fee"}}{{if .Spread}}<p>Le décompte étant établi plus d’un an après la clôture de l’exercice, le solde est réglé en {{len .Instalments}} mensualités, portées sur les avis d’échéance à compter de {{periodLabel .FirstPeriod}} :
+{{range $i, $m := .Instalments}}{{if $i}}, {{end}}{{euros $m}}{{end}}.</p>
+{{else if ne .BalanceCents 0}}<p>Le solde est porté sur l’avis d’échéance de {{periodLabel .FirstPeriod}}{{if lt .BalanceCents 0}} ; un crédit supérieur au montant de l’avis est reporté sur les avis suivants{{end}}.</p>{{end}}
+{{else if eq .Settlement "deposit"}}<p>Le bail ayant pris fin, le solde est imputé sur le dépôt de garantie lors de son règlement.</p>
+{{else if eq .Settlement "direct"}}<p>Le bail ayant pris fin, le solde est réglé directement entre les parties.</p>{{end}}
+{{if .NewProvisionCents}}<p>À compter du mois suivant, la provision mensuelle pour charges est fixée à <strong>{{euros .NewProvisionCents}}</strong>.</p>{{end}}
+<p class="note">Les pièces justificatives sont tenues à la disposition du locataire jusqu’au {{date .SupportingUntil}} (article 23 de la loi n° 89-462 du 6 juillet 1989).</p>
+{{define "category"}}{{if eq . "copro_statement"}}Charges de copropriété{{else if eq . "teom"}}Taxe d’enlèvement des ordures ménagères{{else if eq . "recoverable_utilities"}}Fournitures et services récupérables{{else if eq . "insurance"}}Assurance{{else if eq . "repairs"}}Entretien et réparations{{else if eq . "management"}}Frais de gestion{{else if eq . "property_tax"}}Taxe foncière{{else}}Autre charge{{end}}{{end}}
+</body></html>

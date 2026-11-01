@@ -167,6 +167,24 @@ func (Repository) Amend(ctx context.Context, id uuid.UUID, version int, rentCent
 	return nil
 }
 
+// SetProvision sets the monthly provision when version matches, bumping it.
+func (Repository) SetProvision(ctx context.Context, id uuid.UUID, version int, cents int64, at time.Time, by string) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&leaseRow{}).Where("id = ? AND version = ?", id, version).Updates(map[string]any{
+		"provision_cents": cents, "version": version + 1, "updated_at": at, "updated_by": by,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
+}
+
 // SetGuaranteeDocument records the generated document of a guarantee,
 // bumping its version.
 func (Repository) SetGuaranteeDocument(ctx context.Context, id uuid.UUID, version int, doc uuid.UUID, at time.Time, by string) error {

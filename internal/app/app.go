@@ -15,6 +15,7 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/billing"
+	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/httpapi"
@@ -38,7 +39,9 @@ type Deps struct {
 	INSEE          params.INSEE
 	Ready          func(context.Context) error
 	TrustedProxies []*net.IPNet
-	Now            func() time.Time
+	// WriteBurst raises the per-subject write burst (integration suite only).
+	WriteBurst int
+	Now        func() time.Time
 }
 
 // App is the assembled service.
@@ -58,6 +61,8 @@ func New(d Deps) (*App, error) {
 	issuer := document.Issuer{PDF: d.PDF, Store: d.Store, Now: d.Now, NewID: newID}
 	ls := lease.Service{DB: d.API, Portfolio: pf, Issuer: issuer, Now: d.Now, NewID: newID}
 	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer, Issuer: issuer}
+	docs := document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner, Now: d.Now, NewID: newID}
+	cs := charge.Service{DB: d.API, Lease: ls, Billing: bs, Docs: docs, Issuer: issuer, Now: d.Now, NewID: newID}
 	reg := map[string]jobs.Job{}
 	for _, j := range []jobs.Job{
 		jobs.AuditVerify(),
@@ -66,23 +71,25 @@ func New(d Deps) (*App, error) {
 		billing.IRLFetchJob(bs, d.Jobs, d.INSEE),
 		billing.ReceiptsJob(bs, d.Jobs),
 		billing.RemindersJob(bs, d.Jobs),
+		charge.ReconcileJob(cs),
 	} {
 		reg[j.Name] = j
 	}
 	runner := &jobs.Runner{DB: d.Jobs, Jobs: reg, Now: d.Now}
 	h, err := httpapi.NewRouter(httpapi.Deps{
-		Auth:      d.Auth,
-		Portfolio: portfolio.Handler{Service: pf},
-		Lease:     lease.Handler{Service: ls},
-		Params:    params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
-		Audit:     audit.Handler{Service: audit.Service{DB: d.API}},
-		Jobs:      jobs.Handler{DB: d.API, Runner: runner},
-		Billing:   billing.Handler{Service: bs, Runner: runner},
-		Documents: document.Handler{Service: document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner,
-			Now: d.Now, NewID: newID}},
+		Auth:           d.Auth,
+		Portfolio:      portfolio.Handler{Service: pf},
+		Lease:          lease.Handler{Service: ls},
+		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
+		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
+		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
+		Billing:        billing.Handler{Service: bs, Runner: runner},
+		Documents:      document.Handler{Service: docs},
+		Charges:        charge.Handler{Service: cs},
 		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
+		WriteBurst:     d.WriteBurst,
 	})
 	if err != nil {
 		return nil, err

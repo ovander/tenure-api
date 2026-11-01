@@ -23,6 +23,7 @@ const (
 	KindCancellation   Kind = "cancellation"
 	KindReceipt        Kind = "receipt"
 	KindPartialReceipt Kind = "partial_receipt"
+	KindRegularisation Kind = "regularisation"
 )
 
 type docRow struct {

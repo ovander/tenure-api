@@ -35,6 +35,7 @@ const (
 	KeyDiagnostics            = "diagnostics"
 	KeyRentalMinDPEClass      = "rental_min_dpe_class"
 	KeyMobilityTerm           = "mobility_term_months"
+	KeySupportingDocsMonths   = "regularisation_supporting_docs_months"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
