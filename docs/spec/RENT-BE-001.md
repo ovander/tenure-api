@@ -50,7 +50,7 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | reconciliations | id, owner\_id, asset\_id, exercise\_year, exercise\_start, exercise\_end, state (draft, allocated, issued, settled, cancelled), totals jsonb, charge\_ids, issued\_at, corrects\_id, cancellation\_document\_id | One per asset and exercise while not cancelled; a correction cancels it and a new one records corrects\_id (Q-82) |
 | reconciliation\_lines | reconciliation\_id, lease\_id, days, allocated\_cents, provisions\_cents, balance\_cents, spread, instalments, proposed/new\_provision\_cents, apply\_provision, settlement (fee, deposit, direct, none), document\_id, number | Per lease allocation and its statement RG-… (Q-80, Q-84) |
 | regularisation\_postings | lease\_id, reconciliation\_id, line\_id, parent\_id, reference, instalment, of, amount\_cents, due\_from, billing\_document\_id, voided\_at | What the next fees carry: a balance, an instalment, a carry-over; billing reads them, charge writes them (Q-79) |
-| tax\_summaries | id, owner\_id, tax\_year, regime, lines jsonb, issued\_at, document\_id | One per owner and year |
+| tax\_summaries | id, owner\_id, tax\_year, state (draft, issued), regime, summary jsonb (both regimes, every share-holder, flags, source ids), inputs, deficits\_after, issued\_at, document\_id (RF PDF), csv\_document\_id | One per owner and year; a draft until issued, then immutable (trigger, Q-88 to Q-90) |
 | documents | id, owner\_id, class, asset\_id, lease\_id, period, object\_key, object\_version, sha256, size\_bytes, template\_version, issued\_at, retain\_until, source (generated, upload), content\_type, original\_name, signs\_document\_id | Metadata of every archived file; an upload has no number and keeps its sniffed type; a signed copy points at the generated document it signs; retain\_until stays unset until the retention clock starts (Q-67, Q-68) |
 | legal\_params | key, value jsonb, effective\_from, source\_url | See section 7 |
 | irl\_index | quarter, value, published\_on | INSEE cache |
@@ -76,7 +76,7 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 | billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing; cancel issues the cancelling document and reissues the rent call (Q-56) |
 | charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (an uploaded CSV + mapping, Q-77), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
 | payment | `GET/POST /payments`, `GET/PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer (Q-60); amount and date frozen once receipted (Q-64) |
-| tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed, one issued |
+| tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed (draft), one issued; POST and lines.csv are step\_up (Q-90) |
 | document | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/content` (signed URL), `POST /documents` (multipart upload with class and links, file last; scanned, sniffed, 25 MB, Q-67), `POST /documents/export` (year or asset ZIP, async) | Content never streamed through the API for large files: short-lived signed URL |
 | params | `GET /params`, `GET /params/irl`, `PUT /params/{key}` (admin), `PUT /params/irl/{quarter}` (admin, manual override of a missing quarter, Q-53) | Effective-dated values |
 | jobs | `GET /jobs/runs`, `POST /jobs/{name}/trigger` (admin or owner for own scope) | — |
@@ -156,6 +156,7 @@ Every legal constant lives in `legal_params` with an effective date, and every c
 | notice\_months.tenant.default / .tense\_zone / .furnished | 3 / 1 / 1 | lease (phase 2) |
 | regularisation\_spread\_after\_months | 12 | charge |
 | regularisation\_supporting\_docs\_months | 6 (loi 89-462 art. 23) | charge (statement) |
+| reel\_option\_lock\_years | 3 (CGI art. 32-4) | tax (summary) |
 | irl\_cap.applies / irl\_cap.rate | per decree, dated | billing |
 | receipt\_due\_days\_before\_reminder | 5 | billing |
 | archive\_retention\_years | 10 | document (retention and object lock, Q-54) |
@@ -249,6 +250,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-01 | 1.9 | Slice 7 (Q-87 to Q-90): tax\_summaries draft/issued with deficits\_after (migration 000007), step\_up on POST and lines.csv, CSV archived beside the RF PDF, reel\_option\_lock\_years, tax.annual pre-check |
 | 2026-11-01 | 1.8 | BFF (Q-85, Q-86): browser login through backendkit bff in tenure, /bff routes, session tables (migration 000006), TENURE\_SOCRATE\_CLIENT\_ID/SECRET, TENURE\_PUBLIC\_URL, TENURE\_SESSION\_KEY |
 | 2026-11-01 | 1.7 | Slice 6 (Q-77 to Q-84): charges in cents with the syndic split and draft status, reconciliation lines per lease, regularisation\_postings, charges.reconcile period key, supporting-documents parameter |
 | 2026-11-01 | 1.6 | Slice 5 (Q-67 to Q-76): upload pipeline, asset\_diagnostics, lease\_documents, inventories, guarantee rules, contract blockers and routes, CA prefix, diagnostics and DPE class parameters, retention clock of lease documents |
