@@ -1,0 +1,42 @@
+{
+  "entries": [
+    {
+      "key": "deposit_max_months.unfurnished",
+      "effective_from": "2024-01-01",
+      "value": 1,
+      "source": "Loi 89-462 art. 22",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "deposit_max_months.furnished",
+      "effective_from": "2024-01-01",
+      "value": 2,
+      "source": "Loi 89-462 art. 25-6",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "deposit_max_months.mobility",
+      "effective_from": "2024-01-01",
+      "value": 0,
+      "source": "Loi 89-462 art. 25-13",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "mobility_term_months",
+      "effective_from": "2024-01-01",
+      "value": {
+        "min": 1,
+        "max": 10
+      },
+      "source": "Loi 89-462 art. 25-14 (bail mobilité : 1 à 10 mois)",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "deposit_warning_months.box",
+      "effective_from": "2024-01-01",
+      "value": 2,
+      "source": "RENT-SPEC-008 et Q-26 (règle produit : un box loué seul n’a pas de plafond légal ; avertissement au-delà)",
+      "source_url": ""
+    }
+  ]
+}

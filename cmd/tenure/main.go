@@ -186,14 +186,16 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	if err != nil {
 		return err
 	}
-	d.Auth, d.Ready = authMW, readiness(api, cfg.Socrate.JWKSURL, store, pdf)
+	d.Scanner = document.Clamd{Addr: cfg.ClamAVAddr}
+	d.Auth, d.Ready = authMW, readiness(api, cfg.Socrate.JWKSURL, store, pdf, d.Scanner)
 	a, err := app.New(d)
 	if err != nil {
 		return err
 	}
 	h, runner := a.Handler, a.Runner
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: h, ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 120 * time.Second}
+		// A 25 MB upload is read, scanned and archived within one request.
+		ReadTimeout: 2 * time.Minute, WriteTimeout: 3 * time.Minute, IdleTimeout: 120 * time.Second}
 
 	errc := make(chan error, 2)
 	go func() { errc <- runner.Start(ctx) }()
@@ -226,9 +228,9 @@ func deps(cfg config.Config, api, jdb *db.DB) (app.Deps, *document.S3, document.
 		TrustedProxies: cfg.TrustedProxies}, store, pdf, nil
 }
 
-// readiness checks the database, the Socrate JWKS, the bucket's object lock
-// and the PDF engine (RENT-BE-001 §8).
-func readiness(d *db.DB, jwksURL string, store document.Store, pdf document.Gotenberg) func(context.Context) error {
+// readiness checks the database, the Socrate JWKS, the bucket's object lock,
+// the PDF engine and the antivirus (RENT-BE-001 §8).
+func readiness(d *db.DB, jwksURL string, store document.Store, pdf document.Gotenberg, scanner document.Scanner) func(context.Context) error {
 	client := &http.Client{Timeout: 2 * time.Second}
 	return func(ctx context.Context) error {
 		if err := d.Ping(ctx); err != nil {
@@ -238,6 +240,9 @@ func readiness(d *db.DB, jwksURL string, store document.Store, pdf document.Gote
 			return err
 		}
 		if err := pdf.Ping(ctx); err != nil {
+			return err
+		}
+		if err := scanner.Ping(ctx); err != nil {
 			return err
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwksURL, nil)

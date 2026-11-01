@@ -60,17 +60,18 @@ type shareRow struct {
 func (shareRow) TableName() string { return "asset_shares" }
 
 type tenantRow struct {
-	ID        uuid.UUID    `gorm:"column:id;primaryKey"`
-	OwnerID   uuid.UUID    `gorm:"column:owner_id"`
-	Names     db.TextArray `gorm:"column:names"`
-	Email     string       `gorm:"column:email"`
-	Phone     string       `gorm:"column:phone"`
-	Language  string       `gorm:"column:language"`
-	Version   int          `gorm:"column:version"`
-	CreatedAt time.Time    `gorm:"column:created_at"`
-	CreatedBy string       `gorm:"column:created_by"`
-	UpdatedAt time.Time    `gorm:"column:updated_at"`
-	UpdatedBy string       `gorm:"column:updated_by"`
+	ID         uuid.UUID    `gorm:"column:id;primaryKey"`
+	OwnerID    uuid.UUID    `gorm:"column:owner_id"`
+	Names      db.TextArray `gorm:"column:names"`
+	Email      string       `gorm:"column:email"`
+	Phone      string       `gorm:"column:phone"`
+	Language   string       `gorm:"column:language"`
+	Occupation *string      `gorm:"column:occupation"`
+	Version    int          `gorm:"column:version"`
+	CreatedAt  time.Time    `gorm:"column:created_at"`
+	CreatedBy  string       `gorm:"column:created_by"`
+	UpdatedAt  time.Time    `gorm:"column:updated_at"`
+	UpdatedBy  string       `gorm:"column:updated_by"`
 }
 
 func (tenantRow) TableName() string { return "tenants" }
@@ -233,6 +234,22 @@ func (Repository) ListTenants(ctx context.Context, offset, limit int) ([]tenantR
 	return rows, int(total), err
 }
 
+// Owner returns one owner row visible in the scope.
+func (Repository) Owner(ctx context.Context, id uuid.UUID) (ownerRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return ownerRow{}, err
+	}
+	var rows []ownerRow
+	if err := t.Where("id = ?", id).Limit(1).Find(&rows).Error; err != nil {
+		return ownerRow{}, err
+	}
+	if len(rows) == 0 {
+		return ownerRow{}, invariant.ErrNotFound
+	}
+	return rows[0], nil
+}
+
 // Tenants returns the tenants with the given ids that are in scope.
 func (Repository) Tenants(ctx context.Context, ids []uuid.UUID) ([]tenantRow, error) {
 	t, err := tx(ctx)
@@ -260,7 +277,7 @@ func (Repository) UpdateTenant(ctx context.Context, tr tenantRow, version int) e
 		return err
 	}
 	res := t.Model(&tenantRow{}).Where("id = ? AND version = ?", tr.ID, version).Updates(map[string]any{
-		"names": tr.Names, "email": tr.Email, "phone": tr.Phone, "language": tr.Language,
+		"names": tr.Names, "email": tr.Email, "phone": tr.Phone, "language": tr.Language, "occupation": tr.Occupation,
 		"version": version + 1, "updated_at": tr.UpdatedAt, "updated_by": tr.UpdatedBy,
 	})
 	if res.Error != nil {

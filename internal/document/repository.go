@@ -27,6 +27,10 @@ type documentRow struct {
 	RetainUntil     *time.Time `gorm:"column:retain_until"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	CreatedBy       string     `gorm:"column:created_by"`
+	Source          string     `gorm:"column:source"`
+	ContentType     string     `gorm:"column:content_type"`
+	OriginalName    string     `gorm:"column:original_name"`
+	SignsDocumentID *uuid.UUID `gorm:"column:signs_document_id"`
 }
 
 func (documentRow) TableName() string { return "documents" }
@@ -90,6 +94,28 @@ func (Repository) Get(ctx context.Context, id uuid.UUID) (documentRow, error) {
 		return documentRow{}, invariant.ErrNotFound
 	}
 	return rows[0], nil
+}
+
+// LinksExist reports whether the asset and the lease, when given, exist in the
+// scope.
+func (Repository) LinksExist(ctx context.Context, assetID, leaseID *uuid.UUID) (bool, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return false, err
+	}
+	for table, id := range map[string]*uuid.UUID{"assets": assetID, "leases": leaseID} {
+		if id == nil {
+			continue
+		}
+		var n int64
+		if err := tx.Table(table).Where("id = ?", *id).Count(&n).Error; err != nil {
+			return false, err
+		}
+		if n == 0 {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // Filter narrows a document list.

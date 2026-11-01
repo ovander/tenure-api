@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Acte de cautionnement {{.Number}}</title>{{template "style"}}
+<style>.mention { border: .3mm solid #111; min-height: 45mm; padding: 3mm; margin-top: 3mm; }</style></head>
+<body>
+<h1>Acte de cautionnement {{if .Solidary}}solidaire{{else}}simple{{end}}</h1>
+<p class="meta">N° {{.Number}} · établi le {{date .IssuedOn}}{{if .ContractNumber}} · annexé au contrat n° {{.ContractNumber}}{{end}}</p>
+<div class="parties">
+  <div><p class="label">Caution</p><p>{{.Guarantor.Name}}{{if .LegalPerson}} (personne morale){{end}}<br>{{.Guarantor.Address}}</p></div>
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+</div>
+<p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}} garanti{{if gt (len .Tenants) 1}}s{{end}}</p>
+<p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>La caution déclare se porter caution{{if .Solidary}} solidaire, en renonçant au bénéfice de discussion,{{end}} du paiement des loyers, charges, réparations locatives et indemnités dus par le{{if gt (len .Tenants) 1}}s{{end}} locataire{{if gt (len .Tenants) 1}}s{{end}} au titre du contrat de location ayant pris effet le {{date .StartOn}} pour une durée de {{.TermMonths}} mois.</p>
+<p>Le loyer mensuel est de {{euros .RentCents}} hors charges, augmenté d’une provision pour charges de {{euros .ProvisionCents}} ; il est révisé chaque année au mois de {{month .RevisionMonth}} selon l’indice de référence des loyers (référence : {{quarter .IRLRefQuarter}}).</p>
+<p>L’engagement est limité à <strong>{{euros .MaxAmountCents}}</strong>{{if .ValidTo}} et prend fin le {{date (derefDate .ValidTo)}}{{else}} et vaut pour la durée du contrat et de ses renouvellements{{end}}.</p>
+<p>La caution reconnaît avoir reçu un exemplaire du contrat de location. Reproduction de l’avant-dernier alinéa de l’article 22-1 de la loi n° 89-462 du 6 juillet 1989 : « Lorsque le cautionnement d’obligations résultant d’un contrat de location conclu en application du présent titre ne comporte aucune indication de durée ou lorsque la durée du cautionnement est stipulée indéterminée, la caution peut le résilier unilatéralement. La résiliation prend effet au terme du contrat de location, qu’il s’agisse du contrat initial ou d’un contrat reconduit ou renouvelé, au cours duquel le bailleur reçoit notification de la résiliation. »</p>
+<p class="label">Mention de la main de la caution (article 2297 du code civil)</p>
+<div class="mention"><p class="note">La caution écrit ici qu’elle s’engage à payer au bailleur, en cas de défaillance du locataire, les sommes dues dans la limite de {{euros .MaxAmountCents}}{{if .Solidary}}, en renonçant au bénéfice de discussion{{end}}.</p></div>
+<p>Fait le ____________ à ____________. &nbsp;&nbsp; Signature de la caution :</p>
+</body></html>

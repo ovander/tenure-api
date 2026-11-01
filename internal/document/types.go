@@ -13,7 +13,7 @@ import (
 // Class is a document class (documents.class).
 type Class string
 
-// Document classes produced in slice 3; the others are added with their slice.
+// Document classes (documents.class).
 const (
 	ClassRentCall       Class = "rent_call"
 	ClassReceipt        Class = "receipt"
@@ -23,6 +23,10 @@ const (
 	ClassAmendment      Class = "amendment"
 	ClassDeposit        Class = "deposit"
 	ClassTaxSummary     Class = "tax_summary"
+	ClassInventory      Class = "inventory"
+	ClassSupporting     Class = "supporting"
+	ClassOther          Class = "other"
+	ClassSurety         Class = "surety"
 	// ClassCancellation renders a cancelling document; it is archived and
 	// numbered in the class of the document it cancels (Q-49).
 	ClassCancellation Class = "cancellation"
@@ -31,8 +35,19 @@ const (
 // Prefixes of document numbers (RENT-BE-001 §6).
 var prefixes = map[Class]string{
 	ClassRentCall: "AL", ClassReceipt: "QL", ClassRegularisation: "RG", ClassRevisionNotice: "RV",
-	ClassContract: "CT", ClassAmendment: "AV", ClassDeposit: "DG", ClassTaxSummary: "RF",
+	ClassContract: "CT", ClassAmendment: "AV", ClassDeposit: "DG", ClassTaxSummary: "RF", ClassSurety: "CA",
 }
+
+// Sources of a document (documents.source).
+const (
+	SourceGenerated = "generated"
+	SourceUpload    = "upload"
+)
+
+// leaseBound classes keep their archive from the lease's end (RENT-SPEC-005):
+// their retain_until stays unset until the lease ends (Q-68).
+var leaseBound = map[Class]bool{ClassContract: true, ClassAmendment: true, ClassDeposit: true, ClassSurety: true,
+	ClassInventory: true}
 
 // Financial classes an accountant may download (RENT-FE-001 §5).
 var financial = map[Class]bool{ClassRentCall: true, ClassReceipt: true, ClassRegularisation: true,
@@ -149,4 +164,123 @@ type ReceiptData struct {
 	// ReceivedCents is what this partial receipt acknowledges.
 	ReceivedCents    money.Cents
 	OutstandingCents money.Cents
+}
+
+// ContractTenant is a tenant named in a contract.
+type ContractTenant struct {
+	Name     string
+	Solidary bool
+}
+
+// ContractAsset is a let asset described in a contract.
+type ContractAsset struct {
+	Kind    string // house, apartment or box
+	Address string
+	Lot     string
+	// SurfaceHundredthsM2 is the living area; zero for a box or when unknown.
+	SurfaceHundredthsM2 int64
+	DPEClass            string
+}
+
+// ContractDiagnostic is one line of the diagnostics file annexed to a contract.
+type ContractDiagnostic struct {
+	Asset             string
+	Kind              string
+	DoneOn            *period.Date
+	ValidUntil        *period.Date
+	Result            string
+	NotRequiredReason string
+}
+
+// ContractGuarantee is a guarantee stated in a contract.
+type ContractGuarantee struct {
+	Kind        string // deposit, surety, visale or insurance
+	Guarantor   string
+	AmountCents money.Cents
+	ValidTo     *period.Date
+}
+
+// ContractData is the data of a lease contract (template contract, one
+// variant per lease kind, RENT-SPEC-008).
+type ContractData struct {
+	Number         string
+	IssuedOn       period.Date
+	Kind           string // unfurnished, furnished, mobility or box
+	Owner          Party
+	Tenants        []ContractTenant
+	Assets         []ContractAsset
+	StartOn        period.Date
+	TermMonths     int
+	RentCents      money.Cents
+	ProvisionCents money.Cents
+	DepositCents   money.Cents
+	DueDay         int
+	IRLRefQuarter  string
+	IRLRefValue    int64
+	RevisionMonth  int
+	MobilityReason string
+	// Controlled is set for a rent-controlled dwelling: the contract states
+	// the ceiling and, when known, the previous tenant's rent (art. 3).
+	Controlled        bool
+	CeilingCents      money.Cents
+	PreviousRentCents *money.Cents
+	Guarantees        []ContractGuarantee
+	Clauses           []string
+	Diagnostics       []ContractDiagnostic
+	Copropriete       bool
+}
+
+// AmendmentData is the data of an amendment (template amendment).
+type AmendmentData struct {
+	Number         string
+	IssuedOn       period.Date
+	Owner          Party
+	Tenants        []string
+	Assets         []string
+	ContractNumber string
+	LeaseStartOn   period.Date
+	Kind           string // rent, tenant_add or asset_add
+	EffectiveOn    period.Date
+	OldRentCents   money.Cents
+	NewRentCents   money.Cents
+	TenantName     string
+	AssetLabel     string
+	Reason         string
+}
+
+// DepositReceiptData is the data of a deposit receipt (template
+// deposit_receipt).
+type DepositReceiptData struct {
+	Number         string
+	IssuedOn       period.Date
+	Owner          Party
+	Tenants        []string
+	Assets         []string
+	ContractNumber string
+	AmountCents    money.Cents
+	ReceivedOn     period.Date
+	RentCents      money.Cents
+	Furnished      bool
+}
+
+// SuretyData is the data of an acte de cautionnement (template surety), one
+// per guarantor (RENT-SPEC-008).
+type SuretyData struct {
+	Number         string
+	IssuedOn       period.Date
+	Owner          Party
+	Tenants        []string
+	Assets         []string
+	ContractNumber string
+	Guarantor      Party
+	LegalPerson    bool
+	Solidary       bool
+	MaxAmountCents money.Cents
+	ValidTo        *period.Date
+	StartOn        period.Date
+	TermMonths     int
+	RentCents      money.Cents
+	ProvisionCents money.Cents
+	IRLRefQuarter  string
+	RevisionMonth  int
 }

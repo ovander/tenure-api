@@ -295,3 +295,93 @@ func (h Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.Resource(w, http.StatusOK, v.Version, v)
 }
+
+// ListDiagnostics godoc
+//
+//	@Summary	List an asset's diagnostics
+//	@Tags		portfolio
+//	@Produce	json
+//	@Param		id				path		string	true	"asset id"
+//	@Param		X-Owner-Scope	header		string	false	"owner scope"
+//	@Success	200				{array}		DiagnosticView
+//	@Failure	401,403,404		{object}	problem.Body
+//	@Security	BearerAuth
+//	@Router		/assets/{id}/diagnostics [get]
+func (h Handler) ListDiagnostics(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.Diagnostics(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// CreateDiagnostic godoc
+//
+//	@Summary		Record an asset's diagnostic
+//	@Description	One record per kind; a kind the asset does not need is declared with not_required_reason (Q-23).
+//	@Tags			portfolio
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string			true	"asset id"
+//	@Param			body			body		DiagnosticInput	true	"diagnostic"
+//	@Param			X-Owner-Scope	header		string			false	"owner scope"
+//	@Success		201				{object}	DiagnosticView
+//	@Failure		400,401,403,404,409,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/assets/{id}/diagnostics [post]
+func (h Handler) CreateDiagnostic(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	var in DiagnosticInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.CreateDiagnostic(r.Context(), caller(r), httpx.RequestID(r), id, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.Resource(w, http.StatusCreated, v.Version, v)
+}
+
+// UpdateDiagnostic godoc
+//
+//	@Summary	Update a diagnostic
+//	@Tags		portfolio
+//	@Accept		json
+//	@Produce	json
+//	@Param		id				path		string			true	"diagnostic id"
+//	@Param		If-Match		header		string			true	"current version"
+//	@Param		body			body		DiagnosticInput	true	"diagnostic"
+//	@Param		X-Owner-Scope	header		string			false	"owner scope"
+//	@Success	200				{object}	DiagnosticView
+//	@Failure	400,401,403,404,412,415,422,428	{object}	problem.Body
+//	@Security	BearerAuth
+//	@Router		/diagnostics/{id} [put]
+func (h Handler) UpdateDiagnostic(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	version, ok := httpx.IfMatch(w, r)
+	if !ok {
+		return
+	}
+	var in DiagnosticInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.UpdateDiagnostic(r.Context(), caller(r), httpx.RequestID(r), id, version, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.Resource(w, http.StatusOK, v.Version, v)
+}

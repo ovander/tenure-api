@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Reçu de dépôt de garantie {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Reçu de dépôt de garantie</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}}{{if .ContractNumber}} · contrat n° {{.ContractNumber}}{{end}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>Le bailleur reconnaît avoir reçu le {{date .ReceivedOn}} la somme de <strong>{{euros .AmountCents}}</strong> au titre du dépôt de garantie prévu au contrat de location, le loyer mensuel hors charges étant de {{euros .RentCents}}.</p>
+<p>Ce dépôt ne porte pas intérêt. Il sera restitué dans un délai d’un mois à compter de la remise des clés si l’état des lieux de sortie est conforme à l’état des lieux d’entrée, de deux mois dans le cas contraire, déduction faite des sommes restant dues au bailleur et dûment justifiées (article 22 de la loi n° 89-462 du 6 juillet 1989{{if .Furnished}}, applicable au logement meublé par l’article 25-6{{end}}).</p>
+<p class="note">Une modification ultérieure du loyer ne modifie pas le montant du dépôt de garantie versé.</p>
+</body></html>

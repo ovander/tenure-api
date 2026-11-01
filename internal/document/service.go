@@ -114,13 +114,16 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 	id := i.NewID()
 	row := documentRow{ID: id, OwnerID: sc.OwnerID, Class: string(req.Class), AssetID: &req.AssetID, LeaseID: req.LeaseID,
 		ObjectKey: key, ObjectVersion: version, SHA256: sum, SizeBytes: int64(len(pdf)),
-		TemplateVersion: string(tmpl) + "/" + req.TemplateVersion, IssuedAt: &now, CreatedAt: now, CreatedBy: actor(sc)}
+		TemplateVersion: string(tmpl) + "/" + req.TemplateVersion, IssuedAt: &now, CreatedAt: now, CreatedBy: actor(sc),
+		Source: SourceGenerated, ContentType: "application/pdf"}
 	if req.Period != nil {
 		p := req.Period.String()
 		row.Period = &p
 	}
-	rt := retain.Time()
-	row.RetainUntil = &rt
+	if !leaseBound[req.Class] {
+		rt := retain.Time()
+		row.RetainUntil = &rt
+	}
 	if err := i.Repo.Insert(ctx, row); err != nil {
 		return Issued{}, fmt.Errorf("document: record %s: %w", number, err)
 	}
@@ -145,21 +148,28 @@ func paris() *time.Location {
 
 // View is document metadata as the API returns it.
 type View struct {
-	ID              uuid.UUID    `json:"id"`
-	Class           Class        `json:"class"`
-	AssetID         *uuid.UUID   `json:"asset_id"`
-	LeaseID         *uuid.UUID   `json:"lease_id"`
-	Period          *string      `json:"period"`
-	SHA256          string       `json:"sha256"`
-	SizeBytes       int64        `json:"size_bytes"`
-	TemplateVersion string       `json:"template_version"`
-	IssuedAt        *time.Time   `json:"issued_at"`
+	ID              uuid.UUID  `json:"id"`
+	Class           Class      `json:"class"`
+	AssetID         *uuid.UUID `json:"asset_id"`
+	LeaseID         *uuid.UUID `json:"lease_id"`
+	Period          *string    `json:"period"`
+	SHA256          string     `json:"sha256"`
+	SizeBytes       int64      `json:"size_bytes"`
+	TemplateVersion string     `json:"template_version"`
+	IssuedAt        *time.Time `json:"issued_at"`
+	// RetainUntil is unset while the retention clock has not started (a
+	// lease document before the lease ends, Q-68): never eligible for deletion.
 	RetainUntil     *period.Date `json:"retain_until" swaggertype:"string" format:"date"`
+	Source          string       `json:"source" enums:"generated,upload"`
+	ContentType     string       `json:"content_type"`
+	OriginalName    string       `json:"original_name"`
+	SignsDocumentID *uuid.UUID   `json:"signs_document_id"`
 }
 
 func view(d documentRow) View {
 	v := View{ID: d.ID, Class: Class(d.Class), AssetID: d.AssetID, LeaseID: d.LeaseID, Period: d.Period, SHA256: d.SHA256,
-		SizeBytes: d.SizeBytes, TemplateVersion: d.TemplateVersion, IssuedAt: d.IssuedAt}
+		SizeBytes: d.SizeBytes, TemplateVersion: d.TemplateVersion, IssuedAt: d.IssuedAt, Source: d.Source,
+		ContentType: contentTypeOf(d), OriginalName: d.OriginalName, SignsDocumentID: d.SignsDocumentID}
 	if d.RetainUntil != nil {
 		r := period.FromTime(*d.RetainUntil)
 		v.RetainUntil = &r
@@ -173,12 +183,16 @@ type Link struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// Service serves document metadata and download links with the API role.
+// Service serves document metadata, download links and uploads with the API
+// role.
 type Service struct {
-	DB    *db.DB
-	Repo  Repository
-	Store Store
-	Now   func() time.Time
+	DB      *db.DB
+	Repo    Repository
+	Store   Store
+	Scanner Scanner
+	Params  params.Repository
+	Now     func() time.Time
+	NewID   func() uuid.UUID
 }
 
 func scoped(p *auth.Principal, requestID string) (db.Scope, error) {
@@ -252,13 +266,13 @@ func (s Service) Content(ctx context.Context, p *auth.Principal, requestID strin
 		if p.Active.Role == auth.RoleAccountant && !Financial(Class(d.Class)) {
 			return invariant.ErrNotFound
 		}
-		name := d.ID.String() + ".pdf"
+		name := d.ID.String()
 		if n := lastSegment(d.ObjectKey); n != "" {
 			name = n
 		}
 		u, err := s.Store.PresignGet(ctx, d.ObjectKey, d.ObjectVersion, SignedURLTTL, url.Values{
 			"response-content-disposition": {fmt.Sprintf(`attachment; filename="%s"`, name)},
-			"response-content-type":        {"application/pdf"},
+			"response-content-type":        {contentTypeOf(d)},
 			"x-tenure-sub":                 {p.Sub},
 			"x-tenure-document":            {d.ID.String()},
 		})
@@ -270,6 +284,13 @@ func (s Service) Content(ctx context.Context, p *auth.Principal, requestID strin
 			map[string]any{"object_key": d.ObjectKey, "expires_at": out.ExpiresAt})
 	})
 	return out, err
+}
+
+func contentTypeOf(d documentRow) string {
+	if d.ContentType == "" {
+		return "application/pdf"
+	}
+	return d.ContentType
 }
 
 func lastSegment(key string) string {

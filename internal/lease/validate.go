@@ -58,7 +58,10 @@ type Check struct {
 //     table value is refused, Q-33);
 //   - at creation, on a controlled-zone asset let before, the rent does not
 //     exceed the previous rent revised by IRL when
-//     rent_control.relocation_rule applies, unless an exemption is recorded.
+//     rent_control.relocation_rule applies, unless an exemption is recorded;
+//   - at creation, the deposit respects deposit_max_months for the kind
+//     (none for a mobility lease, no cap for a box let alone, Q-26) and a
+//     mobility lease's term is within mobility_term_months (RENT-SPEC-008).
 func Validate(l Lease, c Check, ps params.Set) ([]*invariant.Error, error) {
 	var out []*invariant.Error
 	if e := consistentShares(l.Assets); e != nil {
@@ -92,6 +95,24 @@ func Validate(l Lease, c Check, ps params.Set) ([]*invariant.Error, error) {
 		case applies && ControlledRent(l) > ceiling:
 			out = append(out, invariant.New(TypeZoneCeilingExceeded,
 				fmt.Sprintf("controlled rent %d above ceiling %d", ControlledRent(l), ceiling)))
+		}
+	}
+	if c.Event == EventCreation {
+		e, err := CheckDeposit(l.Kind, l.RentCents, l.DepositCents, c.AsOf, ps)
+		if err != nil {
+			return nil, err
+		}
+		if e != nil {
+			out = append(out, e)
+		}
+		if l.Kind == KindMobility {
+			r, err := ps.MobilityTerm(c.AsOf)
+			if err != nil {
+				return nil, err
+			}
+			if l.TermMonths < r.Min || l.TermMonths > r.Max {
+				out = append(out, invariant.New(TypeMobilityTerm, fmt.Sprintf("%d months, allowed %d to %d", l.TermMonths, r.Min, r.Max)))
+			}
 		}
 	}
 	if c.Event == EventCreation && c.Previous != nil && l.ControlledZone() && l.RentExemption == ExemptionNone {

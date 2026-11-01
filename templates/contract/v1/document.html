@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>{{template "title" .}} {{.Number}}</title>{{template "style"}}
+<style>h2 { font-size: 11.5pt; margin: 7mm 0 2mm 0; } p { margin: 1.5mm 0; } .sign { display: flex; justify-content: space-between; margin-top: 14mm; } .sign div { width: 45%; height: 30mm; border-top: .3mm solid #111; padding-top: 2mm; }</style></head>
+<body>
+{{define "title"}}{{if eq .Kind "box"}}Contrat de location d’un emplacement de stationnement{{else if eq .Kind "mobility"}}Contrat de location meublée – bail mobilité{{else if eq .Kind "furnished"}}Contrat de location meublée{{else}}Contrat de location vide{{end}}{{end}}
+<h1>{{template "title" .}}</h1>
+<p class="meta">N° {{.Number}} · établi le {{date .IssuedOn}}</p>
+{{if eq .Kind "box"}}<p class="note">Location soumise aux articles 1709 et suivants du code civil ; la loi n° 89-462 du 6 juillet 1989 ne s’applique pas à un emplacement loué seul.</p>
+{{else if eq .Kind "mobility"}}<p class="note">Bail régi par le titre Ier ter (articles 25-12 à 25-18) de la loi n° 89-462 du 6 juillet 1989.</p>
+{{else if eq .Kind "furnished"}}<p class="note">Bail régi par le titre Ier bis (articles 25-3 à 25-11) de la loi n° 89-462 du 6 juillet 1989 et établi selon le contrat type du décret n° 2015-587 du 29 mai 2015.</p>
+{{else}}<p class="note">Bail régi par le titre Ier de la loi n° 89-462 du 6 juillet 1989 et établi selon le contrat type du décret n° 2015-587 du 29 mai 2015.</p>{{end}}
+
+<h2>I. Désignation des parties</h2>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if plural (len .Tenants)}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t.Name}}{{end}}</p></div>
+</div>
+
+<h2>II. Objet du contrat</h2>
+{{range .Assets}}<p><strong>{{if eq .Kind "box"}}Emplacement de stationnement{{else if eq .Kind "house"}}Maison{{else}}Appartement{{end}}</strong> — {{.Address}}{{if .Lot}}, lot {{.Lot}}{{end}}{{if .SurfaceHundredthsM2}} ; surface habitable {{surface .SurfaceHundredthsM2}}{{end}}{{if .DPEClass}} ; classe énergétique {{.DPEClass}}{{end}}.</p>
+{{end}}{{if eq .Kind "box"}}<p>Les lieux sont loués à usage exclusif de stationnement d’un véhicule ; tout autre usage, dépôt ou habitation y est interdit.</p>
+{{else}}<p>Les locaux sont loués à usage {{if eq .Kind "mobility"}}d’habitation{{else}}d’habitation principale{{end}} du locataire{{if eq .Kind "furnished"}} et sont garnis du mobilier dont l’inventaire est annexé{{else if eq .Kind "mobility"}} et sont garnis du mobilier dont l’inventaire est annexé{{end}}.</p>{{end}}
+{{if eq .Kind "mobility"}}<p>Le locataire déclare justifier, à la date de prise d’effet, de la situation suivante (article 25-12) :
+{{if eq .MobilityReason "vocational_training"}}formation professionnelle{{else if eq .MobilityReason "higher_education"}}études supérieures{{else if eq .MobilityReason "apprenticeship"}}contrat d’apprentissage{{else if eq .MobilityReason "internship"}}stage{{else if eq .MobilityReason "civic_service"}}engagement volontaire dans le cadre d’un service civique{{else if eq .MobilityReason "job_transfer"}}mutation professionnelle{{else if eq .MobilityReason "temporary_assignment"}}mission temporaire dans le cadre de son activité professionnelle{{end}}.</p>{{end}}
+
+<h2>III. Date de prise d’effet et durée du contrat</h2>
+<p>Le contrat prend effet le {{date .StartOn}} pour une durée de {{.TermMonths}} mois{{if eq .Kind "mobility"}}. Le bail mobilité n’est ni renouvelable ni reconductible ; il peut être modifié une fois par avenant sans que sa durée totale dépasse dix mois{{else if eq .Kind "box"}} ; à défaut de congé, il se renouvelle par tacite reconduction pour la même durée{{else}} ; à défaut de congé délivré dans les conditions légales, il est reconduit tacitement{{end}}.</p>
+
+<h2>IV. Conditions financières</h2>
+<p><strong>Loyer :</strong> {{euros .RentCents}} par mois, hors charges.</p>
+{{if .Controlled}}<p>Le logement est situé dans une zone où s’applique l’encadrement des loyers. Loyer de référence majoré applicable : {{euros .CeilingCents}} par mois pour la surface louée.{{if .PreviousRentCents}} Montant du dernier loyer acquitté par le précédent locataire : {{euros (deref .PreviousRentCents)}}.{{end}}</p>{{end}}
+{{if ne .Kind "mobility"}}{{if ne .Kind "box"}}<p><strong>Révision :</strong> le loyer est révisé chaque année au mois de {{month .RevisionMonth}}, selon la variation de l’indice de référence des loyers publié par l’INSEE ; indice de référence : {{quarter .IRLRefQuarter}}, valeur {{index100 .IRLRefValue}}.</p>{{else}}<p><strong>Révision :</strong> le loyer est révisé chaque année au mois de {{month .RevisionMonth}} selon la variation de l’indice de référence des loyers ({{quarter .IRLRefQuarter}}, valeur {{index100 .IRLRefValue}}).</p>{{end}}{{end}}
+{{if eq .Kind "mobility"}}<p><strong>Charges :</strong> forfait mensuel de {{euros .ProvisionCents}}, sans régularisation (article 25-18).</p>
+{{else}}<p><strong>Charges récupérables :</strong> provision mensuelle de {{euros .ProvisionCents}}, régularisée chaque année au vu des dépenses réelles.</p>{{end}}
+<p><strong>Paiement :</strong> mensuel, à terme à échoir, au plus tard le {{.DueDay}} de chaque mois ; une quittance est remise gratuitement sur demande.</p>
+
+<h2>V. Garanties</h2>
+{{if eq .Kind "mobility"}}<p>Aucun dépôt de garantie ne peut être exigé (article 25-17).</p>
+{{else}}<p><strong>Dépôt de garantie :</strong> {{euros .DepositCents}}. Il est restitué dans un délai d’un mois à compter de la remise des clés si l’état des lieux de sortie est conforme à l’état des lieux d’entrée, de deux mois dans le cas contraire, déduction faite des sommes restant dues et dûment justifiées.{{if eq .Kind "box"}} Ce délai est retenu par convention des parties.{{end}}</p>{{end}}
+{{range .Guarantees}}{{if eq .Kind "surety"}}<p><strong>Cautionnement :</strong> {{.Guarantor}}, dans la limite de {{euros .AmountCents}}{{if .ValidTo}}, jusqu’au {{date (derefDate .ValidTo)}}{{end}} ; l’acte de cautionnement est annexé.</p>
+{{else if eq .Kind "visale"}}<p><strong>Garantie Visale :</strong> visa {{.Guarantor}}{{if .ValidTo}}, valable jusqu’au {{date (derefDate .ValidTo)}}{{end}}.</p>
+{{else if eq .Kind "insurance"}}<p><strong>Assurance loyers impayés</strong> souscrite par le bailleur : {{.Guarantor}}.</p>{{end}}{{end}}
+
+{{if gt (len .Tenants) 1}}{{if (index .Tenants 0).Solidary}}<h2>VI. Clause de solidarité</h2>
+<p>Les locataires sont tenus solidairement et indivisiblement de l’exécution des obligations du présent contrat.</p>{{end}}{{end}}
+
+{{if ne .Kind "box"}}<h2>VII. Clause résolutoire</h2>
+<p>Le contrat sera résilié de plein droit, dans les conditions de l’article 24 de la loi du 6 juillet 1989, à défaut de paiement du loyer ou des charges aux termes convenus, de versement du dépôt de garantie, de souscription d’une assurance des risques locatifs, ou en cas de troubles de voisinage constatés par une décision de justice passée en force de chose jugée.</p>
+{{else}}<h2>VII. Résiliation</h2>
+<p>À défaut de paiement d’un seul terme de loyer à son échéance, et un mois après une mise en demeure restée sans effet, le contrat sera résilié de plein droit si bon semble au bailleur.</p>{{end}}
+
+<h2>VIII. Honoraires</h2>
+<p>Le contrat est conclu directement entre les parties, sans intermédiaire ; aucun honoraire n’est dû.</p>
+
+{{if .Clauses}}<h2>IX. Conditions particulières</h2>
+{{range .Clauses}}<p>{{template "clause" .}}</p>
+{{end}}{{end}}
+
+<h2>X. Annexes</h2>
+<ul>
+{{if ne .Kind "box"}}<li>Notice d’information relative aux droits et obligations des locataires et des bailleurs (arrêté du 29 mai 2015).</li>
+<li>Dossier de diagnostic technique :
+<ul>{{range .Diagnostics}}<li>{{template "diagnostic" .Kind}} ({{.Asset}}) : {{if .NotRequiredReason}}non requis — {{.NotRequiredReason}}{{else}}réalisé le {{date (derefDate .DoneOn)}}{{if .ValidUntil}}, valable jusqu’au {{date (derefDate .ValidUntil)}}{{end}}{{if .Result}}, résultat {{.Result}}{{end}}{{end}}</li>
+{{end}}</ul></li>
+<li>État des lieux d’entrée{{if or (eq .Kind "furnished") (eq .Kind "mobility")}} et inventaire détaillé du mobilier{{end}}, établis contradictoirement à la remise des clés.</li>
+{{if .Copropriete}}<li>Extraits du règlement de copropriété relatifs à la destination de l’immeuble, à la jouissance et à l’usage des parties privatives et communes, et à la quote-part afférente au lot loué.</li>{{end}}
+<li>Liste des charges récupérables (décret n° 87-713 du 26 août 1987) et des réparations locatives (décret n° 87-712 du 26 août 1987).</li>
+{{else}}{{range .Diagnostics}}<li>{{template "diagnostic" .Kind}} : {{if .NotRequiredReason}}non requis — {{.NotRequiredReason}}{{else}}réalisé le {{date (derefDate .DoneOn)}}{{end}}</li>{{end}}
+<li>État des lieux d’entrée.</li>{{end}}
+{{range .Guarantees}}{{if eq .Kind "surety"}}<li>Acte de cautionnement de {{.Guarantor}}.</li>{{end}}{{end}}
+</ul>
+
+<p>Fait en autant d’exemplaires originaux que de parties, le ____________ à ____________.</p>
+<div class="sign"><div>Le bailleur<br><span class="note">signature précédée de « lu et approuvé »</span></div><div>Le{{if plural (len .Tenants)}}s{{end}} locataire{{if plural (len .Tenants)}}s{{end}}<br><span class="note">signature précédée de « lu et approuvé »</span></div></div>
+
+{{define "clause"}}{{if eq . "boiler_servicing"}}Le locataire fait procéder chaque année à l’entretien de la chaudière par un professionnel et en remet l’attestation au bailleur.{{else if eq . "chimney_sweeping"}}Le locataire fait ramoner les conduits de fumée au moins une fois par an et en remet le certificat au bailleur.{{else if eq . "garden_upkeep"}}Le locataire assure l’entretien courant du jardin privatif : tonte, taille des haies et des arbustes, désherbage.{{else if eq . "insurance_certificate"}}Le locataire justifie chaque année, à la date anniversaire du contrat, de son assurance contre les risques locatifs.{{end}}{{end}}
+{{define "diagnostic"}}{{if eq . "dpe"}}Diagnostic de performance énergétique{{else if eq . "erp"}}État des risques{{else if eq . "electricity"}}État de l’installation intérieure d’électricité{{else if eq . "gas"}}État de l’installation intérieure de gaz{{else if eq . "lead"}}Constat de risque d’exposition au plomb{{else if eq . "asbestos"}}Repérage de l’amiante (parties privatives){{end}}{{end}}
+</body></html>

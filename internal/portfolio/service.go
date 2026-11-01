@@ -94,7 +94,20 @@ type TenantInput struct {
 	Email    string   `json:"email"`
 	Phone    string   `json:"phone"`
 	Language string   `json:"language" enums:"fr,en"`
+	// Occupation records a student or apprentice, who may have a surety
+	// alongside a rent insurance (loi 89-462 art. 22-1).
+	Occupation *Occupation `json:"occupation" enums:"student,apprentice,other"`
 }
+
+// Occupation is a tenant's occupation, as far as the guarantee rules need it.
+type Occupation string
+
+// Occupations.
+const (
+	OccupationStudent    Occupation = "student"
+	OccupationApprentice Occupation = "apprentice"
+	OccupationOther      Occupation = "other"
+)
 
 // TenantView is a tenant as the API returns it. An accountant sees names
 // only (RENT-BE-001 §4).
@@ -500,8 +513,12 @@ func (s Service) UpdateAsset(ctx context.Context, p *auth.Principal, requestID s
 func tenantView(t tenantRow, role auth.Role) TenantView {
 	v := TenantView{ID: t.ID, Version: t.Version, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 		TenantInput: TenantInput{Names: []string(t.Names), Email: t.Email, Phone: t.Phone, Language: t.Language}}
+	if t.Occupation != nil {
+		o := Occupation(*t.Occupation)
+		v.Occupation = &o
+	}
 	if role == auth.RoleAccountant {
-		v.Email, v.Phone, v.Language = "", "", ""
+		v.Email, v.Phone, v.Language, v.Occupation = "", "", "", nil
 	}
 	return v
 }
@@ -527,7 +544,46 @@ func validateTenant(in *TenantInput) invariant.Fields {
 	if !languages[in.Language] {
 		f.Add("language", "Langue attendue : fr ou en.")
 	}
+	if in.Occupation != nil {
+		switch *in.Occupation {
+		case OccupationStudent, OccupationApprentice, OccupationOther:
+		default:
+			f.Add("occupation", "Valeur attendue : student, apprentice ou other.")
+		}
+	}
 	return f
+}
+
+func occupationCol(o *Occupation) *string {
+	if o == nil {
+		return nil
+	}
+	s := string(*o)
+	return &s
+}
+
+// TenantsInTx returns the tenants with ids inside the current transaction
+// (used by the lease service for documents and guarantee rules).
+func (s Service) TenantsInTx(ctx context.Context, ids []uuid.UUID) ([]TenantView, error) {
+	rows, err := s.Repo.Tenants(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]TenantView, 0, len(rows))
+	for _, t := range rows {
+		out = append(out, tenantView(t, auth.RoleOwner))
+	}
+	return out, nil
+}
+
+// OwnerInTx returns the profile of the scope's owner inside the current
+// transaction.
+func (s Service) OwnerInTx(ctx context.Context, id uuid.UUID) (OwnerView, error) {
+	o, err := s.Repo.Owner(ctx, id)
+	if err != nil {
+		return OwnerView{}, err
+	}
+	return ownerView(o), nil
 }
 
 // ListTenants returns a page of the scope's tenants.
@@ -594,7 +650,7 @@ func (s Service) CreateTenant(ctx context.Context, p *auth.Principal, requestID 
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		now := s.now()
 		t := tenantRow{ID: s.NewID(), OwnerID: sc.OwnerID, Names: in.Names, Email: in.Email, Phone: in.Phone, Language: in.Language,
-			Version: 1, CreatedAt: now, CreatedBy: p.Sub, UpdatedAt: now, UpdatedBy: p.Sub}
+			Occupation: occupationCol(in.Occupation), Version: 1, CreatedAt: now, CreatedBy: p.Sub, UpdatedAt: now, UpdatedBy: p.Sub}
 		if err := s.Repo.InsertTenant(ctx, t); err != nil {
 			return err
 		}
@@ -628,6 +684,7 @@ func (s Service) UpdateTenant(ctx context.Context, p *auth.Principal, requestID 
 		}
 		before := tenantView(cur, auth.RoleOwner)
 		cur.Names, cur.Email, cur.Phone, cur.Language = in.Names, in.Email, in.Phone, in.Language
+		cur.Occupation = occupationCol(in.Occupation)
 		cur.UpdatedAt, cur.UpdatedBy = s.now(), p.Sub
 		if err := s.Repo.UpdateTenant(ctx, cur, version); err != nil {
 			return err

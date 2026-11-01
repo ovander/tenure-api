@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Avenant au contrat de location {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Avenant au contrat de location</h1>
+<p class="meta">N° {{.Number}} · établi le {{date .IssuedOn}}{{if .ContractNumber}} · contrat n° {{.ContractNumber}}{{end}} · bail ayant pris effet le {{date .LeaseStartOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>Les parties conviennent de modifier le contrat de location comme suit, à compter du {{date .EffectiveOn}} :</p>
+{{if eq .Kind "rent"}}<p>Le loyer mensuel, hors charges, est porté de {{euros .OldRentCents}} à <strong>{{euros .NewRentCents}}</strong>. Le dépôt de garantie versé reste inchangé.</p>
+{{else if eq .Kind "tenant_add"}}<p><strong>{{.TenantName}}</strong> devient colocataire et est tenu des obligations du contrat, dans les mêmes conditions que les autres locataires.</p>
+{{else if eq .Kind "asset_add"}}<p>L’emplacement suivant est ajouté aux lieux loués : <strong>{{.AssetLabel}}</strong>. Le loyer est fixé à {{euros .NewRentCents}} par mois, hors charges.</p>{{end}}
+{{if .Reason}}<p>Motif : {{.Reason}}</p>{{end}}
+<p>Toutes les autres clauses du contrat demeurent inchangées.</p>
+<p>Fait en autant d’exemplaires originaux que de parties, le ____________ à ____________.</p>
+<p>Le bailleur ________________________ &nbsp;&nbsp; Le{{if gt (len .Tenants) 1}}s{{end}} locataire{{if gt (len .Tenants) 1}}s{{end}} ________________________</p>
+</body></html>

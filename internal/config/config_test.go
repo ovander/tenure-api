@@ -16,6 +16,7 @@ func valid() map[string]string {
 		"TENURE_SOCRATE_JWKS_URL":   "https://socrate.example.test/.well-known/jwks.json",
 		"TENURE_SOCRATE_AUDIENCE":   "tenure-api",
 		"TENURE_SOCRATE_ADMIN_ROLE": "admin",
+		"TENURE_CLAMAV_ADDR":        "clamav.internal:3310",
 	}
 }
 
@@ -40,12 +41,15 @@ func TestLoadDocuments(t *testing.T) {
 		t.Errorf("%+v", c)
 	}
 	bad := map[string][2]string{
-		"insecure remote store": {"TENURE_S3_INSECURE", "true"},
-		"scheme in endpoint":    {"TENURE_S3_ENDPOINT", "https://s3.example.test"},
-		"remote http pdf":       {"TENURE_PDF_ENGINE_URL", "http://gotenberg.internal:3000"},
-		"smtp without port":     {"TENURE_SMTP_ADDR", "smtp.example.test"},
-		"user without password": {"TENURE_SMTP_USERNAME", "u"},
-		"missing secret":        {"TENURE_S3_SECRET_KEY", ""},
+		"insecure remote store":  {"TENURE_S3_INSECURE", "true"},
+		"scheme in endpoint":     {"TENURE_S3_ENDPOINT", "https://s3.example.test"},
+		"remote http pdf":        {"TENURE_PDF_ENGINE_URL", "http://gotenberg.internal:3000"},
+		"smtp without port":      {"TENURE_SMTP_ADDR", "smtp.example.test"},
+		"user without password":  {"TENURE_SMTP_USERNAME", "u"},
+		"missing secret":         {"TENURE_S3_SECRET_KEY", ""},
+		"missing antivirus":      {"TENURE_CLAMAV_ADDR", ""},
+		"antivirus without port": {"TENURE_CLAMAV_ADDR", "clamav.internal"},
+		"antivirus with scheme":  {"TENURE_CLAMAV_ADDR", "tcp://clamav.internal:3310"},
 	}
 	for name, kv := range bad {
 		m := withDocs(valid())
