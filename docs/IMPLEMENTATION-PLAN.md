@@ -29,21 +29,26 @@ variant; documents are French only.
   - `internal/params`: the `Set` type, `Lookup(key, asOf)` over effective-dated values, typed
     accessors, fixtures for 2025 and 2026 (`micro_foncier_threshold_cents` 1500000,
     `deposit_max_months.*`, `regularisation_spread_after_months` 12, `irl_cap.*`,
-    `form_2044_line_map`, plus the Q-09 keys). It has no database code yet.
+    `rent_control.zone_rules`, `form_2044_line_map` keyed by millésime (Q-07, Q-31),
+    `micro_foncier_allowance_pct` 30, `forfait_222_cents` 2000, `deficit_global_cap_cents`
+    1070000, `deficit_carryforward_years` 10). It has no database code yet.
   - `internal/lease`: the pure domain type `Lease` (terms, assets, dates, IRL reference). It has
     no repository yet.
   - `internal/billing`: `ComputeFee(lease, period, params, opts)` returns fee lines (rent,
     provision, proration, regularisation line or instalment, carry-over) (Q-11, Q-16, Q-17);
-    `Revise(lease, index, asOf, params)` returns the new rent, the capped flag, or forfeited
-    (Q-12, Q-13).
+    `Revise(lease, index, asOf, params)` returns the new rent, the capped flag, or forfeited.
+    The cap is `irl_cap`, plus `rent_control.zone_rules` when an asset is in a controlled zone
+    (Q-12, Q-13, Q-28).
   - `internal/charge`: `Allocate(charges, leases, exercise, provisionsCollected, issuedOn,
     params)` returns lines per lease: allocated, provisions, balance, spread flag, new provision
     rounded up to the euro (Q-15, Q-16).
   - `internal/payment`: the pure type `Payment` only.
   - `internal/tax`: `Lines(payments, charges, shares, year, params, priorDeficits)` returns per
     asset and per owner share: income, expense lines by 2044 line, net, the micro-foncier
-    eligibility and allowance, deficit split, missing-document flags, source ids (Q-07…Q-10,
-    Q-14). Furnished assets give gross receipts only (OD-01).
+    eligibility and allowance, deficit split, missing-document flags, source ids. Rent income
+    comes only from payments matched to rent lines; provisions received are not income, and
+    recoverable expenses are not deducted except on line 225. It fails when the millésime has
+    no map (Q-07…Q-10, Q-14, Q-27…Q-31). Furnished assets give gross receipts only (OD-01).
 - **Tables / API / Jobs**: none.
 - **Tests**: table tests per function (boundaries: the 1st and last day, 28/29/30/31-day months,
   zero-day overlap, a cap hit, a forfeited revision, a credit above the fee, rounding at .5).
@@ -58,8 +63,8 @@ variant; documents are French only.
   5. `co-owned-50-50`: one asset, two owners; tax lines split, parts add up exactly.
   A test asserts that each year's golden file only reads that year's parameters.
 - **Accept**: `go test ./...` green; the five golden cases are reviewed by the owner (figures in
-  the PR); no legal constant in Go (a grep test checks the known values); Q-07 and Q-08
-  answered, or kept open in writing.
+  the PR); no legal constant in Go (a grep test checks the known values); a missing millésime
+  map fails `tax.Lines`.
 
 ## Slice 2 — Portfolio and lease without contract
 
@@ -87,10 +92,11 @@ variant; documents are French only.
   - `internal/params`: repository for `legal_params` and `irl_index`.
   - `internal/jobs`: cron, `job_runs` lock on (job, period), per-owner iteration as
     `tenure_jobs`, `partial` status.
-- **Tables** `000001_init.sql`: enums; `owners`, `owner_grants` (Q-05), `assets`,
+- **Tables** `000001_init.sql`: enums; `owners`, `owner_grants` (with `granted_at` and
+  `revoked_at`, Q-05), `assets` (with `controlled_zone`, Q-12),
   `asset_shares`, `tenants`, `leases`, `lease_assets`, `lease_tenants`, `guarantees`,
   `audit_events` (with a trigger refusing UPDATE and DELETE), `audit_chain_heads`,
-  `legal_params` (seeded from the slice 1 fixtures), `irl_index`, `job_runs`, `documents`
+  `legal_params` (seeded from the slice 1 fixtures, including the Q-09 keys), `irl_index`, `job_runs`, `documents`
   (metadata only, with the immutability trigger). RLS and policies on every owner table. Roles
   `tenure_api`, `tenure_migrate` and `tenure_jobs` with their grants (Q-03). Down section
   included. Migration tool per Q-21.
@@ -207,9 +213,11 @@ variant; documents are French only.
 - **Tables** `000006_tax.sql`: `tax_summaries` (with the carried deficits in `lines`).
 - **API**: `GET /tax/summaries`, `POST /tax/summaries` (year, regime; `step_up`),
   `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv`.
-- **Jobs**: `tax.annual` (10 January, drafts only).
+- **Jobs**: `tax.annual` (10 January, drafts only). It starts with a pre-check that fails the
+  run when `form_2044_line_map` has no map for the target millésime.
 - **Tests**: the summary equals the slice 1 golden for the year; a charge paid in N+1 counts in
   N+1; a charge with no document is flagged, not excluded; every figure traces to source ids;
+  `tax.annual` fails before drafting when the millésime map is missing;
   issuing without step-up gives 401; the RF summary and CSV are archived.
 - **Accept**: the seeded owner's previous year shows micro and réel side by side; issuing gives
   the RF-… PDF and CSV in the archive.
@@ -240,5 +248,4 @@ variant; documents are French only.
 
 Slices run in order. Slice 1 only needs Go. Slice 2 brings Docker, Socrate dev values (Q-01) and
 the migration tool (Q-21). Slices 3 to 8 each add one migration and depend on the previous one.
-Questions that block a slice: Q-07 and Q-08 for slice 1 fixtures (provisional reading allowed);
-none for the others.
+Q-07 and Q-08 were answered on 2026-11-01; no question blocks a slice.
