@@ -1,0 +1,12 @@
+# Nightly backup at 01:30 Europe/Paris, before audit.head (02:00) and the
+# archive jobs (03:00).
+[Unit]
+Description=Nightly Tenure database backup
+
+[Timer]
+OnCalendar=*-*-* 01:30:00 Europe/Paris
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

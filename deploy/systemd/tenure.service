@@ -1,0 +1,52 @@
+# tenure: API, BFF and scheduler (RENT-BE-001 §9). The binary is
+# /opt/tenure/current/tenure, a symlink that deploy/deploy.sh swaps after the
+# migration. Configuration comes only from /etc/tenure/tenure.env (0600,
+# root:tenure), validated at start.
+[Unit]
+Description=Tenure rental management (API and scheduler)
+Documentation=https://github.com/ovander/tenure-api
+After=network-online.target postgresql.service tenure-sidecars.service
+Wants=network-online.target
+Requires=tenure-sidecars.service
+
+[Service]
+Type=simple
+User=tenure
+Group=tenure
+EnvironmentFile=/etc/tenure/tenure.env
+ExecStart=/opt/tenure/current/tenure serve
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+
+# Hardening: no privileges, read-only system, nothing written on disk (state
+# lives in PostgreSQL and the bucket).
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,52 @@
+# Caddy in front of tenure (RENT-BE-001 §8b, RENT-SPEC-022): TLS 1.2+ with
+# automatic certificates, the security headers, and a reverse proxy to tenure
+# on the loopback. tenure sets the Content-Security-Policy itself (the API's
+# default-src 'none', the web app's default-src 'self'), so Caddy only adds a
+# header the response lacks. TENURE_DOMAIN is set in Caddy's environment
+# (/etc/caddy/caddy.env); TENURE_TRUSTED_PROXIES must list 127.0.0.1/32.
+{
+	admin off
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$TENURE_DOMAIN} {
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	encode zstd gzip
+
+	header {
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Uploads are capped at 25 MB by tenure; Caddy refuses anything far beyond.
+	request_body {
+		max_size 30MB
+	}
+
+	# Metrics stay on the internal network (RENT-BE-001 §8).
+	@internal path /metrics /metrics/*
+	respond @internal 404
+
+	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Forwarded-For {remote_host}
+		health_uri /healthz
+		health_interval 30s
+	}
+
+	log {
+		output file /var/log/caddy/tenure.access.log {
+			roll_size 50MiB
+			roll_keep_for 720h
+		}
+		format json
+	}
+}
