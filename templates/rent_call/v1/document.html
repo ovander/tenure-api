@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Appel de loyer {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Avis d’échéance — appel de loyer</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}} · période {{periodLabel .Period}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Assets}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<table>
+  <thead><tr><th>Désignation</th><th>Détail</th><th class="amount">Montant</th></tr></thead>
+  <tbody>
+  {{range .Lines}}<tr><td>{{.Label}}</td><td>{{.Detail}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+  {{end}}<tr class="total"><td colspan="2">Total à payer</td><td class="amount">{{euros .TotalCents}}</td></tr>
+  </tbody>
+</table>
+<p class="note">Somme à régler au plus tard le {{date .DueOn}}. Cet avis d’échéance n’est pas une quittance ; la quittance est délivrée après paiement intégral.</p>
+</body></html>

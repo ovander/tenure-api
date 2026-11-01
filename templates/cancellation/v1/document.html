@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Annulation {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Avis d’annulation</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p>Le document n° {{.CancelledNumber}} du {{date .CancelledIssuedOn}} (période {{periodLabel .Period}}) est annulé et remplacé ; il ne doit pas être réglé. Motif : {{.Reason}}.</p>
+<table>
+  <tbody>
+  {{range .Lines}}<tr><td>{{.Label}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+  {{end}}<tr class="total"><td>Total annulé</td><td class="amount">{{euros .TotalCents}}</td></tr>
+  </tbody>
+</table>
+</body></html>

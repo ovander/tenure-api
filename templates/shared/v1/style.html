@@ -1,0 +1,14 @@
+{{define "style"}}<style>
+  @page { size: A4; margin: 20mm 18mm 22mm 18mm; }
+  body { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-size: 10pt; color: #111; }
+  h1 { font-size: 15pt; margin: 0 0 4mm 0; }
+  .parties { display: flex; justify-content: space-between; margin-bottom: 8mm; }
+  .parties div { width: 48%; }
+  .label { color: #555; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+  th, td { padding: 2mm 1mm; border-bottom: .3mm solid #ccc; text-align: left; vertical-align: top; }
+  td.amount, th.amount { text-align: right; white-space: nowrap; }
+  tr.total td { font-weight: bold; border-top: .5mm solid #111; border-bottom: none; }
+  .meta { margin: 2mm 0 6mm 0; }
+  .note { margin-top: 8mm; font-size: 9pt; color: #333; }
+</style>{{end}}
