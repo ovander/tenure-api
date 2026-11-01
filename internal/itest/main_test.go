@@ -36,6 +36,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/app"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/migrate"
@@ -71,6 +72,7 @@ var env struct {
 	store   *document.S3
 	smtp    *smtptest.Server
 	insee   *httptest.Server
+	bff     *bff.Server
 }
 
 const bucket = "tenure-itest"
@@ -211,7 +213,12 @@ func setup(m *testing.M) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL},
+	socrateFake := httptest.NewServer(fakeSocrate())
+	defer socrateFake.Close()
+	if env.bff, err = newBFF(ctx, socrateFake.URL, api); err != nil {
+		return 0, fmt.Errorf("bff: %w", err)
+	}
+	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL}, BFF: env.bff,
 		Scanner: document.Clamd{Addr: clamAddr}, WriteBurst: 10000,
 		Mailer: notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
 		Ready: func(ctx context.Context) error { return api.Ping(ctx) }}
