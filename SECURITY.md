@@ -1,9 +1,9 @@
 # Security policy
 
 ## Reporting a vulnerability
-Please do not open a public issue. Use GitHub private vulnerability reporting on this repository
-(Security → Report a vulnerability) or e-mail the maintainer listed in the repository profile.
-You will get an acknowledgement within 72 hours and a fix or mitigation plan within 14 days for high-severity issues.
+Please do not open a public issue. E-mail the maintainer listed in the repository profile with a description,
+affected version and reproduction steps. You will get an acknowledgement within 72 hours and a fix or mitigation
+plan within 14 days for high-severity issues.
 
 ## Scope
 Tenure handles tenants' personal data, financial documents and tax summaries. In scope: authentication and
