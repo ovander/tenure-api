@@ -1,0 +1,7 @@
+// swag type overrides (read by scripts/openapi.sh): calendar values are
+// strings (YYYY-MM-DD dates, YYYY-MM periods), money is integer cents.
+replace github.com/ovander/tenure-api/internal/period.Date string
+replace github.com/ovander/tenure-api/internal/period.Period string
+replace github.com/ovander/tenure-api/internal/money.Cents integer
+replace encoding/json.RawMessage object
+replace time.Month integer

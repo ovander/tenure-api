@@ -21,6 +21,7 @@ const (
 	TypePastEffective = "params/effective-date-in-past"
 	TypeDuplicate     = "params/duplicate-entry"
 	TypeInvalidValue  = "params/invalid-value"
+	TypeIRLExists     = "params/irl-quarter-exists"
 )
 
 func init() {
@@ -29,6 +30,7 @@ func init() {
 		TypePastEffective: problem.M(422, "Un paramètre ne peut pas prendre effet à une date passée.", "A parameter cannot take effect on a past date."),
 		TypeDuplicate:     problem.M(409, "Une valeur existe déjà pour ce paramètre à cette date.", "A value already exists for this parameter on that date."),
 		TypeInvalidValue:  problem.M(422, "Valeur de paramètre invalide.", "Invalid parameter value."),
+		TypeIRLExists:     problem.M(409, "L’indice de ce trimestre est déjà enregistré.", "The index of this quarter is already recorded."),
 	})
 }
 
@@ -137,6 +139,48 @@ func (s Service) Put(ctx context.Context, p *auth.Principal, requestID, key stri
 		return Entry{}, inv
 	}
 	return e, err
+}
+
+// IRLInput is the body of PUT /params/irl/{quarter}.
+type IRLInput struct {
+	Value       int64       `json:"value" example:"14668"`
+	PublishedOn period.Date `json:"published_on" swaggertype:"string" format:"date"`
+	Source      string      `json:"source"`
+}
+
+// PutIRL records an IRL value by hand when INSEE cannot be reached (admin,
+// step-up; RENT-SPEC-006 manual override). Like the fetch, it never replaces a
+// recorded quarter (Q-53). The event goes to the platform chain.
+func (s Service) PutIRL(ctx context.Context, p *auth.Principal, requestID, quarter string, in IRLInput) (IRL, error) {
+	var f invariant.Fields
+	if !quarterRe.MatchString(quarter) {
+		f.Add("quarter", "Trimestre attendu au format AAAA-Qn.")
+	}
+	if in.Value <= 0 {
+		f.Add("value", "L’indice doit être positif (en centièmes).")
+	}
+	if in.PublishedOn.IsZero() {
+		f.Add("published_on", "La date de publication est obligatoire.")
+	}
+	if in.Source == "" {
+		f.Add("source", "La source est obligatoire.")
+	}
+	if err := f.Err(); err != nil {
+		return IRL{}, err
+	}
+	out := IRL{Quarter: quarter, Value: in.Value, PublishedOn: in.PublishedOn}
+	err := s.DB.InScope(ctx, p.PlatformScope(requestID), func(ctx context.Context) error {
+		ok, err := s.Repo.InsertIRL(ctx, quarter, in.Value, in.PublishedOn.Time(), "manual: "+in.Source)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return invariant.New(TypeIRLExists, quarter)
+		}
+		return audit.Record(ctx, "irl.override", audit.Entity{Type: "irl_index", ID: quarter}, nil, map[string]any{
+			"value": in.Value, "published_on": in.PublishedOn, "source": in.Source})
+	})
+	return out, err
 }
 
 func fieldErr(field, msg string) error {

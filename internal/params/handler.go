@@ -99,3 +99,30 @@ func (h Handler) Put(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, e)
 }
+
+// PutIRL godoc
+//
+//	@Summary		Record an IRL value by hand
+//	@Description	Admin only, step-up required; a recorded quarter is never replaced.
+//	@Tags			params
+//	@Accept			json
+//	@Produce		json
+//	@Param			quarter	path		string		true	"quarter YYYY-Qn"
+//	@Param			body	body		IRLInput	true	"value in hundredths"
+//	@Success		201		{object}	IRL
+//	@Failure		400,401,403,409,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/params/irl/{quarter} [put]
+func (h Handler) PutIRL(w http.ResponseWriter, r *http.Request) {
+	p, _ := principalScope(r)
+	var in IRLInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.PutIRL(r.Context(), p, httpx.RequestID(r), chi.URLParam(r, "quarter"), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, v)
+}

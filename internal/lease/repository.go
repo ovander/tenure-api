@@ -337,3 +337,23 @@ func (Repository) UpdateGuarantee(ctx context.Context, g guaranteeRow, version i
 	}
 	return nil
 }
+
+// ApplyRevision sets the revised rent and reference index when version
+// matches, bumping it.
+func (Repository) ApplyRevision(ctx context.Context, id uuid.UUID, version int, rentCents int64, quarter string, value int64, at time.Time, by string) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&leaseRow{}).Where("id = ? AND version = ?", id, version).Updates(map[string]any{
+		"rent_cents": rentCents, "irl_ref_quarter": quarter, "irl_ref_value": value,
+		"version": version + 1, "updated_at": at, "updated_by": by,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
+}

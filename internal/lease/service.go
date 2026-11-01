@@ -699,3 +699,34 @@ func (s Service) UpdateGuarantee(ctx context.Context, p *auth.Principal, request
 	})
 	return out, err
 }
+
+// DomainInTx returns, inside the current transaction, the calculation-engine
+// lease of id and its API view; the lease row is locked for the transaction.
+func (s Service) DomainInTx(ctx context.Context, id uuid.UUID) (Lease, View, error) {
+	st, err := s.Repo.Get(ctx, id, true)
+	if err != nil {
+		return Lease{}, View{}, err
+	}
+	v := view(st)
+	l, _, err := s.domain(ctx, id, v.Input, State(st.lease.State))
+	return l, v, err
+}
+
+// RevisionApplied is the audit view of an applied revision.
+type RevisionApplied struct {
+	RentCents     int64  `json:"rent_cents"`
+	IRLRefQuarter string `json:"irl_ref_quarter"`
+	IRLRefValue   int64  `json:"irl_ref_value"`
+	Version       int    `json:"version"`
+}
+
+// ApplyRevisionInTx records a computed revision on the lease, inside the
+// current transaction, with its audit event lease.revise.
+func (s Service) ApplyRevisionInTx(ctx context.Context, v View, rentCents int64, quarter string, value int64, by string) error {
+	before := RevisionApplied{RentCents: v.RentCents, IRLRefQuarter: v.IRLRefQuarter, IRLRefValue: v.IRLRefValue, Version: v.Version}
+	after := RevisionApplied{RentCents: rentCents, IRLRefQuarter: quarter, IRLRefValue: value, Version: v.Version + 1}
+	if err := s.Repo.ApplyRevision(ctx, v.ID, v.Version, rentCents, quarter, value, s.now(), by); err != nil {
+		return err
+	}
+	return audit.Record(ctx, "lease.revise", audit.Entity{Type: "lease", ID: v.ID.String()}, before, after)
+}
