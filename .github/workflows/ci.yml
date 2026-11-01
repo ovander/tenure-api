@@ -51,6 +51,9 @@ jobs:
       - name: Vet
         run: go vet -tags integration ./...
 
+      - name: Shell scripts parse
+        run: for f in scripts/*.sh deploy/*.sh deploy/*/*.sh; do bash -n "$f"; done
+
       # staticcheck runs inside golangci-lint (enabled in .golangci.yml).
       # Built with the job's Go: prebuilt binaries use an older Go and refuse
       # a module targeting a newer one.

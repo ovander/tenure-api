@@ -1,0 +1,80 @@
+name: release
+# A tag vX.Y.Z on main, pushed by the owner, publishes a release (RENT-BE-001 §9).
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: The tag is on main and well-formed
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go version matches go.mod
+        run: |
+          want=$(awk '/^toolchain /{t=$2} /^go /{g="go"$2} END{print (t != "" ? t : g)}' go.mod)
+          test "$(go env GOVERSION)" = "$want"
+
+      # main passed ci; the release re-checks what can change since: the
+      # vulnerability database, and the tests on the tagged commit.
+      - name: Vet, test, govulncheck
+        run: |
+          go vet ./...
+          go test -race -count=1 -timeout=300s ./...
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          govulncheck ./...
+
+      # The pinned tenure-web bundle; refuses web/VERSION "none" (Q-96).
+      # TENURE_WEB_TOKEN: fine-grained, read-only Contents on ovander/tenure-web.
+      - name: Embed the pinned web bundle
+        env:
+          GH_TOKEN: ${{ secrets.TENURE_WEB_TOKEN }}
+        run: ./scripts/fetch-web.sh
+
+      - name: Build
+        run: |
+          v="${GITHUB_REF_NAME}"
+          ./scripts/build.sh "$v"
+          test "$(./dist/tenure-$v-linux-amd64 version | cut -d' ' -f1)" = "$v"
+
+      - name: SBOM (CycloneDX)
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.9.0
+          cyclonedx-gomod app -main cmd/tenure -licenses -json -output "dist/tenure-${GITHUB_REF_NAME}.cdx.json"
+
+      - name: Deploy tarball and checksums
+        run: |
+          v="${GITHUB_REF_NAME}"
+          tar --exclude=deploy/dev -czf "dist/tenure-deploy-$v.tar.gz" deploy
+          (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME}"
+          pre=""
+          [[ "$v" == *-* ]] && pre="--prerelease"
+          gh release create "$v" dist/* --verify-tag --generate-notes --title "tenure $v" $pre
