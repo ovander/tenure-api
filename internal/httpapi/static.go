@@ -1,11 +1,14 @@
 package httpapi
 
 import (
-	"io"
+	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/ovander/tenure-api/internal/problem"
@@ -13,10 +16,30 @@ import (
 
 // webCSP is the policy of the embedded web app: its own scripts, styles,
 // images and API calls only, no inline script, no framing (RENT-BE-001 §8b).
-// The API keeps backendkit's default-src 'none'.
-const webCSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; " +
-	"connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; " +
-	"form-action 'self'; frame-ancestors 'none'"
+// index.html also allows the styles that carry its per-response nonce:
+// PrimeVue's theme is written into <style> elements at run time (Q-96,
+// tenure-web Q-W1). The API keeps backendkit's default-src 'none'.
+func webCSP(nonce string) string {
+	style := "style-src 'self'; "
+	if nonce != "" {
+		style = "style-src 'self' 'nonce-" + nonce + "'; "
+	}
+	return "default-src 'self'; script-src 'self'; " + style + "img-src 'self' data:; font-src 'self'; " +
+		"connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; " +
+		"form-action 'self'; frame-ancestors 'none'"
+}
+
+// noncePlaceholder is what tenure-web's index.html holds where tenure writes
+// the nonce (<meta name="csp-nonce" content="__CSP_NONCE__">).
+const noncePlaceholder = "__CSP_NONCE__"
+
+func newNonce() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(b), nil
+}
 
 // staticApp serves the embedded tenure-web bundle for GET and HEAD outside
 // /api and /bff: a file that exists is served as is (hashed assets under
@@ -42,19 +65,27 @@ func staticApp(files fs.FS, notFound http.HandlerFunc) http.HandlerFunc {
 			}
 			name = "index.html"
 		}
-		f, err := files.Open(name)
+		data, err := fs.ReadFile(files, name)
 		if err != nil {
 			notFound(w, r)
 			return
 		}
-		defer func() { _ = f.Close() }()
+		nonce := ""
+		if name == "index.html" {
+			if nonce, err = newNonce(); err != nil {
+				problem.Write(w, r, problem.Internal, "", "", nil)
+				return
+			}
+			data = bytes.ReplaceAll(data, []byte(noncePlaceholder), []byte(nonce))
+		}
 		h := w.Header()
 		ct := mime.TypeByExtension(path.Ext(name))
 		if ct == "" {
 			ct = "application/octet-stream"
 		}
 		h.Set("Content-Type", ct)
-		h.Set("Content-Security-Policy", webCSP)
+		h.Set("Content-Length", strconv.Itoa(len(data)))
+		h.Set("Content-Security-Policy", webCSP(nonce))
 		if strings.HasPrefix(name, "assets/") {
 			h.Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
@@ -62,7 +93,7 @@ func staticApp(files fs.FS, notFound http.HandlerFunc) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		if r.Method == http.MethodGet {
-			_, _ = io.Copy(w, f)
+			_, _ = w.Write(data)
 		}
 	}
 }
