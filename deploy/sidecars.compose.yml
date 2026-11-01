@@ -1,0 +1,32 @@
+# Production sidecars of tenure, bound to the loopback (RENT-BE-001 §6, §8b).
+# The versions are those of the integration suite; Dependabot does not track
+# this file, so a bump is a PR that also bumps docker-compose.dev.yml.
+name: tenure-sidecars
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8.21
+    ports: ["127.0.0.1:3000:3000"]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  clamav:
+    image: clamav/clamav:1.4.3
+    ports: ["127.0.0.1:3310:3310"]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    volumes: ["clamav-db:/var/lib/clamav"]
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 5m
+
+volumes:
+  clamav-db:

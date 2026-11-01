@@ -1,0 +1,17 @@
+# The PDF engine (gotenberg, OD-03) and the antivirus (ClamAV, Q-67), as
+# containers bound to the loopback only (deploy/sidecars.compose.yml).
+[Unit]
+Description=Tenure sidecars (gotenberg, ClamAV)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/tenure/deploy
+ExecStart=/usr/bin/docker compose -f sidecars.compose.yml up -d --wait
+ExecStop=/usr/bin/docker compose -f sidecars.compose.yml down
+TimeoutStartSec=10min
+
+[Install]
+WantedBy=multi-user.target

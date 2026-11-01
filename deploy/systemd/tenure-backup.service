@@ -1,0 +1,23 @@
+# Encrypted PostgreSQL backup to the EU backup bucket (deploy/backup/backup.sh).
+[Unit]
+Description=Tenure database backup
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=tenure-backup
+Group=tenure-backup
+EnvironmentFile=/etc/tenure/backup.env
+ExecStart=/opt/tenure/deploy/backup/backup.sh
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+UMask=0077

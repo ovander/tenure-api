@@ -726,3 +726,36 @@ Provisional:
 - the object lock set at issue (from the issue date) is extended to that date, never shortened:
   when the lock already runs later, `retain_until` takes the lock's date;
 - documents past `retain_until` are listed for review; nothing is deleted in phase 1.
+
+**Q-96 Web bundle — Open (slice 8).** tenure-web has published no release yet. Provisional:
+- `web/VERSION` holds `<tag> <sha256>` of the asset `tenure-web-<tag>.tar.gz`, or `none`;
+- the committed `web/dist` is a French placeholder page;
+- a release build fetches and verifies the asset (`scripts/fetch-web.sh`, which refuses `none`,
+  a bad checksum or an unsafe path), so no release ships the placeholder;
+- the release workflow reads tenure-web with a `TENURE_WEB_TOKEN` secret (fine-grained,
+  read-only Contents);
+- tenure serves the bundle for GET and HEAD outside `/api` and `/bff`; any other path gets
+  `index.html`, and a missing file with an extension is a 404 problem;
+- the CSP is set by tenure per surface (`'self'`, no inline script, for the app;
+  `default-src 'none'` for the API); Caddy adds headers only where missing;
+- hashed `assets/` are cached for a year and `index.html` is `no-cache`.
+
+**Q-97 Backups — Open (slice 8).** RENT-BE-001 says "encrypted with a provider KMS key".
+Provisional, stricter:
+- the dump is encrypted on the host with age to a public key whose identity is kept offline,
+  and the bucket adds SSE, so neither the host nor the provider can read a backup alone;
+- nightly at 01:30 Europe/Paris, kept 35 days by the bucket's lifecycle rule;
+- the dump keeps owners and grants, since the RLS helper must stay owned by `tenure_rls`;
+- the dump role is `tenure_backup`: `pg_read_all_data`, `BYPASSRLS` (pg_dump refuses
+  filtered tables) and read-only by default (`deploy/sql/backup-role.sql`);
+- a restore goes into a fresh database only. The round trip was tested on PostgreSQL 17 with
+  the RLS helper still owned by `tenure_rls`.
+
+**Q-98 Deploy — Open (slice 8).** Provisional:
+- one VPS: Caddy, `tenure` under a hardened systemd unit, PostgreSQL 17 on the host, and
+  gotenberg and ClamAV as loopback containers at the integration suite's versions;
+- `deploy.sh` migrates with the new binary while the old one serves, then swaps the symlink;
+  this needs the migrations of a release to be additive, so a rollback is the previous binary;
+- a migration that is not reversible needs a backup just before the deploy;
+- tenure ships no container image, so the spec's "container image scanned" applies to the
+  sidecars' upstream images and is left as a follow-up in `docs/security/asvs-l2.md`.
