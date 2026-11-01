@@ -49,11 +49,11 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | legal\_params | key, value jsonb, effective\_from, source\_url | See section 7 |
 | irl\_index | quarter, value, published\_on | INSEE cache |
 | job\_runs | id, job, period, started\_at, finished\_at, status, summary jsonb | Idempotence key = (job, period) |
-| audit\_events | id (bigserial), owner\_id, actor\_sub, scope, action, entity\_type, entity\_id, before jsonb, after jsonb, request\_id, occurred\_at, prev\_hash, hash | INSERT only; trigger refuses UPDATE/DELETE; hash = sha256(prev\_hash ‖ canonical JSON of the row); one chain per owner |
+| audit\_events | id (bigserial), owner\_id (NULL: platform chain of admin actions, Q-36), actor\_sub, scope, action, entity\_type, entity\_id, before jsonb, after jsonb, request\_id, occurred\_at, prev\_hash, hash | INSERT only; trigger refuses UPDATE/DELETE; hash = sha256(prev\_hash ‖ canonical JSON of the row); one chain per owner |
 | audit\_chain\_heads | owner\_id, as\_of, last\_event\_id, head\_hash, object\_key | Daily head written to the locked bucket; verified weekly against the chain |
 | owner\_grants | owner\_id, grantee\_sub, role (co-owner / accountant), granted\_at, revoked\_at | Joined in the RLS policy; part of migration 000001; every change audited |
 
-**Conventions**: money as integer cents (`*_cents`), dates as `date`, timestamps `timestamptz` in UTC, periods as `char(7)` YYYY-MM, enums as PostgreSQL enums, soft delete nowhere (documents are never deleted, business rows are closed by state); every mutable business table carries created\_by, created\_at, updated\_by, updated\_at, filled by the repository layer from the request context.
+**Conventions**: every mutable business table carries a `version` used as the ETag (Q-40); money as integer cents (`*_cents`), dates as `date`, timestamps `timestamptz` in UTC, periods as `char(7)` YYYY-MM, enums as PostgreSQL enums, soft delete nowhere (documents are never deleted, business rows are closed by state); every mutable business table carries created\_by, created\_at, updated\_by, updated\_at, filled by the repository layer from the request context.
 
 **RLS**: `ALTER TABLE … ENABLE ROW LEVEL SECURITY` on every table with `owner_id`; policy `USING (owner_id = current_setting('app.owner_id')::uuid)`; the API role has no BYPASSRLS; migrations and jobs run as a separate role that sets `app.owner_id` per owner iteration. Co-owner and accountant access is granted through an `owner_grants (owner_id, grantee_sub, role)` table joined in the policy.
 
@@ -65,7 +65,7 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 
 | Module | Endpoints (phase 1) | Notes |
 | --- | --- | --- |
-| portfolio | `GET/POST /assets`, `GET/PUT /assets/{id}`, `GET/POST /tenants`, `GET/PUT /tenants/{id}`, `GET /me` | `/me` returns the caller, roles and grants |
+| portfolio | `GET/POST /assets`, `GET/PUT /assets/{id}`, `GET/POST /tenants`, `GET/PUT /tenants/{id}`, `GET/PUT /me` | `/me` returns the caller, roles and grants; `PUT /me` creates the caller's owner profile (no `If-Match`) or updates it, language included (Q-06, Q-35) |
 | lease | `GET/POST /leases`, `GET/PUT /leases/{id}`, `POST /leases/{id}/transitions` (activate, notice, end, close), `POST /leases/{id}/contract` (generate), `POST /leases/{id}/amendments`, `GET/POST /leases/{id}/guarantees`, `PUT /guarantees/{id}`, `POST /leases/{id}/inventories` | Transitions validate the state machine and required documents |
 | billing | `GET /billing/documents`, `GET /billing/documents/{id}`, `POST /billing/runs` (period, dry\_run), `GET /billing/runs/{id}`, `POST /billing/documents/{id}/cancel`, `GET /leases/{id}/arrears`, `POST /leases/{id}/revision` | A run with dry\_run returns the computed fees without issuing |
 | charge | `GET/POST /charges`, `GET/PUT /charges/{id}`, `POST /charges/import/syndic` (file + mapping), `GET/POST /reconciliations`, `GET /reconciliations/{id}`, `POST /reconciliations/{id}/transitions` (allocate, issue, settle), `PUT /reconciliations/{id}/lines/{lineId}` | Import creates charges in draft for review |
@@ -171,7 +171,7 @@ Every service write emits one audit event in the same transaction through `audit
 - Uploads: `POST /documents` streams to a quarantine prefix, ClamAV scan (sidecar) then move to the archive prefix; MIME sniffed server-side; max 25 MB; infected files rejected and logged.
 - Signed URLs: 10 minutes, bound to the document id and caller subject in the signature; every issue recorded as an audit event `document.download`.
 - Encryption: PostgreSQL on an encrypted volume, bucket SSE, backups encrypted with a provider KMS key; TLS 1.2+ only; database connections over TLS.
-- Roles: `tenure_api` (no BYPASSRLS, no DDL), `tenure_migrate` (DDL, used only by `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner, no DDL); credentials separate; break-glass superuser access only through the provider console, logged and alerted.
+- Roles: `tenure_api` (no BYPASSRLS, no DDL), `tenure_migrate` (DDL, used only by `tenure migrate`), `tenure_jobs` (sets `app.owner_id` per owner, no DDL), and `tenure_rls` (NOLOGIN, BYPASSRLS, owns only the SECURITY DEFINER functions the policies call, Q-41); credentials separate; break-glass superuser access only through the provider console, logged and alerted.
 - Supply chain: `go.sum` and `package-lock.json` pinned, `govulncheck` and `npm audit` in CI, gitleaks on every PR in both repositories (secret scanning and push protection on private personal repositories need GitHub Advanced Security, so gitleaks is the day-1 control), Dependabot alerts and security updates enabled, SBOM (CycloneDX) attached to each release, container image scanned.
 - RGPD: `GET /me/export` (owner) and tenant data export on request; erasure job after retention; processing register kept in `docs/rgpd/`; breach runbook in `deploy/runbooks/`.
 - Pen test: external test scheduled before the phase 4 portal; phase 1 to 3 covered by the AI security audit per PR and an annual internal review.
@@ -224,3 +224,4 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.0 | BE-OD-01 to 04 decided (robfig/cron, gotenberg, minio-go, CSV + OFX); baseline for the phase 1 implementation plan |
 | 2026-11-01 | 1.1 | Implementation feedback: tenure\_\* DB roles, step-up on auth\_time + amr, owner\_grants in 000001, four tax parameters and rent-control zone rules in legal\_params; assets.controlled\_zone, 2044 map by millésime and tax.annual pre-check (Q-07, Q-12) |
 | 2026-11-01 | 1.2 | Implementation feedback (Q-27 to Q-33): rent\_control.zone\_ceiling and relocation\_rule replace zone\_rules; assets.rent\_control\_zone/category; leases.rent\_exemption and rent\_breakdown; 2044 map and tax parameters by income year; 222 per local |
+| 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |

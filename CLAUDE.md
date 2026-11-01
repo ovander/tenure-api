@@ -62,7 +62,14 @@ internal/audit        audit.Record, hash chain, chain heads
 internal/jobs         scheduler, job_runs lock, per-owner iteration
 internal/httpapi      Chi routers, middleware, problem details, swag
 internal/notify       e-mail
-migrations/           SQL migrations
+internal/db           scoped transactions (app.owner_id, app.actor_sub), column types
+internal/migrate      goose over the embedded migrations
+internal/httpx        decode, ETag/If-Match, paging, service error → problem
+internal/problem      RFC 9457 bodies and the FR/EN title catalogue
+internal/invariant    Error{Type, Detail}, ErrNotFound/ErrStale/ErrForbidden, Fields
+internal/itest        integration suite (build tag integration, testcontainers)
+migrations/           SQL migrations (embedded; seed generated from testdata/params)
+deploy/sql/roles.sql  database roles, run once per cluster by a superuser
 templates/<class>/<version>/   document templates (French)
 testdata/golden/<year>/        golden files per calculation and tax year (internal/golden runs them)
 testdata/params/<year>.json    legal parameter fixtures, the seed of legal_params
@@ -161,9 +168,14 @@ go vet ./...
 golangci-lint run ./...          # v2.14.0 built with Go 1.27.3; staticcheck runs inside it
 govulncheck ./...
 go test -race -count=1 ./...
+go test -tags integration -race -count=1 ./internal/itest   # needs Docker
+./scripts/openapi.sh && git diff --exit-code internal/httpapi/openapi   # swag v1.16.4
 ```
 
-Integration tests and the migration up/down check need Docker. gitleaks runs in CI.
+gitleaks runs in CI. A new mutating route goes into `testdata/audited_routes.txt` and the
+integration scenario; a new owner table into the cross-owner zero-rows check; a new problem type
+into its module's `problem.Register` with French and English titles; a change to
+`testdata/params` is followed by `go test ./migrations -update`.
 
 ## Git workflow
 
