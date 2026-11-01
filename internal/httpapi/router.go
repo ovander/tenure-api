@@ -60,6 +60,11 @@ type Deps struct {
 	// limited to one a second (RENT-BE-001 §8b); zero keeps 60. Only the
 	// integration suite raises it, to set up many records quickly.
 	WriteBurst int
+	// FailedAuthMax overrides the 10 failed authentications an address may
+	// make in 15 minutes before it is locked out (RENT-BE-001 §8b); zero
+	// keeps 10. Only the integration suite, whose every call comes from one
+	// address, raises it.
+	FailedAuthMax int
 	// BFF serves /bff and turns a browser session into a bearer in front of
 	// internal/auth; nil serves bearer clients only.
 	BFF *bff.Server
@@ -72,6 +77,7 @@ type Guard string
 const (
 	GuardAuthenticated Guard = "authenticated"         // any valid token
 	GuardScopeOwnerW   Guard = "scope, owner to write" // any scope role reads, owner writes
+	GuardScope         Guard = "scope"                 // any scope role, reads and writes (exports)
 	GuardAuditReaders  Guard = "owner or accountant"
 	GuardAdmin         Guard = "admin"
 )
@@ -93,6 +99,10 @@ func Routes(d Deps) []Route {
 	return []Route{
 		{"GET", "/me", GuardAuthenticated, false, h(d.Portfolio.GetMe)},
 		{"PUT", "/me", GuardAuthenticated, false, h(d.Portfolio.PutMe)},
+		{"GET", "/me/export", GuardAuthenticated, true, h(d.Portfolio.ExportMe)},
+		{"GET", "/grants", GuardScopeOwnerW, false, h(d.Portfolio.ListGrants)},
+		{"POST", "/grants", GuardScopeOwnerW, true, h(d.Portfolio.CreateGrant)},
+		{"DELETE", "/grants/{id}", GuardScopeOwnerW, true, h(d.Portfolio.RevokeGrant)},
 		{"GET", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.ListAssets)},
 		{"POST", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.CreateAsset)},
 		{"GET", "/assets/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetAsset)},
@@ -149,6 +159,8 @@ func Routes(d Deps) []Route {
 		{"GET", "/documents/{id}", GuardScopeOwnerW, false, h(d.Documents.Get)},
 		{"GET", "/documents/{id}/content", GuardScopeOwnerW, false, h(d.Documents.Content)},
 		{"POST", "/documents", GuardScopeOwnerW, false, h(d.Documents.Upload)},
+		{"POST", "/documents/export", GuardScope, true, h(d.Documents.CreateExport)},
+		{"GET", "/documents/exports/{id}", GuardScopeOwnerW, false, h(d.Documents.GetExport)},
 		{"GET", "/params", GuardAuthenticated, false, h(d.Params.List)},
 		{"GET", "/params/irl", GuardAuthenticated, false, h(d.Params.IRLSeries)},
 		{"PUT", "/params/irl/{quarter}", GuardAdmin, true, h(d.Params.PutIRL)},
@@ -193,7 +205,11 @@ func NewRouter(d Deps) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	lockout := newFailedAuthLimiter(10, 15*time.Minute, d.TrustedProxies)
+	maxFails := 10
+	if d.FailedAuthMax > 0 {
+		maxFails = d.FailedAuthMax
+	}
+	lockout := newFailedAuthLimiter(maxFails, 15*time.Minute, d.TrustedProxies)
 
 	r := chi.NewRouter()
 	// The body cap is set per route (bodyLimit): 1 MiB, except uploads.
@@ -237,6 +253,8 @@ func NewRouter(d Deps) (http.Handler, error) {
 			switch rt.Guard {
 			case GuardScopeOwnerW:
 				h = auth.RequireOwnerForWrites(h)
+			case GuardScope:
+				h = auth.RequireScope(h)
 			case GuardAuditReaders:
 				h = auth.RequireRoles(auth.RoleOwner, auth.RoleAccountant)(h)
 			case GuardAdmin:

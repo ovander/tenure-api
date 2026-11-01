@@ -43,6 +43,8 @@ type Deps struct {
 	TrustedProxies []*net.IPNet
 	// WriteBurst raises the per-subject write burst (integration suite only).
 	WriteBurst int
+	// FailedAuthMax raises the failed-auth lockout threshold (integration suite only).
+	FailedAuthMax int
 	// BFF serves browser sessions (nil: bearer clients only).
 	BFF *bff.Server
 	Now func() time.Time
@@ -72,6 +74,8 @@ func New(d Deps) (*App, error) {
 	for _, j := range []jobs.Job{
 		jobs.AuditVerify(),
 		jobs.AuditHead(d.Store, params.Repository{}),
+		jobs.ArchiveRetention(d.Store, params.Repository{}),
+		jobs.ArchiveVerify(d.Store),
 		billing.MonthlyJob(bs, d.Jobs),
 		billing.IRLFetchJob(bs, d.Jobs, d.INSEE),
 		billing.ReceiptsJob(bs, d.Jobs),
@@ -97,6 +101,7 @@ func New(d Deps) (*App, error) {
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
 		WriteBurst:     d.WriteBurst,
+		FailedAuthMax:  d.FailedAuthMax,
 		BFF:            d.BFF,
 	})
 	if err != nil {

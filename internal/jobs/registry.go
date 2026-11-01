@@ -2,9 +2,12 @@ package jobs
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/db"
@@ -93,4 +96,114 @@ func AuditHead(store document.Store, ps params.Repository) Job {
 		PerOwner: write,
 		Platform: write,
 	}
+}
+
+// VerifySample is how many archived objects archive.verify re-hashes per
+// owner each week (an operational choice, not a legal constant, Q-94).
+const VerifySample = 50
+
+// ErrArchiveMismatch reports an archived object that differs from its hash.
+var ErrArchiveMismatch = errors.New("archive mismatch")
+
+// ArchiveRetention is archive.retention (RENT-BE-001 §5): on the 1st at 03:00,
+// per owner, it starts the retention clock of the documents whose clock has
+// started since (Q-68: a lease document once its lease ended, a supporting
+// document from the end of its charges' exercise year), never earlier than
+// the lock the object already carries, which is extended when the clock
+// gives a later date, and lists the documents past retain_until for a
+// manual review. It deletes nothing (RENT-SPEC-005, Q-95).
+func ArchiveRetention(store document.Store, ps params.Repository) Job {
+	return Job{
+		Name:     "archive.retention",
+		Schedule: "0 3 1 * *",
+		Period:   MonthKey,
+		PerOwner: func(ctx context.Context, o Owner) (any, error) {
+			repo := document.Repository{}
+			set, err := ps.Load(ctx)
+			if err != nil {
+				return nil, err
+			}
+			years, err := set.Int64(document.KeyArchiveRetention, o.Today)
+			if err != nil {
+				return nil, err
+			}
+			starts, err := repo.ClockStarts(ctx)
+			if err != nil {
+				return nil, err
+			}
+			started := 0
+			for _, c := range starts {
+				// retain_until is never earlier than the lock the object got
+				// when archived; the lock is extended only when the clock
+				// gives a later date (a compliance lock is never shortened).
+				until := document.RetainUntil(c.From, years)
+				locked := document.RetainUntil(c.IssuedAt.In(Paris()), years)
+				extend := until.After(locked)
+				if !extend {
+					until = locked
+				}
+				if o.DryRun {
+					started++
+					continue
+				}
+				if extend {
+					if err := store.ExtendRetention(ctx, c.ObjectKey, c.ObjectVersion, until.Time()); err != nil {
+						return nil, err
+					}
+				}
+				if err := repo.SetRetainUntil(ctx, c.ID, until.Time()); err != nil {
+					return nil, err
+				}
+				started++
+			}
+			eligible, err := repo.PastRetention(ctx, o.Today.Time())
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"clocks_started": started, "eligible_for_review": eligible, "deleted": 0}, nil
+		},
+	}
+}
+
+// ArchiveVerify is archive.verify (RENT-BE-001 §5): every Sunday at 04:00,
+// per owner, it re-hashes a random sample of archived objects against
+// documents.sha256; a mismatch or a missing object fails that owner's unit,
+// so the run ends partial or failed, which alerts.
+func ArchiveVerify(store document.Store) Job {
+	return Job{
+		Name:     "archive.verify",
+		Schedule: "0 4 * * 0",
+		Period:   WeekKey,
+		PerOwner: func(ctx context.Context, _ Owner) (any, error) {
+			docs, err := document.Repository{}.Sample(ctx, VerifySample)
+			if err != nil {
+				return nil, err
+			}
+			var bad []string
+			for _, d := range docs {
+				sum, err := hashObject(ctx, store, d.ObjectKey, d.ObjectVersion)
+				if err != nil || sum != d.SHA256 {
+					bad = append(bad, d.ID.String())
+				}
+			}
+			res := map[string]any{"checked": len(docs), "mismatches": bad}
+			if len(bad) > 0 {
+				return res, fmt.Errorf("%w: %d of %d objects", ErrArchiveMismatch, len(bad), len(docs))
+			}
+			return res, nil
+		},
+	}
+}
+
+func hashObject(ctx context.Context, store document.Store, key, version string) (string, error) {
+	obj, err := store.Open(ctx, key, version)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = obj.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, obj); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

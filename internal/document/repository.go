@@ -125,6 +125,8 @@ type Filter struct {
 	LeaseID *uuid.UUID
 	Period  string
 	Year    int
+	// Number is a generated document's number (AL-…, QL-…, CT-…).
+	Number string
 	// Classes, when set, limits the list to these classes.
 	Classes []string
 }
@@ -153,6 +155,10 @@ func (Repository) List(ctx context.Context, f Filter, offset, limit int) ([]docu
 	}
 	if f.Year != 0 {
 		q = q.Where("extract(year FROM issued_at AT TIME ZONE 'Europe/Paris') = ?", f.Year)
+	}
+	if f.Number != "" {
+		// Numbers are [A-Z0-9-] only (checked by the handler): no LIKE wildcard.
+		q = q.Where("object_key LIKE ?", "%/"+f.Number+".pdf")
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -197,4 +203,160 @@ func (Repository) Deliveries(ctx context.Context, documentID uuid.UUID) ([]Deliv
 func DeliveryRow(id, owner, documentID uuid.UUID, recipient, status string, at time.Time) DeliveryRecord {
 	return DeliveryRecord{ID: id, OwnerID: owner, DocumentID: documentID, Recipient: recipient, Channel: "email",
 		Status: status, CreatedAt: at, UpdatedAt: at}
+}
+
+// ExportFilter selects the documents of an export: one year of issue, or
+// everything about one asset (its own documents and its leases').
+type ExportFilter struct {
+	Year    int
+	AssetID *uuid.UUID
+	// Classes, when set, limits the export to these classes (accountant).
+	Classes []string
+}
+
+// ExportDocuments returns the scope's documents an export holds.
+func (Repository) ExportDocuments(ctx context.Context, f ExportFilter) ([]documentRow, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	q := tx.Model(&documentRow{}).Where("issued_at IS NOT NULL")
+	if f.Year != 0 {
+		q = q.Where("extract(year FROM issued_at AT TIME ZONE 'Europe/Paris') = ?", f.Year)
+	}
+	if f.AssetID != nil {
+		q = q.Where("asset_id = ? OR lease_id IN (SELECT lease_id FROM lease_assets WHERE asset_id = ?)", *f.AssetID, *f.AssetID)
+	}
+	if len(f.Classes) > 0 {
+		q = q.Where("class IN ?", f.Classes)
+	}
+	var rows []documentRow
+	err = q.Order("issued_at, id").Find(&rows).Error
+	return rows, err
+}
+
+type exportRow struct {
+	ID            uuid.UUID  `gorm:"column:id;primaryKey"`
+	OwnerID       uuid.UUID  `gorm:"column:owner_id"`
+	RequestedBy   string     `gorm:"column:requested_by"`
+	Role          string     `gorm:"column:role"`
+	Year          *int       `gorm:"column:year"`
+	AssetID       *uuid.UUID `gorm:"column:asset_id"`
+	State         string     `gorm:"column:state"`
+	ObjectKey     string     `gorm:"column:object_key"`
+	ObjectVersion string     `gorm:"column:object_version"`
+	SHA256        string     `gorm:"column:sha256"`
+	SizeBytes     int64      `gorm:"column:size_bytes"`
+	Documents     int        `gorm:"column:documents"`
+	Error         string     `gorm:"column:error"`
+	CreatedAt     time.Time  `gorm:"column:created_at"`
+	FinishedAt    *time.Time `gorm:"column:finished_at"`
+}
+
+func (exportRow) TableName() string { return "export_jobs" }
+
+// InsertExport records a requested export.
+func (Repository) InsertExport(ctx context.Context, e exportRow) error {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return tx.Create(&e).Error
+}
+
+// Export returns one export visible in the scope.
+func (Repository) Export(ctx context.Context, id uuid.UUID) (exportRow, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return exportRow{}, err
+	}
+	var rows []exportRow
+	if err := tx.Where("id = ?", id).Limit(1).Find(&rows).Error; err != nil {
+		return exportRow{}, err
+	}
+	if len(rows) == 0 {
+		return exportRow{}, invariant.ErrNotFound
+	}
+	return rows[0], nil
+}
+
+// FinishExport records the outcome of an export.
+func (Repository) FinishExport(ctx context.Context, e exportRow) error {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return tx.Model(&exportRow{}).Where("id = ? AND state = 'pending'", e.ID).Updates(map[string]any{
+		"state": e.State, "object_key": e.ObjectKey, "object_version": e.ObjectVersion, "sha256": e.SHA256,
+		"size_bytes": e.SizeBytes, "documents": e.Documents, "error": e.Error, "finished_at": e.FinishedAt,
+	}).Error
+}
+
+// ClockStart is a document whose retention clock can now start.
+type ClockStart struct {
+	ID            uuid.UUID `gorm:"column:id"`
+	ObjectKey     string    `gorm:"column:object_key"`
+	ObjectVersion string    `gorm:"column:object_version"`
+	// From is the day the clock starts: the lease's end, or 31 December of
+	// the latest exercise year of the charges it supports.
+	From time.Time `gorm:"column:clock_from"`
+	// IssuedAt dates the lock the object already carries.
+	IssuedAt time.Time `gorm:"column:issued_at"`
+}
+
+// ClockStarts returns the scope's documents with no retain_until whose clock
+// has started (Q-68): lease documents of a lease that ended, and supporting
+// documents of charges.
+func (Repository) ClockStarts(ctx context.Context) ([]ClockStart, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []ClockStart
+	err = tx.Raw(`SELECT d.id, d.object_key, d.object_version, l.end_on AS clock_from, d.issued_at
+			FROM documents d JOIN leases l ON l.id = d.lease_id
+			WHERE d.retain_until IS NULL AND d.issued_at IS NOT NULL
+				AND d.class IN ('contract', 'amendment', 'deposit', 'surety', 'inventory')
+				AND l.state IN ('ended', 'closed') AND l.end_on IS NOT NULL
+		UNION ALL
+		SELECT d.id, d.object_key, d.object_version, make_date(max(c.exercise_year), 12, 31) AS clock_from, d.issued_at
+			FROM documents d JOIN charges c ON c.document_id = d.id
+			WHERE d.retain_until IS NULL AND d.issued_at IS NOT NULL AND d.lease_id IS NULL
+			GROUP BY d.id, d.object_key, d.object_version, d.issued_at
+		ORDER BY 1`).Scan(&out).Error
+	return out, err
+}
+
+// SetRetainUntil starts a document's retention clock (allowed once by the
+// trigger, from unset).
+func (Repository) SetRetainUntil(ctx context.Context, id uuid.UUID, until time.Time) error {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return tx.Model(&documentRow{}).Where("id = ? AND retain_until IS NULL", id).Update("retain_until", until).Error
+}
+
+// PastRetention returns the ids of the scope's documents whose retention
+// ended before day: eligible for a manual, logged deletion, never deleted
+// automatically (RENT-SPEC-005).
+func (Repository) PastRetention(ctx context.Context, day time.Time) ([]uuid.UUID, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uuid.UUID
+	err = tx.Model(&documentRow{}).Where("retain_until < ?", day).Order("retain_until, id").Pluck("id", &ids).Error
+	return ids, err
+}
+
+// Sample returns up to n of the scope's archived documents, at random.
+func (Repository) Sample(ctx context.Context, n int) ([]documentRow, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []documentRow
+	err = tx.Where("issued_at IS NOT NULL").Order("random()").Limit(n).Find(&rows).Error
+	return rows, err
 }

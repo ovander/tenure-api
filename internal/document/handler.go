@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,9 @@ import (
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
+
+// numberPattern is the shape of a document number (RENT-BE-001 §6).
+var numberPattern = regexp.MustCompile(`^[A-Z]{2}-[0-9A-F]{8}-[0-9]{4}-[0-9]{4}$`)
 
 // Handler serves /documents.
 type Handler struct{ Service Service }
@@ -35,6 +39,7 @@ func caller(r *http.Request) *auth.Principal {
 //	@Param			lease_id		query		string	false	"lease id"
 //	@Param			period			query		string	false	"period YYYY-MM"
 //	@Param			year			query		int		false	"year of issue"
+//	@Param			number			query		string	false	"document number, AL-0190A1B2-2025-0001"
 //	@Param			page			query		int		false	"page, from 1"
 //	@Param			size			query		int		false	"page size, 1 to 100"
 //	@Param			X-Owner-Scope	header		string	false	"owner scope"
@@ -72,6 +77,12 @@ func (h Handler) List(w http.ResponseWriter, r *http.Request) {
 			fields.Add("year", "Année invalide.")
 		}
 		f.Year = y
+	}
+	if v := q.Get("number"); v != "" {
+		if !numberPattern.MatchString(v) {
+			fields.Add("number", "Numéro attendu au format AL-0190A1B2-2025-0001.")
+		}
+		f.Number = v
 	}
 	if err := fields.Err(); err != nil {
 		httpx.Error(w, r, err)
@@ -228,4 +239,55 @@ func (h Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusCreated, v)
+}
+
+// CreateExport godoc
+//
+//	@Summary		Export a year or an asset's history as a ZIP
+//	@Description	Built after the request: a ZIP of the documents the caller may read in the scope (financial classes only for an accountant) with an index CSV. Poll GET /documents/exports/{id}. A step-up route.
+//	@Tags			document
+//	@Accept			json
+//	@Produce		json
+//	@Param			body			body		ExportInput	true	"year or asset"
+//	@Param			X-Owner-Scope	header		string		false	"owner scope"
+//	@Success		202				{object}	ExportView
+//	@Failure		400,401,403,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/documents/export [post]
+func (h Handler) CreateExport(w http.ResponseWriter, r *http.Request) {
+	var in ExportInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.CreateExport(r.Context(), caller(r), httpx.RequestID(r), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusAccepted, v)
+}
+
+// GetExport godoc
+//
+//	@Summary		Get an export and, once ready, its 10-minute link
+//	@Tags			document
+//	@Produce		json
+//	@Param			id				path		string	true	"export id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	ExportView
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/documents/exports/{id} [get]
+func (h Handler) GetExport(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.GetExport(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.JSON(w, http.StatusOK, v)
 }

@@ -4,6 +4,8 @@
 # e-mails) — when a refused call leaves an event, or when a mutating route of
 # internal/httpapi is missing from this list.
 PUT /me
+POST /grants
+DELETE /grants/{id}
 POST /assets
 PUT /assets/{id}
 POST /assets/{id}/diagnostics
@@ -20,6 +22,7 @@ POST /leases/{id}/contract
 POST /leases/{id}/amendments
 POST /leases/{id}/inventories
 POST /documents
+POST /documents/export +
 POST /leases/{id}/revision +
 POST /charges
 POST /charges/import/syndic
