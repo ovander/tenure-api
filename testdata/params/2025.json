@@ -81,18 +81,28 @@
       "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000046186723"
     },
     {
-      "key": "rent_control.zone_rules",
+      "key": "rent_control.zone_ceiling",
       "effective_from": "2025-01-01",
       "value": {
-        "max_variation_bp": null
+        "zones": {}
       },
-      "source": "Loi 89-462 art. 17-1 and 140 ELAN; no extra revision cap modelled (OPEN-QUESTIONS Q-28)",
+      "source": "Loi 89-462 art. 17 and loi ELAN art. 140; per-zone values come from each prefectoral arrêté and are added when an asset is in that zone (none yet)",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "rent_control.relocation_rule",
+      "effective_from": "2025-01-01",
+      "value": {
+        "applies": true
+      },
+      "source": "Loi 89-462 art. 18 and the annual relocation decree (décret 2017-1198, renewed each year)",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     },
     {
       "key": "form_2044_line_map",
       "effective_from": "2025-01-01",
       "value": {
+        "tax_year": 2025,
         "millesime": 2026,
         "lines": {
           "rent": "211",
@@ -124,7 +134,7 @@
           "230"
         ]
       },
-      "source": "Notice 2044 millésime 2026 (income year 2025)",
+      "source": "Notice 2044, income year 2025 (millésime 2026)",
       "source_url": "https://www.impots.gouv.fr/formulaire/2044/declaration-des-revenus-fonciers"
     }
   ]

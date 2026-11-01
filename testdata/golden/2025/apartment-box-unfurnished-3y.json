@@ -489,7 +489,7 @@
                     "line": "222",
                     "amount_cents": 2000,
                     "sources": [
-                      "forfait_222:A1"
+                      "forfait_222:L1"
                     ]
                   },
                   {
@@ -573,7 +573,7 @@
                 "line": "222",
                 "amount_cents": 2000,
                 "sources": [
-                  "forfait_222:A1"
+                  "forfait_222:L1"
                 ]
               },
               {
