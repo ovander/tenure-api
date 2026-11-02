@@ -742,6 +742,8 @@ Provisional:
   placeholder and allowed in `style-src`: PrimeVue writes its theme into `<style>` elements at
   run time (tenure-web Q-W1); scripts stay `'self'` and `'unsafe-inline'` is used nowhere;
 - hashed `assets/` are cached for a year and `index.html` is `no-cache`.
+- the first pin is tenure-web v0.1.0 (the app shell), whose archive a rebuild from its tag
+  reproduces byte for byte.
 
 **Q-97 Backups — Open (slice 8).** RENT-BE-001 says "encrypted with a provider KMS key".
 Provisional, stricter:
