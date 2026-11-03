@@ -99,7 +99,7 @@ Socrate issues the OIDC token, backendkit validates it and populates the request
 | tenant (phase 4) | lease\_tenants + Socrate sub | Own lease documents and requests only, through the portal scope |
 | admin | Socrate realm role | Params, job triggers, grants; no business data outside own ownership |
 
-**Browsers through a Backend-for-Frontend.** A browser never holds an OAuth token (backendkit `docs/CLIENT-INTEGRATION.md` §7.1). tenure is Socrate's confidential client (`TENURE_SOCRATE_CLIENT_ID`, `TENURE_SOCRATE_CLIENT_SECRET`) and serves, outside `/api/v1` and without a token:
+**Browsers through a Backend-for-Frontend.** A browser never holds an OAuth token (backendkit `docs/CLIENT-INTEGRATION.md` §7.1). tenure is Socrate's confidential client (`SOCRATE_CLIENT_ID`, `SOCRATE_CLIENT_SECRET`) and serves, outside `/api/v1` and without a token:
 
 - `GET /bff/login?return_to=&step_up=1` runs authorization code + PKCE with a state and a browser binding; with step-up it asks for a fresh authentication (Q-85);
 - `GET /bff/callback` exchanges the code server-side;
@@ -216,7 +216,7 @@ Two repositories: github.com/ovander/tenure-api (Go module github.com/ovander/te
 | `deploy` | Caddyfile, systemd units, sidecars compose file, deploy script, backup and restore scripts, env templates (Q-98) |
 | docs/rgpd, deploy/runbooks | Processing register and privacy notice; breach, restore and break-glass runbooks |
 
-Configuration by environment variables only (`TENURE_DB_URL`, `TENURE_S3_*`, `TENURE_SOCRATE_ISSUER`, `TENURE_SMTP_*`, `TENURE_PDF_ENGINE_URL`), validated at start; secrets never in the repo. Workflow, identical in both repositories: GitHub issue → branch → PR with a CI status check named `ci` (tenure-api: go vet, staticcheck, golangci-lint, govulncheck, gitleaks, unit and golden tests, migration up/down; tenure-web: vue-tsc, eslint, npm audit, gitleaks, Vitest, Playwright smoke) → AI security audit on the PR → tag `vX.Y.Z` → release (tenure-web: built bundle as release asset; tenure-api: binary embedding the pinned bundle, plus deploy script); database migrated before the binary swaps; rollback = previous binary plus the migration’s down file. Branch `main` protected in both: PR required, `ci` check required and up to date, admins included, no force push or deletion.
+Configuration by environment variables only (`TENURE_DB_URL`, `TENURE_S3_*`, `TENURE_SMTP_*`, `TENURE_PDF_ENGINE_URL`, and the Socrate client under Socrate's own names `SOCRATE_ISSUER`, `SOCRATE_JWKS_URL`, `SOCRATE_CLIENT_ID`, `SOCRATE_CLIENT_SECRET`, Q-99), validated at start; secrets never in the repo. Workflow, identical in both repositories: GitHub issue → branch → PR with a CI status check named `ci` (tenure-api: go vet, staticcheck, golangci-lint, govulncheck, gitleaks, unit and golden tests, migration up/down; tenure-web: vue-tsc, eslint, npm audit, gitleaks, Vitest, Playwright smoke) → AI security audit on the PR → tag `vX.Y.Z` → release (tenure-web: built bundle as release asset; tenure-api: binary embedding the pinned bundle, plus deploy script); database migrated before the binary swaps; rollback = previous binary plus the migration’s down file. Branch `main` protected in both: PR required, `ci` check required and up to date, admins included, no force push or deletion.
 
 ## 10. Testing strategy
 
@@ -251,6 +251,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
 | 2026-11-01 | 2.2 | Per-response style nonce in the web app's index.html and CSP (Q-96, tenure-web Q-W1) |
 | 2026-11-01 | 2.1 | Slice 8b (Q-96 to Q-98): web/VERSION with checksum and embedded bundle, CSP per surface, deploy/ (Caddyfile, systemd, sidecars, deploy.sh), age-encrypted backups and tenure\_backup role, runbooks, docs/rgpd, release workflow with CycloneDX SBOM, ASVS L2 checklist |
 | 2026-11-01 | 2.0 | Slice 8a (Q-91 to Q-95): export\_jobs (migration 000008) and `GET /documents/exports/{id}`, grants routes, `GET /me/export`, number filter on `GET /documents`, archive.retention starts the retention clock, archive.verify sample |

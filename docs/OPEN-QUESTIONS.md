@@ -17,6 +17,7 @@ value were not supplied. Provisional: `TENURE_SOCRATE_ISSUER`, `TENURE_SOCRATE_J
 admin role is read from backendkit's `role` claim (`ctxutil.GetUserRole`).
 2026-11-01: the owner confirmed the reading. The four settings stay required, with no default.
 Slice 2: `tenure serve` refuses to start without them; `.env.example` holds placeholders and the integration suite signs its own tokens with a local JWKS.
+2026-11-03: renamed to Socrate's own names (Q-99); the audience now defaults to the client id.
 
 **Q-02 Step-up freshness — Answered 2026-11-01.** The owner adopted the reading. A `step_up`
 route requires `auth_time` at most 5 minutes old and `mfa` in `amr`; a missing `auth_time` is
@@ -764,3 +765,19 @@ Provisional, stricter:
 - a migration that is not reversible needs a backup just before the deploy;
 - tenure ships no container image, so the spec's "container image scanned" applies to the
   sidecars' upstream images and is left as a follow-up in `docs/security/asvs-l2.md`.
+
+## Raised during setup
+
+**Q-99 Socrate variable names — Answered 2026-11-03.** The owner asked that the block Socrate's
+console gives for a registered application paste into tenure's env file unchanged. Decided:
+- tenure reads `SOCRATE_ISSUER`, `SOCRATE_JWKS_URL`, `SOCRATE_CLIENT_ID` and
+  `SOCRATE_CLIENT_SECRET`, the names backendkit's `docs/CLIENT-INTEGRATION.md` §3 and the console
+  use; all four are required and have no default;
+- the audience is `SOCRATE_CLIENT_ID`, as in backendkit's example
+  (`jwtauth.WithAudience(client id)`), unless `SOCRATE_AUDIENCE` is set; the application's token
+  settings must list that audience;
+- the console's `SOCRATE_BASE_URL`, `SOCRATE_ADMIN_BASE_URL` and `SOCRATE_APP_ID` are accepted
+  and unused: tenure calls neither the admin API nor a service-account method;
+- `TENURE_SOCRATE_ADMIN_ROLE` keeps its name: it is tenure's choice of role, not a client setting;
+- the former `TENURE_SOCRATE_{ISSUER,JWKS_URL,AUDIENCE,CLIENT_ID,CLIENT_SECRET}` refuse to
+  start, naming the new variable, so that a stale file is never half read.
