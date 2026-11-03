@@ -3,6 +3,7 @@ package params
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/ovander/tenure-api/internal/db"
@@ -83,7 +84,7 @@ func (Repository) LatestIRLOfQuarter(ctx context.Context, q int) (IRL, bool, err
 		return IRL{}, false, err
 	}
 	var out []IRL
-	if err := tx.Table("irl_index").Where("right(quarter, 1) = ?", q).Order("quarter DESC").Limit(1).Find(&out).Error; err != nil {
+	if err := tx.Table("irl_index").Where("right(quarter, 1) = ?", strconv.Itoa(q)).Order("quarter DESC").Limit(1).Find(&out).Error; err != nil {
 		return IRL{}, false, err
 	}
 	if len(out) == 0 {
