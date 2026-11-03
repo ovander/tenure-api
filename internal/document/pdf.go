@@ -29,8 +29,12 @@ func init() {
 // (integration suite, docker-compose.dev.yml, deploy/sidecars.compose.yml):
 // Chromium and LibreOffice start at boot instead of on the first conversion,
 // and gotenberg's own limit stays under the client's 60 s so that a slow
-// conversion ends in its 503, not in a client timeout (Q-101).
-var GotenbergFlags = []string{"gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s"}
+// conversion ends in its 503, not in a client timeout (Q-101). The start
+// timeouts are raised from 20 s per engine and 30 s for the API: with
+// auto-start, a slow boot past them makes gotenberg exit instead of serving
+// (Q-102).
+var GotenbergFlags = []string{"gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
+	"--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s"}
 
 // pdfRetryDelay is the wait before the one retry of a conversion gotenberg
 // refused with 503 (busy or restarting Chromium or LibreOffice).
