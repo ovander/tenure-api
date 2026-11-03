@@ -11,7 +11,7 @@ func TestRunRefusesWithoutConfig(t *testing.T) {
 	none := func(string) string { return "" }
 	var out bytes.Buffer
 	cases := map[string]string{
-		"serve":            "TENURE_SOCRATE_ISSUER is required",
+		"serve":            "SOCRATE_ISSUER is required",
 		"migrate up":       "TENURE_MIGRATE_DB_URL is required",
 		"job audit.verify": "TENURE_JOBS_DB_URL is required",
 		"":                 "usage",

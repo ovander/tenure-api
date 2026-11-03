@@ -1,7 +1,11 @@
-// Package config reads the TENURE_* environment variables and validates them
-// at start (RENT-BE-001 §9). A missing or malformed value stops the process;
-// there is no default for a secret or for the Socrate issuer, audience, JWKS
-// URL or admin role (OPEN-QUESTIONS Q-01).
+// Package config reads the environment and validates it at start
+// (RENT-BE-001 §9): tenure's own TENURE_* variables, and the Socrate client
+// settings under the SOCRATE_* names that Socrate's console and backendkit
+// use, so that the block the console gives for an application pastes in as it
+// is (Q-99). A missing or malformed value stops the process; there is no
+// default for a secret or for the Socrate issuer, JWKS URL, client or admin
+// role. The audience is the client id unless SOCRATE_AUDIENCE says otherwise
+// (OPEN-QUESTIONS Q-01, Q-99).
 package config
 
 import (
@@ -25,6 +29,18 @@ const (
 	NeedMigrate                    // migration database role
 	NeedDocuments                  // object store, PDF engine, SMTP (serve and job)
 )
+
+// RenamedSocrate maps the Socrate settings' former TENURE_* names to the
+// SOCRATE_* names now read (Q-99). The console's SOCRATE_BASE_URL,
+// SOCRATE_ADMIN_BASE_URL and SOCRATE_APP_ID are accepted and not used: tenure
+// calls neither the admin API nor a service-account method.
+var RenamedSocrate = map[string]string{
+	"TENURE_SOCRATE_ISSUER":        "SOCRATE_ISSUER",
+	"TENURE_SOCRATE_JWKS_URL":      "SOCRATE_JWKS_URL",
+	"TENURE_SOCRATE_AUDIENCE":      "SOCRATE_AUDIENCE",
+	"TENURE_SOCRATE_CLIENT_ID":     "SOCRATE_CLIENT_ID",
+	"TENURE_SOCRATE_CLIENT_SECRET": "SOCRATE_CLIENT_SECRET",
+}
 
 // DefaultIRLSource is the INSEE BDM SDMX series of the IRL (idBank 001515333).
 const DefaultIRLSource = "https://bdm.insee.fr/series/sdmx/data/SERIES_BDM/001515333"
@@ -109,14 +125,26 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 		JobsDBURL:    get("TENURE_JOBS_DB_URL", need&(NeedAPI|NeedJobs) != 0),
 		MigrateDBURL: get("TENURE_MIGRATE_DB_URL", need&NeedMigrate != 0),
 		Socrate: Socrate{
-			Issuer:       get("TENURE_SOCRATE_ISSUER", need&NeedAPI != 0),
-			JWKSURL:      get("TENURE_SOCRATE_JWKS_URL", need&NeedAPI != 0),
-			Audience:     get("TENURE_SOCRATE_AUDIENCE", need&NeedAPI != 0),
+			Issuer:       get("SOCRATE_ISSUER", need&NeedAPI != 0),
+			JWKSURL:      get("SOCRATE_JWKS_URL", need&NeedAPI != 0),
+			Audience:     get("SOCRATE_AUDIENCE", false),
 			AdminRole:    get("TENURE_SOCRATE_ADMIN_ROLE", need&NeedAPI != 0),
-			ClientID:     get("TENURE_SOCRATE_CLIENT_ID", need&NeedAPI != 0),
-			ClientSecret: get("TENURE_SOCRATE_CLIENT_SECRET", need&NeedAPI != 0),
+			ClientID:     get("SOCRATE_CLIENT_ID", need&NeedAPI != 0),
+			ClientSecret: get("SOCRATE_CLIENT_SECRET", need&NeedAPI != 0),
 		},
 		StepUpMaxAge: MaxStepUpAge,
+	}
+	// Tokens are issued for the client unless the application was given its
+	// own audience (backendkit CLIENT-INTEGRATION: WithAudience(client id)).
+	if c.Socrate.Audience == "" {
+		c.Socrate.Audience = c.Socrate.ClientID
+	}
+	// The names before Q-99 are refused, never read: a stale file must not
+	// start tenure against settings it no longer uses.
+	for old, now := range RenamedSocrate {
+		if strings.TrimSpace(getenv(old)) != "" {
+			errs = append(errs, fmt.Errorf("%s was renamed %s (Socrate's own name)", old, now))
+		}
 	}
 	if c.HTTPAddr == "" {
 		c.HTTPAddr = ":8080"
@@ -200,7 +228,7 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 			}
 		}
 	}
-	for key, v := range map[string]string{"TENURE_SOCRATE_ISSUER": c.Socrate.Issuer, "TENURE_SOCRATE_JWKS_URL": c.Socrate.JWKSURL} {
+	for key, v := range map[string]string{"SOCRATE_ISSUER": c.Socrate.Issuer, "SOCRATE_JWKS_URL": c.Socrate.JWKSURL} {
 		if v != "" {
 			if err := checkHTTPS(v); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", key, err))
