@@ -25,6 +25,16 @@ func TestAssets(t *testing.T) {
 	if !l.ControlledZone() || !l.Covers("B") || l.Covers("C") {
 		t.Error("ControlledZone or Covers wrong")
 	}
+	if !l.TenseZone() {
+		t.Error("a controlled asset must make the lease tense")
+	}
+	if (Lease{Assets: []portfolio.Asset{apt}}).TenseZone() {
+		t.Error("an asset outside any zone made the lease tense")
+	}
+	if !(Lease{Assets: []portfolio.Asset{{ID: "T", Kind: portfolio.KindHouse, TenseZone: true}}}).TenseZone() ||
+		(Lease{Assets: []portfolio.Asset{{ID: "T", Kind: portfolio.KindHouse, TenseZone: true}}}).ControlledZone() {
+		t.Error("a tense asset must make the lease tense but not controlled")
+	}
 	if p, ok := (Lease{Assets: []portfolio.Asset{box}}).PrincipalAsset(); !ok || p.ID != "B" {
 		t.Errorf("principal of a box alone = %v", p.ID)
 	}

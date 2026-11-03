@@ -183,7 +183,7 @@ they replace `rent_control.zone_rules`:
 2. `rent_control.zone_ceiling`: for assets with `controlled_zone` set, the rent may not exceed
    the loyer de référence majoré × surface for the asset's zone and category. It is applied in
    `billing.Revise` as a cap, and checked by `lease.Validate` at lease creation and renewal.
-3. `rent_control.relocation_rule`: for a new lease in a controlled zone, the rent may not exceed
+3. `rent_control.relocation_rule`: for a new lease in a zone tendue (Q-102), the rent may not exceed
    the previous lease's rent revised by IRL, unless an exemption (`works`, `under_valued`) is
    recorded on the lease (`lease.Validate`).
 
@@ -804,14 +804,33 @@ status the client gets. Decided:
   document number is rolled back as for any failure; a 4xx from the engine stays a 500 (a bug);
 - the integration suite waits for one real PDF/A conversion before its tests start.
 
-**Q-102 gotenberg start timeouts — Open (#53).** With Q-101's auto-start, each engine must start
+**Q-102 Zone tendue and rent ceiling — Answered 2026-11-03.** The owner asked about a flat in
+Baillargues: it is in a zone tendue (the Montpellier area, décret 2013-392) but outside the rent
+ceiling, which covers only the commune of Montpellier (loi ELAN art. 140, arrêté préfectoral).
+`assets.controlled_zone` drove both regimes, so that flat could be modelled neither way: set, it
+needed a ceiling zone and the lease was refused; unset, the relocation rule was never checked.
+Decided:
+- `assets.tense_zone` (migration 000010) is the zone tendue: `rent_control.relocation_rule`
+  applies to a new lease on a tense asset let before, and the contract (template v2) states the
+  previous tenant's rent;
+- `controlled_zone` keeps the ceiling (`rent_control.zone_ceiling`) and implies `tense_zone`: the
+  service writes and returns `tense_zone` as true with it, and reads an asset as tense when either
+  column is set, so existing assets need no backfill (the migrate role sees no owner's rows);
+- the owner sets the flag; the list of communes is not encoded, and the help text points to
+  service-public.fr's simulator. The one-month notice of a tenant in a zone tendue is not computed
+  by tenure (no notice dates are), so it is not modelled yet;
+- fixing it exposed a 500 on every relocation check with a previous lease:
+  `LatestIRLOfQuarter` compared a text column with an integer. The integration suite now covers
+  the check on a tense asset.
+
+**Q-103 gotenberg start timeouts — Open (#53).** With Q-101's auto-start, each engine must start
 within gotenberg's `--chromium-start-timeout` and `--libreoffice-start-timeout` (20 s by default)
 and the API within `--api-start-timeout` (30 s); past them gotenberg 8.21 exits at boot
 (`waiting for modules readiness: … context deadline exceeded`), reproduced at `--cpus=0.15`
 after 21 s and 23 s. Provisional:
 - `document.GotenbergFlags` and both compose files add `--chromium-start-timeout=60s
   --libreoffice-start-timeout=60s --api-start-timeout=90s`; at `--cpus=0.15` gotenberg then
-  boots in 35 to 50 s and renders on the first attempt, and an unthrottled boot is unchanged;
+  boots in 30 to 50 s and renders on the first attempt, and an unthrottled boot is unchanged;
 - a unit test keeps both compose files' `command` equal to `document.GotenbergFlags`;
 - the integration suite polls `/health` once a second instead of every 100 ms: at `--cpus=0.15`
   Chromium's health check timed out on every one of 333 polls in a row while the API was up,

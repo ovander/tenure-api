@@ -30,7 +30,7 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | owners | id, socrate\_sub, legal\_name, address, tax\_id, language (fr default, en), created\_at | One row per Socrate identity acting as owner |
-| assets | id, owner\_id, kind (house/apartment/box), address, lot, surface\_m2, furnished, dpe\_class, controlled\_zone, acquired\_on, acquisition\_cents, parent\_asset\_id | parent\_asset\_id links a box to a dwelling; controlled\_zone (boolean, default false) with rent\_control\_zone and rent\_control\_category (the zone and category the ceiling table is keyed by) makes rent\_control.zone\_ceiling and rent\_control.relocation\_rule apply |
+| assets | id, owner\_id, kind (house/apartment/box), address, lot, surface\_m2, furnished, dpe\_class, controlled\_zone, tense\_zone, acquired\_on, acquisition\_cents, parent\_asset\_id | parent\_asset\_id links a box to a dwelling; controlled\_zone (boolean, default false) with rent\_control\_zone and rent\_control\_category (the zone and category the ceiling table is keyed by) makes rent\_control.zone\_ceiling apply; tense\_zone (zone tendue, boolean, default false, implied by controlled\_zone and returned as true with it) makes rent\_control.relocation\_rule apply and the contract state the previous rent (Q-102) |
 | asset\_shares | asset\_id, owner\_id, share\_pct | Co-ownership; shares sum to 100 |
 | tenants | id, owner\_id, names\[\], email, phone, language (fr default, en), occupation (student, apprentice, other) | Personal data minimised; occupation only for the surety-with-insurance exception (Q-72) |
 | leases | id, owner\_id, kind, state, start\_on, end\_on, term\_months, rent\_cents, provision\_cents, deposit\_cents, due\_day, irl\_ref\_quarter, irl\_ref\_value, revision\_month, rent\_exemption, rent\_breakdown jsonb, clauses jsonb, version | state: draft, active, notice, ended, closed; version bumps on each change; rent\_exemption (works, under\_valued) lifts the relocation rule; rent\_breakdown (per-asset rent) is optional and for reporting from phase 3, ignored by tax; all assets of a lease must have identical ownership shares (`lease/consistent-ownership-shares`, 422) |
@@ -252,8 +252,9 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-03 | 2.6 | assets.tense\_zone (migration 000010): zone tendue separated from rent-ceiling zones; relocation rule and previous rent on tense assets, contract template v2 (Q-102) |
 | 2026-11-03 | 2.5 | §6 rendering: gotenberg flags, one retry on 503, engine down or slow → `document/pdf-unavailable` 503 (Q-101) |
-| 2026-11-03 | 2.6 | §6 rendering: gotenberg start timeouts raised so a slow boot does not exit; rendering routes document their 503 (Q-102) |
+| 2026-11-03 | 2.7 | §6 rendering: gotenberg start timeouts raised so a slow boot does not exit; rendering routes document their 503 (Q-103) |
 | 2026-11-03 | 2.4 | lease\_term\_months legal parameter for the term the web form proposes (migration 000009, Q-100) |
 | 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
 | 2026-11-01 | 2.2 | Per-response style nonce in the web app's index.html and CSP (Q-96, tenure-web Q-W1) |

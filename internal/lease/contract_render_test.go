@@ -33,7 +33,7 @@ func TestContractVariants(t *testing.T) {
 		Tenants: []document.ContractTenant{{Name: "Jeanne Dupont", Solidary: true}, {Name: "Paul <i>Martin</i>", Solidary: true}},
 		Assets:  []document.ContractAsset{{Kind: "apartment", Address: "2 rue de Lyon", Lot: "12", SurfaceHundredthsM2: 4520, DPEClass: "D"}},
 		StartOn: period.NewDate(2026, 3, 1), TermMonths: 36, RentCents: 85000, ProvisionCents: 9000, DepositCents: 85000, DueDay: 5,
-		IRLRefQuarter: "2025-Q2", IRLRefValue: 14668, RevisionMonth: 3, Controlled: true, CeilingCents: 90400, PreviousRentCents: &prev,
+		IRLRefQuarter: "2025-Q2", IRLRefValue: 14668, RevisionMonth: 3, Controlled: true, Tense: true, CeilingCents: 90400, PreviousRentCents: &prev,
 		Guarantees: []document.ContractGuarantee{{Kind: "deposit", AmountCents: 85000}, {Kind: "surety", Guarantor: "Marie Dupont", AmountCents: 2000000, ValidTo: &until}},
 		Clauses:    VettedClauses,
 		Diagnostics: []document.ContractDiagnostic{{Asset: "2 rue de Lyon", Kind: "dpe", DoneOn: &done, ValidUntil: &until, Result: "D"},
@@ -67,6 +67,30 @@ func TestContractVariants(t *testing.T) {
 	}
 	if len(clauseText) != len(VettedClauses) {
 		t.Fatalf("every vetted clause needs its expected text here")
+	}
+}
+
+// TestContractTenseZone: a dwelling in a zone tendue without a rent ceiling
+// states the previous rent but no ceiling; outside any zone, neither (Q-102).
+func TestContractTenseZone(t *testing.T) {
+	prev := money.Cents(81234)
+	d := document.ContractData{Number: "CT-X-2026-0002", IssuedOn: period.NewDate(2026, 2, 1), Kind: "unfurnished",
+		Owner:   document.Party{Name: "Propriétaire A", Address: "1 rue de Lyon"},
+		Tenants: []document.ContractTenant{{Name: "Jeanne Dupont"}},
+		Assets:  []document.ContractAsset{{Kind: "apartment", Address: "3 rue du Fort", SurfaceHundredthsM2: 4000}},
+		StartOn: period.NewDate(2026, 3, 1), TermMonths: 36, RentCents: 80000, DueDay: 5,
+		IRLRefQuarter: "2025-Q2", IRLRefValue: 14668, RevisionMonth: 3, Tense: true, PreviousRentCents: &prev}
+	html := render(t, document.ClassContract, ContractTemplate, d)
+	if !strings.Contains(html, "zone tendue") || !strings.Contains(html, "812,34") {
+		t.Errorf("a tense-zone contract must state the zone and the previous rent")
+	}
+	if strings.Contains(html, "oyer de référence majoré") {
+		t.Errorf("a tense-zone contract without a ceiling states one")
+	}
+	d.Tense, d.PreviousRentCents = false, nil
+	html = render(t, document.ClassContract, ContractTemplate, d)
+	if strings.Contains(html, "zone tendue") || strings.Contains(html, "812,34") {
+		t.Errorf("a contract outside any zone states a zone or a previous rent")
 	}
 }
 

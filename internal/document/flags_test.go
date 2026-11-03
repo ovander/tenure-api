@@ -10,7 +10,7 @@ import (
 
 // TestComposeGotenbergFlags keeps the gotenberg command of both compose
 // files equal to GotenbergFlags, which the integration suite runs (Q-101,
-// Q-102): a flag added in one place only would ship untested.
+// Q-103): a flag added in one place only would ship untested.
 func TestComposeGotenbergFlags(t *testing.T) {
 	command := regexp.MustCompile(`(?s)\n  gotenberg:\n.*?\n    command: \[(.*?)\]`)
 	arg := regexp.MustCompile(`"([^"]*)"`)

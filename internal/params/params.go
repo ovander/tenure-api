@@ -197,7 +197,8 @@ func (s Set) IRLCap(asOf period.Date) (Cap, error) {
 
 // ZoneCeiling is the rent-control ceiling table (rent_control.zone_ceiling):
 // the loyer de référence majoré in cents per m² per month, by zone and then by
-// category. It applies only to assets with controlled_zone set.
+// category. It applies only to assets with controlled_zone set; the
+// relocation rule applies to tense assets (Q-102).
 type ZoneCeiling struct {
 	Zones map[string]map[string]int64 `json:"zones"`
 }

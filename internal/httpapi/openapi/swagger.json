@@ -8013,6 +8013,10 @@
                 },
                 "surface_hundredths_m2": {
                     "type": "integer"
+                },
+                "tense_zone": {
+                    "description": "TenseZone is the zone tendue (Q-102); it is stored and returned as\ntrue whenever ControlledZone is set.",
+                    "type": "boolean"
                 }
             }
         },
@@ -8090,6 +8094,10 @@
                 },
                 "surface_hundredths_m2": {
                     "type": "integer"
+                },
+                "tense_zone": {
+                    "description": "TenseZone is the zone tendue (Q-102); it is stored and returned as\ntrue whenever ControlledZone is set.",
+                    "type": "boolean"
                 },
                 "updated_at": {
                     "type": "string"

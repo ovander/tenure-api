@@ -32,7 +32,7 @@ func init() {
 // conversion ends in its 503, not in a client timeout (Q-101). The start
 // timeouts are raised from 20 s per engine and 30 s for the API: with
 // auto-start, a slow boot past them makes gotenberg exit instead of serving
-// (Q-102).
+// (Q-103).
 var GotenbergFlags = []string{"gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
 	"--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s"}
 

@@ -62,7 +62,7 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8.21
     # Chromium and LibreOffice start at boot, with start timeouts long enough
-    # for a slow host (Q-102); gotenberg's limit stays under tenure's 60 s
+    # for a slow host (Q-103); gotenberg's limit stays under tenure's 60 s
     # client timeout (document.GotenbergFlags, Q-101).
     command: ["gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
               "--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s"]

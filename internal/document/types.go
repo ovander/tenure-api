@@ -219,9 +219,12 @@ type ContractData struct {
 	IRLRefValue    int64
 	RevisionMonth  int
 	MobilityReason string
-	// Controlled is set for a rent-controlled dwelling: the contract states
-	// the ceiling and, when known, the previous tenant's rent (art. 3).
-	Controlled        bool
+	// Controlled is set for a dwelling under a rent ceiling: the contract
+	// states the ceiling (art. 3).
+	Controlled bool
+	// Tense is set in a zone tendue: the contract states the previous
+	// tenant's rent when known (art. 3, Q-102). Controlled implies Tense.
+	Tense             bool
 	CeilingCents      money.Cents
 	PreviousRentCents *money.Cents
 	Guarantees        []ContractGuarantee

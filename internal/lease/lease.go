@@ -84,11 +84,23 @@ type AssetRent struct {
 	RentCents money.Cents `json:"rent_cents"`
 }
 
-// ControlledZone reports whether any asset of the lease is in a
-// rent-controlled zone, which makes rent_control.zone_rules apply.
+// ControlledZone reports whether any asset of the lease is under a rent
+// ceiling, which makes rent_control.zone_ceiling apply.
 func (l Lease) ControlledZone() bool {
 	for _, a := range l.Assets {
 		if a.ControlledZone {
+			return true
+		}
+	}
+	return false
+}
+
+// TenseZone reports whether any asset of the lease is in a zone tendue,
+// which makes rent_control.relocation_rule apply and the contract state the
+// previous rent (Q-102). Every controlled asset is tense.
+func (l Lease) TenseZone() bool {
+	for _, a := range l.Assets {
+		if a.Tense() {
 			return true
 		}
 	}
