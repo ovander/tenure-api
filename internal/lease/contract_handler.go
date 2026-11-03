@@ -18,7 +18,7 @@ import (
 //	@Param			id				path		string	true	"lease id"
 //	@Param			X-Owner-Scope	header		string	false	"owner scope"
 //	@Success		201				{object}	DocumentView
-//	@Failure		401,403,404,409,422	{object}	problem.Body
+//	@Failure		401,403,404,409,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/leases/{id}/contract [post]
 func (h Handler) GenerateContract(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +105,7 @@ func (h Handler) ListLeaseDocuments(w http.ResponseWriter, r *http.Request) {
 //	@Param			body			body		AmendmentInput	true	"amendment"
 //	@Param			X-Owner-Scope	header		string			false	"owner scope"
 //	@Success		201				{object}	AmendmentResult
-//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Failure		400,401,403,404,409,412,415,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/leases/{id}/amendments [post]
 func (h Handler) Amend(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +190,7 @@ func (h Handler) ListInventories(w http.ResponseWriter, r *http.Request) {
 //	@Param			id				path		string	true	"guarantee id"
 //	@Param			X-Owner-Scope	header		string	false	"owner scope"
 //	@Success		201				{object}	DocumentView
-//	@Failure		401,403,404,409,412,422	{object}	problem.Body
+//	@Failure		401,403,404,409,412,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/guarantees/{id}/document [post]
 func (h Handler) GuaranteeDocument(w http.ResponseWriter, r *http.Request) {
