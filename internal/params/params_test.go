@@ -153,3 +153,22 @@ func TestRentControlFixtures(t *testing.T) {
 		t.Errorf("ceiling before the fixtures: %v; want ErrNotFound", err)
 	}
 }
+
+// The standard lease terms are read from the fixtures, never written here:
+// every term is set, and the special cases sit on the right side of the
+// standard ones (a legal-person lessor longer, a student shorter).
+func TestLeaseTerm(t *testing.T) {
+	s := fixtures(t)
+	for _, on := range []period.Date{d(2025, time.June, 1), d(2026, time.January, 1)} {
+		lt, err := s.LeaseTerm(on)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lt.Unfurnished <= 0 || lt.Furnished <= 0 || lt.UnfurnishedLegalOwner <= lt.Unfurnished || lt.FurnishedStudent <= 0 || lt.FurnishedStudent >= lt.Furnished {
+			t.Errorf("%v: %+v", on, lt)
+		}
+	}
+	if _, err := s.LeaseTerm(d(2020, time.January, 1)); err == nil {
+		t.Error("a date before every entry has a lease term")
+	}
+}

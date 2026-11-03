@@ -35,6 +35,7 @@ const (
 	KeyDiagnostics            = "diagnostics"
 	KeyRentalMinDPEClass      = "rental_min_dpe_class"
 	KeyMobilityTerm           = "mobility_term_months"
+	KeyLeaseTerm              = "lease_term_months"
 	KeySupportingDocsMonths   = "regularisation_supporting_docs_months"
 	KeyReelLockYears          = "reel_option_lock_years"
 )
@@ -257,6 +258,23 @@ func (s Set) MinDPEClass(asOf period.Date) (string, error) {
 type Range struct {
 	Min int `json:"min"`
 	Max int `json:"max"`
+}
+
+// LeaseTerms are the standard terms of a lease, in months (loi 89-462
+// art. 10 and 25-7): what the web form proposes; the parties may agree a
+// longer one. A mobility lease has its range in MobilityTerm.
+type LeaseTerms struct {
+	Unfurnished           int `json:"unfurnished"`
+	UnfurnishedLegalOwner int `json:"unfurnished_legal_owner"`
+	Furnished             int `json:"furnished"`
+	FurnishedStudent      int `json:"furnished_student"`
+}
+
+// LeaseTerm returns the standard lease terms in force on asOf.
+func (s Set) LeaseTerm(asOf period.Date) (LeaseTerms, error) {
+	var t LeaseTerms
+	err := s.Decode(KeyLeaseTerm, asOf, &t)
+	return t, err
 }
 
 // MobilityTerm returns the allowed term of a bail mobilité, in months.
