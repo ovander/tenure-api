@@ -26,7 +26,7 @@ import (
 
 // Template versions of the lease documents (templates/<class>/v1).
 const (
-	ContractTemplate       = "v1"
+	ContractTemplate       = "v2"
 	AmendmentTemplate      = "v1"
 	DepositReceiptTemplate = "v1"
 	SuretyTemplate         = "v1"
@@ -429,7 +429,7 @@ func (s Service) GenerateContract(ctx context.Context, p *auth.Principal, reques
 			return err
 		}
 		var previous *money.Cents
-		if controlled {
+		if f.lease.TenseZone() {
 			prev, ok, err := s.Repo.PreviousLease(ctx, f.view.AssetIDs, id, f.lease.StartOn.Time())
 			if err != nil {
 				return err
@@ -453,7 +453,7 @@ func (s Service) GenerateContract(ctx context.Context, p *auth.Principal, reques
 		data := document.ContractData{Kind: string(f.lease.Kind), Owner: document.Party{Name: f.owner.LegalName, Address: f.owner.Address},
 			StartOn: f.lease.StartOn, TermMonths: f.lease.TermMonths, RentCents: f.lease.RentCents, ProvisionCents: f.lease.ProvisionCents,
 			DepositCents: f.lease.DepositCents, DueDay: f.lease.DueDay, IRLRefQuarter: f.lease.IRLRefQuarter, IRLRefValue: f.lease.IRLRefValue,
-			RevisionMonth: int(f.lease.RevisionMonth), Controlled: controlled, CeilingCents: ceiling, PreviousRentCents: previous, Clauses: clauses}
+			RevisionMonth: int(f.lease.RevisionMonth), Controlled: controlled, Tense: f.lease.TenseZone(), CeilingCents: ceiling, PreviousRentCents: previous, Clauses: clauses}
 		if f.view.MobilityReason != nil {
 			data.MobilityReason = string(*f.view.MobilityReason)
 		}

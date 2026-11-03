@@ -56,7 +56,7 @@ type Check struct {
 //   - at creation and renewal, the rent of controlled-zone dwellings does not
 //     exceed rent_control.zone_ceiling (a missing zone, category, surface or
 //     table value is refused, Q-33);
-//   - at creation, on a controlled-zone asset let before, the rent does not
+//   - at creation, on an asset in a zone tendue let before, the rent does not
 //     exceed the previous rent revised by IRL when
 //     rent_control.relocation_rule applies, unless an exemption is recorded;
 //   - at creation, the deposit respects deposit_max_months for the kind
@@ -115,7 +115,7 @@ func Validate(l Lease, c Check, ps params.Set) ([]*invariant.Error, error) {
 			}
 		}
 	}
-	if c.Event == EventCreation && c.Previous != nil && l.ControlledZone() && l.RentExemption == ExemptionNone {
+	if c.Event == EventCreation && c.Previous != nil && l.TenseZone() && l.RentExemption == ExemptionNone {
 		rule, err := ps.RelocationRule(c.AsOf)
 		if err != nil {
 			return nil, err
