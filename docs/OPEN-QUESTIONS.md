@@ -781,3 +781,20 @@ console gives for a registered application paste into tenure's env file unchange
 - `TENURE_SOCRATE_ADMIN_ROLE` keeps its name: it is tenure's choice of role, not a client setting;
 - the former `TENURE_SOCRATE_{ISSUER,JWKS_URL,AUDIENCE,CLIENT_ID,CLIENT_SECRET}` refuse to
   start, naming the new variable, so that a stale file is never half read.
+
+**Q-100 PDF engine cold start — Open (#45).** RENT-BE-001 §6 and §8 did not say what a
+request answers when gotenberg cannot render. gotenberg 8 starts Chromium and LibreOffice on
+the first conversion and restarts them every 10 (`--*-restart-after`), and `/health` is up
+before either has run; on a cold or loaded host that start outlasts its 30 s API timeout, and
+it answers 503. Provisional:
+- a 503 or 429 from the engine, or no answer from it, is `document.ErrPDFUnavailable`, which
+  the API answers with 503 `http/unavailable` (fail closed, as for the antivirus, Q-67): nothing
+  is issued and the number is rolled back; any other engine status stays a 500;
+- tenure does not retry inside the request: a retry would hold the transaction and the reserved
+  number for another 30 s; the caller (the web app, or the next job run) retries;
+- the integration suite treats gotenberg as ready only once it has rendered one PDF through
+  `document.Gotenberg`, and turns its restarts off so that no cold start lands mid-suite;
+- production keeps gotenberg's defaults. Starting both processes at boot
+  (`--chromium-auto-start`, `--libreoffice-auto-start`) is left for the owner to decide: on a
+  loaded host gotenberg 8.21 then exits at start-up (`waiting for LibreOffice to be ready:
+  context deadline exceeded`) unless `--api-start-timeout` is raised as well.
