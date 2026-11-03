@@ -137,6 +137,7 @@ func setup(m *testing.M) (int, error) {
 	env.apiDB = api
 	gotenberg, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{Image: "gotenberg/gotenberg:8.21", ExposedPorts: []string{"3000/tcp"},
+			Cmd:        document.GotenbergFlags,
 			WaitingFor: wait.ForHTTP("/health").WithPort("3000/tcp").WithStartupTimeout(120 * time.Second)}})
 	if err != nil {
 		return 0, fmt.Errorf("gotenberg: %w", err)
@@ -145,6 +146,11 @@ func setup(m *testing.M) (int, error) {
 	pdfURL, err := gotenberg.PortEndpoint(ctx, "3000/tcp", "http")
 	if err != nil {
 		return 0, err
+	}
+	// /health answers before Chromium and LibreOffice can render: wait for one
+	// real PDF/A conversion before any test issues a document (Q-101).
+	if err := warmPDF(ctx, pdfURL, 120*time.Second); err != nil {
+		return 0, fmt.Errorf("gotenberg warm-up: %w", err)
 	}
 	rustfs, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{Image: "rustfs/rustfs:1.0.3", ExposedPorts: []string{"9000/tcp"},
@@ -327,5 +333,17 @@ func superExec(t *testing.T, q string, args ...any) {
 	t.Helper()
 	if _, err := env.super.Exec(q, args...); err != nil {
 		t.Fatalf("%s: %v", q, err)
+	}
+}
+
+// warmPDF converts a page until the engine renders one, or until timeout.
+func warmPDF(ctx context.Context, url string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		_, err := document.Gotenberg{URL: url}.Convert(ctx, []byte("<!doctype html><p>warm-up</p>"), []byte("<p></p>"))
+		if err == nil || time.Now().After(deadline) {
+			return err
+		}
+		time.Sleep(time.Second)
 	}
 }

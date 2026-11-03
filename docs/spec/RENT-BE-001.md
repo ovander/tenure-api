@@ -137,7 +137,7 @@ A document is produced in one transaction: number reserved, input snapshot store
 
 - Numbering: per owner and class, `<prefix>-<asset>-<YYYY>-<seq>` with `seq` from a per-(owner, class, asset, year) counter table locked in the transaction; prefixes AL (rent call), QL (receipt), RG (regularisation), RV (revision notice), CT (contract), AV (amendment), DG (deposit), CA (acte de cautionnement, Q-75), RF (tax summary).
 - Templates: Go `html/template` files under `templates/<class>/<version>/`, one set per owner overridable; `template_version` saved on the document; a template change never re-renders issued documents.
-- Rendering: HTML → PDF/A-2b through the engine chosen in OD-03; fonts embedded; A4; a visible document number and hash footer.
+- Rendering: HTML → PDF/A-2b through the engine chosen in OD-03; fonts embedded; A4; a visible document number and hash footer. The engine runs with Chromium and LibreOffice started at boot and its own request limit under the client’s 60 s; a 503 is retried once after a second, and an engine that is down, overloaded or too slow answers `document/pdf-unavailable` (503), never a 500 (Q-101).
 - Archive: object key `<owner_id>/<class>/<YYYY>/<number>.pdf`; bucket versioning and object lock (compliance, 10 years); `documents.object_key`, `sha256`, `size_bytes`, `retain_until` written after a successful PUT with checksum verification.
 - Immutability: no UPDATE on `billing_documents` or `documents` after `issued_at` (enforced by a trigger); corrections create a new document with `cancels_id`.
 - Delivery: e-mail in the recipient’s language (French default, English if set on the owner or tenant) with the PDF attached, sent after the commit; the signed download link for tenants comes with the portal (Q-45); the PDF itself is always French; delivery status stored per document.
@@ -252,6 +252,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
 | 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
+| 2026-11-03 | 2.5 | §6 rendering: gotenberg flags, one retry on 503, engine down or slow → `document/pdf-unavailable` 503 (Q-101) |
 | 2026-11-01 | 2.2 | Per-response style nonce in the web app's index.html and CSP (Q-96, tenure-web Q-W1) |
 | 2026-11-01 | 2.1 | Slice 8b (Q-96 to Q-98): web/VERSION with checksum and embedded bundle, CSP per surface, deploy/ (Caddyfile, systemd, sidecars, deploy.sh), age-encrypted backups and tenure\_backup role, runbooks, docs/rgpd, release workflow with CycloneDX SBOM, ASVS L2 checklist |
 | 2026-11-01 | 2.0 | Slice 8a (Q-91 to Q-95): export\_jobs (migration 000008) and `GET /documents/exports/{id}`, grants routes, `GET /me/export`, number filter on `GET /documents`, archive.retention starts the retention clock, archive.verify sample |
