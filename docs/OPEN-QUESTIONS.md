@@ -790,3 +790,16 @@ input. A lease's term is set by law, and no term may be written in code. Provisi
   `mobility_term_months`;
 - the API does not yet refuse a shorter term: the parties may agree a longer one, and a
   shorter unfurnished term (art. 11) needs a stated reason that the model does not carry yet.
+
+**Q-101 PDF engine unavailable — Answered 2026-11-03.** CI on #44 got a 500 from a document
+route: gotenberg 8.21 starts Chromium and LibreOffice on the first conversion (7 s for PDF/A),
+restarts them every 10 conversions, reports `/health` up before either has started, and answers
+503 after its 30 s request limit. RENT-BE-001 §6 says a failure rolls the number back, not which
+status the client gets. Decided:
+- gotenberg runs with `--chromium-auto-start=true --libreoffice-auto-start=true
+  --api-timeout=50s` everywhere (`document.GotenbergFlags`, both compose files), so its own limit
+  ends a slow conversion before tenure's 60 s client does;
+- tenure retries a 503 once after a second; 502, 503, 504, no answer and a client timeout map to
+  `document/pdf-unavailable`, 503, « Le moteur PDF est indisponible ; réessayez plus tard. »; the
+  document number is rolled back as for any failure; a 4xx from the engine stays a 500 (a bug);
+- the integration suite waits for one real PDF/A conversion before its tests start.
