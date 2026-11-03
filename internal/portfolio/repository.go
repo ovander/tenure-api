@@ -37,6 +37,7 @@ type assetRow struct {
 	Furnished           bool           `gorm:"column:furnished"`
 	DPEClass            *string        `gorm:"column:dpe_class"`
 	ControlledZone      bool           `gorm:"column:controlled_zone"`
+	TenseZone           bool           `gorm:"column:tense_zone"`
 	RentControlZone     string         `gorm:"column:rent_control_zone"`
 	RentControlCategory string         `gorm:"column:rent_control_category"`
 	AcquiredOn          *time.Time     `gorm:"column:acquired_on"`
@@ -203,7 +204,7 @@ func (Repository) UpdateAsset(ctx context.Context, a assetRow, version int, shar
 	}
 	res := t.Model(&assetRow{}).Where("id = ? AND version = ?", a.ID, version).Updates(map[string]any{
 		"address": a.Address, "lot": a.Lot, "surface_m2": a.Surface, "furnished": a.Furnished, "dpe_class": a.DPEClass,
-		"controlled_zone": a.ControlledZone, "rent_control_zone": a.RentControlZone, "rent_control_category": a.RentControlCategory,
+		"controlled_zone": a.ControlledZone, "tense_zone": a.TenseZone, "rent_control_zone": a.RentControlZone, "rent_control_category": a.RentControlCategory,
 		"acquired_on": a.AcquiredOn, "acquisition_cents": a.AcquisitionCents, "parent_asset_id": a.ParentAssetID,
 		"version": version + 1, "updated_at": a.UpdatedAt, "updated_by": a.UpdatedBy,
 	})

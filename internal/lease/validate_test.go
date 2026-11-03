@@ -45,6 +45,11 @@ func flat(id string, controlled bool, surface int64, shares []portfolio.Share) p
 	return a
 }
 
+// tense is a dwelling in a zone tendue with no rent ceiling and no surface.
+func tense(id string) portfolio.Asset {
+	return portfolio.Asset{ID: id, Kind: portfolio.KindApartment, TenseZone: true, Shares: o1}
+}
+
 func types(errs []*invariant.Error) []string {
 	var out []string
 	for _, e := range errs {
@@ -96,6 +101,14 @@ func TestValidate(t *testing.T) {
 			Check{Event: EventCreation, AsOf: asOf, Previous: prev}, nil},
 		{"exemption does not lift the ceiling", Lease{RentCents: 85000, RentExemption: ExemptionUnderValued, Assets: []portfolio.Asset{flat("A", true, 4000, o1)}},
 			Check{Event: EventCreation, AsOf: asOf, Previous: prev}, []string{TypeZoneCeilingExceeded}},
+		// Q-102: a zone tendue without a ceiling (Baillargues) has the relocation
+		// rule but no ceiling; outside any zone, neither applies.
+		{"tense zone: relocation rule bites", Lease{RentCents: 60625, Assets: []portfolio.Asset{tense("A")}},
+			Check{Event: EventCreation, AsOf: asOf, Previous: prev}, []string{TypeRelocationExceeded}},
+		{"tense zone: relocation rule met, no ceiling", Lease{RentCents: 60624, Assets: []portfolio.Asset{tense("A")}},
+			Check{Event: EventCreation, AsOf: asOf, Previous: prev}, nil},
+		{"outside any zone: no relocation rule", Lease{RentCents: 99999, Assets: []portfolio.Asset{flat("A", false, 4000, o1)}},
+			Check{Event: EventCreation, AsOf: asOf, Previous: prev}, nil},
 		{"unknown exemption", Lease{RentCents: 1, RentExemption: "friendship", Assets: []portfolio.Asset{flat("A", false, 4000, o1)}},
 			Check{Event: EventUpdate, AsOf: asOf}, []string{TypeRentExemptionUnknown}},
 	}

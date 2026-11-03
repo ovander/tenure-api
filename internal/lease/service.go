@@ -334,7 +334,7 @@ func (s Service) rules(ctx context.Context, l Lease, id uuid.UUID, assetIDs []uu
 		return nil, err
 	}
 	c := Check{Event: EventCreation, AsOf: l.StartOn}
-	if l.ControlledZone() {
+	if l.TenseZone() {
 		prev, ok, err := s.Repo.PreviousLease(ctx, assetIDs, id, l.StartOn.Time())
 		if err != nil {
 			return nil, err
