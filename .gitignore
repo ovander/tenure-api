@@ -35,3 +35,6 @@ go.work.sum
 
 # Release builds (scripts/build.sh)
 /dist/
+
+# Local compose tweaks
+docker-compose.override.yml
