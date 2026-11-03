@@ -10,7 +10,8 @@ import (
 
 // The production template deploy/tenure.env.example, its placeholders filled
 // with fake values, passes validation and names every setting tenure reads
-// (except the two that only a dev or a test sets).
+// (except the two that only a dev or a test sets, the optional audience and
+// the former names, which are refused).
 func TestDeployTemplate(t *testing.T) {
 	f, err := os.Open("../../deploy/tenure.env.example")
 	if err != nil {
@@ -40,8 +41,15 @@ func TestDeployTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, k := range regexp.MustCompile(`"(TENURE_[A-Z0-9_]+)"`).FindAllStringSubmatch(string(src), -1) {
-		if _, ok := m[k[1]]; !ok && k[1] != "TENURE_S3_INSECURE" && k[1] != "TENURE_IRL_SOURCE_URL" {
+	optional := map[string]bool{"TENURE_S3_INSECURE": true, "TENURE_IRL_SOURCE_URL": true, "SOCRATE_AUDIENCE": true}
+	for _, k := range regexp.MustCompile(`"((?:TENURE|SOCRATE)_[A-Z0-9_]+)"`).FindAllStringSubmatch(string(src), -1) {
+		if _, old := RenamedSocrate[k[1]]; old {
+			if _, set := m[k[1]]; set {
+				t.Errorf("deploy/tenure.env.example uses the former name %s", k[1])
+			}
+			continue
+		}
+		if _, ok := m[k[1]]; !ok && !optional[k[1]] {
 			t.Errorf("deploy/tenure.env.example lacks %s", k[1])
 		}
 	}

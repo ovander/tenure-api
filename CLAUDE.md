@@ -49,9 +49,12 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | Lint | golangci-lint v2.14.0 built with Go 1.27.3 (includes staticcheck), govulncheck, gitleaks |
 | Build | `-ldflags "-X …version=… -X …commit=… -X …date=…"` version stamping |
 
-Configuration comes only from `TENURE_*` environment variables, validated at start; the process
-refuses to start on a missing or malformed value. Never add a default for a secret or for the
-Socrate issuer, audience or JWKS URL.
+Configuration comes only from environment variables, validated at start: tenure's own `TENURE_*`,
+and the Socrate client settings under Socrate's own names (`SOCRATE_ISSUER`, `SOCRATE_JWKS_URL`,
+`SOCRATE_CLIENT_ID`, `SOCRATE_CLIENT_SECRET`, optional `SOCRATE_AUDIENCE`), so the block Socrate's
+console gives pastes in as it is (Q-99). The process refuses to start on a missing or malformed
+value, or on a former `TENURE_SOCRATE_*` name. Never add a default for a secret or for the Socrate
+issuer, JWKS URL or client; the audience is the client id unless `SOCRATE_AUDIENCE` is set.
 
 ## Layout and layering
 

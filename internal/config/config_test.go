@@ -10,16 +10,16 @@ func env(m map[string]string) func(string) string { return func(k string) string
 
 func valid() map[string]string {
 	return map[string]string{
-		"TENURE_DB_URL":                "postgres://tenure_api:x@db.internal:5432/tenure?sslmode=verify-full",
-		"TENURE_JOBS_DB_URL":           "postgres://tenure_jobs:x@localhost:5432/tenure",
-		"TENURE_SOCRATE_ISSUER":        "https://socrate.example.test",
-		"TENURE_SOCRATE_JWKS_URL":      "https://socrate.example.test/.well-known/jwks.json",
-		"TENURE_SOCRATE_AUDIENCE":      "tenure-api",
-		"TENURE_SOCRATE_ADMIN_ROLE":    "admin",
-		"TENURE_CLAMAV_ADDR":           "clamav.internal:3310",
-		"TENURE_SOCRATE_CLIENT_ID":     "tenure-web",
-		"TENURE_SOCRATE_CLIENT_SECRET": "placeholder-client-secret",
-		"TENURE_PUBLIC_URL":            "https://tenure.example.test",
+		"TENURE_DB_URL":             "postgres://tenure_api:x@db.internal:5432/tenure?sslmode=verify-full",
+		"TENURE_JOBS_DB_URL":        "postgres://tenure_jobs:x@localhost:5432/tenure",
+		"SOCRATE_ISSUER":            "https://socrate.example.test",
+		"SOCRATE_JWKS_URL":          "https://socrate.example.test/.well-known/jwks.json",
+		"SOCRATE_AUDIENCE":          "tenure-api",
+		"TENURE_SOCRATE_ADMIN_ROLE": "admin",
+		"TENURE_CLAMAV_ADDR":        "clamav.internal:3310",
+		"SOCRATE_CLIENT_ID":         "tenure-web",
+		"SOCRATE_CLIENT_SECRET":     "placeholder-client-secret",
+		"TENURE_PUBLIC_URL":         "https://tenure.example.test",
 		// 32 zero bytes: an obviously fake key.
 		"TENURE_SESSION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	}
@@ -55,7 +55,7 @@ func TestLoadDocuments(t *testing.T) {
 		"missing antivirus":      {"TENURE_CLAMAV_ADDR", ""},
 		"antivirus without port": {"TENURE_CLAMAV_ADDR", "clamav.internal"},
 		"antivirus with scheme":  {"TENURE_CLAMAV_ADDR", "tcp://clamav.internal:3310"},
-		"missing client secret":  {"TENURE_SOCRATE_CLIENT_SECRET", ""},
+		"missing client secret":  {"SOCRATE_CLIENT_SECRET", ""},
 		"public url over http":   {"TENURE_PUBLIC_URL", "http://tenure.example.test"},
 		"public url with a path": {"TENURE_PUBLIC_URL", "https://tenure.example.test/app"},
 		"short session key":      {"TENURE_SESSION_KEY", "c2hvcnQ="},
@@ -91,14 +91,34 @@ func TestLoadValid(t *testing.T) {
 	}
 }
 
+// The block Socrate's console gives for an application pastes in as it is:
+// the audience is then the client id, and the console's other lines are
+// accepted (Q-99).
+func TestLoadSocrateConsoleBlock(t *testing.T) {
+	m := valid()
+	delete(m, "SOCRATE_AUDIENCE")
+	m["SOCRATE_BASE_URL"] = "https://socrate.example.test"
+	m["SOCRATE_ADMIN_BASE_URL"] = "http://127.0.0.1:18082"
+	m["SOCRATE_APP_ID"] = "1011"
+	c, err := Load(env(m), NeedAPI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Socrate.Audience != "tenure-web" || c.Socrate.ClientID != "tenure-web" {
+		t.Errorf("audience %q, client %q", c.Socrate.Audience, c.Socrate.ClientID)
+	}
+}
+
 func TestLoadRefuses(t *testing.T) {
 	cases := map[string]struct {
 		key, value, want string
 	}{
-		"missing issuer":      {"TENURE_SOCRATE_ISSUER", "", "TENURE_SOCRATE_ISSUER is required"},
-		"missing audience":    {"TENURE_SOCRATE_AUDIENCE", "", "TENURE_SOCRATE_AUDIENCE is required"},
+		"missing issuer":      {"SOCRATE_ISSUER", "", "SOCRATE_ISSUER is required"},
+		"missing client":      {"SOCRATE_CLIENT_ID", "", "SOCRATE_CLIENT_ID is required"},
 		"missing admin role":  {"TENURE_SOCRATE_ADMIN_ROLE", "", "TENURE_SOCRATE_ADMIN_ROLE is required"},
-		"http issuer":         {"TENURE_SOCRATE_ISSUER", "http://socrate.example.test", "must use https"},
+		"http issuer":         {"SOCRATE_ISSUER", "http://socrate.example.test", "must use https"},
+		"old issuer name":     {"TENURE_SOCRATE_ISSUER", "https://socrate.example.test", "TENURE_SOCRATE_ISSUER was renamed SOCRATE_ISSUER"},
+		"old secret name":     {"TENURE_SOCRATE_CLIENT_SECRET", "x", "renamed SOCRATE_CLIENT_SECRET"},
 		"remote db no tls":    {"TENURE_DB_URL", "postgres://u:p@db.internal/tenure", "sslmode"},
 		"not postgres":        {"TENURE_DB_URL", "mysql://u:p@db/tenure", "postgres://"},
 		"step-up above 5 min": {"TENURE_STEP_UP_MAX_AGE", "6m", "TENURE_STEP_UP_MAX_AGE"},
@@ -119,7 +139,7 @@ func TestLoadRefuses(t *testing.T) {
 		t.Errorf("migrate needs only its URL: %v", err)
 	}
 	m := valid()
-	m["TENURE_SOCRATE_ISSUER"] = "http://127.0.0.1:9000"
+	m["SOCRATE_ISSUER"] = "http://127.0.0.1:9000"
 	if _, err := Load(env(m), NeedAPI); err != nil {
 		t.Errorf("loopback http issuer refused: %v", err)
 	}
