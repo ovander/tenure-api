@@ -64,7 +64,7 @@ func (h Handler) List(w http.ResponseWriter, r *http.Request) {
 //	@Param			body			body		IssueInput	true	"year and regime"
 //	@Param			X-Owner-Scope	header		string		false	"owner scope"
 //	@Success		200				{object}	View
-//	@Failure		400,401,403,409,415,422	{object}	problem.Body
+//	@Failure		400,401,403,409,415,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/tax/summaries [post]
 func (h Handler) Create(w http.ResponseWriter, r *http.Request) {

@@ -9,7 +9,17 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ovander/tenure-api/internal/invariant"
 )
+
+// ErrPDFUnavailable reports a PDF engine that could not render now: gotenberg
+// answered 503 (its API timeout, typically while it starts or restarts
+// Chromium or LibreOffice) or 429 (queue full), or could not be reached. It
+// wraps invariant.ErrUnavailable, so the request fails closed with 503
+// http/unavailable: nothing is issued and the document number is given back
+// with the rolled-back transaction (Q-100).
+var ErrPDFUnavailable = fmt.Errorf("document: pdf engine unavailable: %w", invariant.ErrUnavailable)
 
 // PDFEngine converts HTML to PDF.
 type PDFEngine interface {
@@ -58,7 +68,11 @@ func (g Gotenberg) Convert(ctx context.Context, html, footer []byte) ([]byte, er
 	}
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("document: pdf engine: %w", err)
+		if ctx.Err() != nil {
+			// The caller gave up; the engine is not to blame.
+			return nil, fmt.Errorf("document: pdf engine: %w", err)
+		}
+		return nil, fmt.Errorf("%w: %w", ErrPDFUnavailable, err)
 	}
 	defer func() { _ = res.Body.Close() }()
 	out, err := io.ReadAll(io.LimitReader(res.Body, 50<<20))
@@ -66,7 +80,11 @@ func (g Gotenberg) Convert(ctx context.Context, html, footer []byte) ([]byte, er
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("document: pdf engine: status %d: %s", res.StatusCode, bytes.TrimSpace(out[:min(len(out), 300)]))
+		err := fmt.Errorf("status %d: %s", res.StatusCode, bytes.TrimSpace(out[:min(len(out), 300)]))
+		if res.StatusCode == http.StatusServiceUnavailable || res.StatusCode == http.StatusTooManyRequests {
+			return nil, fmt.Errorf("%w: %w", ErrPDFUnavailable, err)
+		}
+		return nil, fmt.Errorf("document: pdf engine: %w", err)
 	}
 	if !bytes.HasPrefix(out, []byte("%PDF-")) {
 		return nil, fmt.Errorf("document: pdf engine returned no PDF")

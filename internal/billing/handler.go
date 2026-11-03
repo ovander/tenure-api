@@ -267,7 +267,7 @@ func (h Handler) GetDocument(w http.ResponseWriter, r *http.Request) {
 //	@Param			body			body		CancelInput	true	"reason"
 //	@Param			X-Owner-Scope	header		string		false	"owner scope"
 //	@Success		201				{object}	CancelResult
-//	@Failure		400,401,403,404,409,415,422	{object}	problem.Body
+//	@Failure		400,401,403,404,409,415,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/billing/documents/{id}/cancel [post]
 func (h Handler) Cancel(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +309,7 @@ type RevisionView struct {
 //	@Param			body			body		RevisionInput	true	"options"
 //	@Param			X-Owner-Scope	header		string			false	"owner scope"
 //	@Success		200				{object}	RevisionView
-//	@Failure		400,401,403,404,409,415,422	{object}	problem.Body
+//	@Failure		400,401,403,404,409,415,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/leases/{id}/revision [post]
 func (h Handler) Revise(w http.ResponseWriter, r *http.Request) {

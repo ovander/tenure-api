@@ -152,7 +152,8 @@ func UUIDParam(w http.ResponseWriter, r *http.Request, value string) (uuid.UUID,
 
 // Error maps a service error to its problem: a business rule to its type, a
 // field list to 422 with errors[], not-found to 404, a stale version to 412,
-// forbidden to 403, anything else to a logged 500.
+// forbidden to 403, an unavailable dependency to a logged 503, anything else
+// to a logged 500.
 func Error(w http.ResponseWriter, r *http.Request, err error) {
 	lang := Lang(r)
 	var inv *invariant.Error
@@ -179,6 +180,10 @@ func Error(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	case errors.Is(err, invariant.ErrForbidden):
 		problem.Write(w, r, problem.Forbidden, lang, "", nil)
+		return
+	case errors.Is(err, invariant.ErrUnavailable):
+		slog.WarnContext(r.Context(), "dependency unavailable", "error", err, "request_id", RequestID(r))
+		problem.Write(w, r, problem.Unavailable, lang, "", nil)
 		return
 	}
 	slog.ErrorContext(r.Context(), "request failed", "error", err, "request_id", RequestID(r))

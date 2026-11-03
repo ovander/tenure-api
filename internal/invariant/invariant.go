@@ -29,11 +29,13 @@ func Is(err error, t string) bool {
 }
 
 // Errors every service returns besides business rules; the HTTP layer maps
-// them to 404, 412 and 403.
+// them to 404, 412, 403 and 503. ErrUnavailable is a dependency that could
+// not serve the request now (the request failed closed and may be retried).
 var (
-	ErrNotFound  = errors.New("not found")
-	ErrStale     = errors.New("version mismatch")
-	ErrForbidden = errors.New("forbidden")
+	ErrNotFound    = errors.New("not found")
+	ErrStale       = errors.New("version mismatch")
+	ErrForbidden   = errors.New("forbidden")
+	ErrUnavailable = errors.New("dependency unavailable")
 )
 
 // Field is one invalid input field.

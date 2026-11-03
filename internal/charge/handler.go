@@ -287,7 +287,7 @@ func (h Handler) CreateRecon(w http.ResponseWriter, r *http.Request) {
 //	@Param			body			body		TransitionInput	true	"action"
 //	@Param			X-Owner-Scope	header		string			false	"owner scope"
 //	@Success		200				{object}	ReconView
-//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Failure		400,401,403,404,409,412,415,422,503	{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/reconciliations/{id}/transitions [post]
 func (h Handler) Transition(w http.ResponseWriter, r *http.Request) {
