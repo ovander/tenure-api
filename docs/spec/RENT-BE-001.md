@@ -152,6 +152,7 @@ Every legal constant lives in `legal_params` with an effective date, and every c
 | deposit\_max\_months.unfurnished / .furnished / .mobility | 1 / 2 / 0 | lease (save, deposit guarantees) |
 | deposit\_warning\_months.box | 2 (product rule, Q-26) | lease (warning only) |
 | mobility\_term\_months | {min 1, max 10} | lease (save) |
+| lease\_term\_months | {unfurnished 36, unfurnished\_legal\_owner 72, furnished 12, furnished\_student 9} (loi 89-462 art. 10, 25-7) | web form (proposed term, Q-100) |
 | diagnostics | required kinds by family, validity months by kind (0: none), dpe\_min\_done\_on | lease (generation and activation blockers, Q-73) |
 | rental\_min\_dpe\_class | F from 2025-01-01 | lease (a worse class blocks, Q-73) |
 | notice\_months.tenant.default / .tense\_zone / .furnished | 3 / 1 / 1 | lease (phase 2) |
@@ -251,8 +252,9 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
-| 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
 | 2026-11-03 | 2.5 | §6 rendering: gotenberg flags, one retry on 503, engine down or slow → `document/pdf-unavailable` 503 (Q-101) |
+| 2026-11-03 | 2.4 | lease\_term\_months legal parameter for the term the web form proposes (migration 000009, Q-100) |
+| 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
 | 2026-11-01 | 2.2 | Per-response style nonce in the web app's index.html and CSP (Q-96, tenure-web Q-W1) |
 | 2026-11-01 | 2.1 | Slice 8b (Q-96 to Q-98): web/VERSION with checksum and embedded bundle, CSP per surface, deploy/ (Caddyfile, systemd, sidecars, deploy.sh), age-encrypted backups and tenure\_backup role, runbooks, docs/rgpd, release workflow with CycloneDX SBOM, ASVS L2 checklist |
 | 2026-11-01 | 2.0 | Slice 8a (Q-91 to Q-95): export\_jobs (migration 000008) and `GET /documents/exports/{id}`, grants routes, `GET /me/export`, number filter on `GET /documents`, archive.retention starts the retention clock, archive.verify sample |

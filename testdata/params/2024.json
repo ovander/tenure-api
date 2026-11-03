@@ -37,6 +37,18 @@
       "value": 2,
       "source": "RENT-SPEC-008 et Q-26 (règle produit : un box loué seul n’a pas de plafond légal ; avertissement au-delà)",
       "source_url": ""
+    },
+    {
+      "key": "lease_term_months",
+      "effective_from": "2024-01-01",
+      "value": {
+        "unfurnished": 36,
+        "unfurnished_legal_owner": 72,
+        "furnished": 12,
+        "furnished_student": 9
+      },
+      "source": "Loi 89-462 art. 10 (location nue : 3 ans, 6 ans si le bailleur est une personne morale) et art. 25-7 (meublé : 1 an, 9 mois pour un étudiant)",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     }
   ]
 }

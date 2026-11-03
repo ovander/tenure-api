@@ -782,6 +782,15 @@ console gives for a registered application paste into tenure's env file unchange
 - the former `TENURE_SOCRATE_{ISSUER,JWKS_URL,AUDIENCE,CLIENT_ID,CLIENT_SECRET}` refuse to
   start, naming the new variable, so that a stale file is never half read.
 
+**Q-100 Standard lease terms — Open (setup).** The owner asked for default values on every
+input. A lease's term is set by law, and no term may be written in code. Provisional:
+- `lease_term_months` holds the standard terms of loi 89-462: unfurnished 36 months, or 72
+  when the lessor is a legal person (art. 10); furnished 12, or 9 for a student (art. 25-7);
+- the web form proposes the term for the lease's kind; the mobility lease keeps
+  `mobility_term_months`;
+- the API does not yet refuse a shorter term: the parties may agree a longer one, and a
+  shorter unfurnished term (art. 11) needs a stated reason that the model does not carry yet.
+
 **Q-101 PDF engine unavailable — Answered 2026-11-03.** CI on #44 got a 500 from a document
 route: gotenberg 8.21 starts Chromium and LibreOffice on the first conversion (7 s for PDF/A),
 restarts them every 10 conversions, reports `/health` up before either has started, and answers
