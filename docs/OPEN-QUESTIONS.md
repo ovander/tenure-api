@@ -803,3 +803,17 @@ status the client gets. Decided:
   `document/pdf-unavailable`, 503, « Le moteur PDF est indisponible ; réessayez plus tard. »; the
   document number is rolled back as for any failure; a 4xx from the engine stays a 500 (a bug);
 - the integration suite waits for one real PDF/A conversion before its tests start.
+
+**Q-102 gotenberg start timeouts — Open (#53).** With Q-101's auto-start, each engine must start
+within gotenberg's `--chromium-start-timeout` and `--libreoffice-start-timeout` (20 s by default)
+and the API within `--api-start-timeout` (30 s); past them gotenberg 8.21 exits at boot
+(`waiting for modules readiness: … context deadline exceeded`), reproduced at `--cpus=0.15`
+after 21 s and 23 s. Provisional:
+- `document.GotenbergFlags` and both compose files add `--chromium-start-timeout=60s
+  --libreoffice-start-timeout=60s --api-start-timeout=90s`; at `--cpus=0.15` gotenberg then
+  boots in 35 to 50 s and renders on the first attempt, and an unthrottled boot is unchanged;
+- a unit test keeps both compose files' `command` equal to `document.GotenbergFlags`;
+- the integration suite polls `/health` once a second instead of every 100 ms: at `--cpus=0.15`
+  Chromium's health check timed out on every one of 333 polls in a row while the API was up,
+  and the 120 s wait expired; at one poll a second the same run passes. Production's compose
+  healthcheck polls every 30 s.

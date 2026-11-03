@@ -253,6 +253,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
 | 2026-11-03 | 2.5 | §6 rendering: gotenberg flags, one retry on 503, engine down or slow → `document/pdf-unavailable` 503 (Q-101) |
+| 2026-11-03 | 2.6 | §6 rendering: gotenberg start timeouts raised so a slow boot does not exit; rendering routes document their 503 (Q-102) |
 | 2026-11-03 | 2.4 | lease\_term\_months legal parameter for the term the web form proposes (migration 000009, Q-100) |
 | 2026-11-03 | 2.3 | Socrate client settings read under Socrate's SOCRATE_* names, audience defaulting to the client id; former TENURE_SOCRATE_* names refused (Q-99) |
 | 2026-11-01 | 2.2 | Per-response style nonce in the web app's index.html and CSP (Q-96, tenure-web Q-W1) |
