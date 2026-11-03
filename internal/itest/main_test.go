@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -135,8 +136,15 @@ func setup(m *testing.M) (int, error) {
 		return 0, err
 	}
 	env.apiDB = api
+	// gotenberg starts Chromium and LibreOffice on the first conversion and
+	// restarts them every 10 by default; /health is up before either has run,
+	// and a cold start on a loaded host outlasts gotenberg's 30 s API timeout
+	// (503, #45). Restarts are off here so that no cold start lands mid-suite
+	// (production keeps them; its 503 is http/unavailable), and the engine is
+	// ready once it has rendered, not once /health answers.
 	gotenberg, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{Image: "gotenberg/gotenberg:8.21", ExposedPorts: []string{"3000/tcp"},
+			Cmd:        []string{"gotenberg", "--chromium-restart-after=0", "--libreoffice-restart-after=0"},
 			WaitingFor: wait.ForHTTP("/health").WithPort("3000/tcp").WithStartupTimeout(120 * time.Second)}})
 	if err != nil {
 		return 0, fmt.Errorf("gotenberg: %w", err)
@@ -145,6 +153,9 @@ func setup(m *testing.M) (int, error) {
 	pdfURL, err := gotenberg.PortEndpoint(ctx, "3000/tcp", "http")
 	if err != nil {
 		return 0, err
+	}
+	if err := warmPDF(ctx, document.Gotenberg{URL: pdfURL}, 3*time.Minute); err != nil {
+		return 0, fmt.Errorf("gotenberg: %w", err)
 	}
 	rustfs, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{Image: "rustfs/rustfs:1.0.3", ExposedPorts: []string{"9000/tcp"},
@@ -327,5 +338,28 @@ func superExec(t *testing.T, q string, args ...any) {
 	t.Helper()
 	if _, err := env.super.Exec(q, args...); err != nil {
 		t.Fatalf("%s: %v", q, err)
+	}
+}
+
+// warmPDF renders until the engine has produced one PDF, through the client
+// tenure uses (same route and PDF/A fields), so that Chromium and LibreOffice
+// are running and warm before the first test. Only a busy or unreachable
+// engine is retried; any other failure is returned at once.
+func warmPDF(ctx context.Context, pdf document.Gotenberg, limit time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, limit)
+	defer cancel()
+	for {
+		_, err := pdf.Convert(ctx, []byte("<!doctype html><p>warm-up</p>"), []byte("<!doctype html><p>1</p>"))
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, document.ErrPDFUnavailable) || ctx.Err() != nil {
+			return fmt.Errorf("warm-up render: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("warm-up render: %w", err)
+		case <-time.After(time.Second): // gotenberg answered or refused at once; let it settle
+		}
 	}
 }
