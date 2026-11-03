@@ -65,8 +65,12 @@ services:
 
   # Scans every upload before it reaches the archive (RENT-BE-001 §8b); starts
   # on the signatures bundled in the image, then updates them.
+  # clamav/clamav publishes no arm64 image: on Apple Silicon, Docker Desktop
+  # runs the amd64 one under Rosetta (slower; the first signature load takes
+  # a few minutes). Same version as the integration suite and production.
   clamav:
     image: clamav/clamav:1.4.3
+    platform: linux/amd64
     ports: ["127.0.0.1:3310:3310"]
 
 volumes:
