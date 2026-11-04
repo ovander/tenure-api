@@ -14,6 +14,23 @@ import (
 type Error struct {
 	Type   string `json:"type"`
 	Detail string `json:"detail"`
+	// Subject names what the rule is about, for a caller that lists it (a
+	// lease's blockers). It is never part of a problem body.
+	Subject Subject `json:"-"`
+}
+
+// Subject is what a violated rule is about: an asset, a diagnostic kind and
+// the day a validity ended. Any field may be empty.
+type Subject struct {
+	AssetID    string
+	Diagnostic string
+	ValidUntil string
+}
+
+// About returns e with its subject set.
+func (e *Error) About(s Subject) *Error {
+	e.Subject = s
+	return e
 }
 
 // Error implements error.

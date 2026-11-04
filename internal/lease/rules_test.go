@@ -279,6 +279,21 @@ func TestCheckDiagnostics(t *testing.T) {
 			t.Errorf("%s: %v; want %q", c.name, types(errs), c.want)
 		}
 	}
+	// A blocker names its asset and diagnostic as a subject, so the owner
+	// reads an address and a diagnostic, never an id (Q-105).
+	missing, _ := CheckDiagnostics([]portfolio.AssetView{flatAsset, boxAsset}, complete()[1:], on, ps)
+	dpe := invariant.Subject{AssetID: flatAsset.ID.String(), Diagnostic: "dpe"}
+	if len(missing) != 2 || missing[0].Type != TypeDiagnosticMissing || missing[0].Subject != dpe ||
+		missing[1].Type != TypeDPEClassMissing || missing[1].Subject != dpe {
+		t.Errorf("missing DPE subjects: %+v", missing)
+	}
+	late := fresh(flatID, "electricity")
+	late.ValidUntil = ptr(on.AddDays(-1))
+	expired, _ := CheckDiagnostics([]portfolio.AssetView{flatAsset, boxAsset}, replace(complete(), late), on, ps)
+	if len(expired) != 1 || expired[0].Subject != (invariant.Subject{AssetID: flatAsset.ID.String(), Diagnostic: "electricity", ValidUntil: on.AddDays(-1).String()}) {
+		t.Errorf("expired electricity subject: %+v", expired)
+	}
+
 	// The worse of the asset's recorded class and the DPE's result counts.
 	ds := complete()
 	worse := flatAsset

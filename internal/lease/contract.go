@@ -97,6 +97,13 @@ type Blocker struct {
 	Type   string `json:"type" example:"lease/diagnostic-expired"`
 	Title  string `json:"title"`
 	Detail string `json:"detail"`
+	// AssetID is the asset the blocker is about, when it is about one (Q-105).
+	AssetID string `json:"asset_id,omitempty" format:"uuid"`
+	// Diagnostic is the diagnostic kind a missing or expired diagnostic, or the
+	// DPE class, is about.
+	Diagnostic string `json:"diagnostic,omitempty" enums:"dpe,erp,electricity,gas,lead,asbestos"`
+	// ValidUntil is the last day an expired diagnostic was valid.
+	ValidUntil string `json:"valid_until,omitempty" format:"date"`
 }
 
 // BlockersView lists what blocks contract generation and activation, and the
@@ -301,7 +308,7 @@ func (s Service) warnings(f contractFacts) ([]*invariant.Error, error) {
 func blockers(errs []*invariant.Error) []Blocker {
 	out := []Blocker{}
 	for _, e := range errs {
-		out = append(out, Blocker{Type: e.Type, Detail: e.Detail})
+		out = append(out, Blocker{Type: e.Type, Detail: e.Detail, AssetID: e.Subject.AssetID, Diagnostic: e.Subject.Diagnostic, ValidUntil: e.Subject.ValidUntil})
 	}
 	return out
 }

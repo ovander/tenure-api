@@ -162,7 +162,8 @@ func ZoneCeiling(l Lease, asOf period.Date, ps params.Set) (money.Cents, bool, *
 		perM2, ok := table.PerSquareMetre(a.RentControlZone, a.RentControlCategory)
 		if !ok || a.SurfaceHundredthsM2 <= 0 {
 			return 0, true, invariant.New(TypeZoneCeilingUnknown,
-				fmt.Sprintf("asset %s: no ceiling for zone %q category %q or no surface", a.ID, a.RentControlZone, a.RentControlCategory)), nil
+				fmt.Sprintf("asset %s: no ceiling for zone %q category %q or no surface", a.ID, a.RentControlZone, a.RentControlCategory)).
+				About(invariant.Subject{AssetID: a.ID}), nil
 		}
 		part, err := money.MulDivFloor(money.Cents(perM2), a.SurfaceHundredthsM2, 100)
 		if err != nil {
