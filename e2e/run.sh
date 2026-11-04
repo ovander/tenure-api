@@ -52,6 +52,8 @@ if [ ! -d web/dist/assets ]; then
 fi
 
 echo "e2e: services"
+# Fresh volumes even after an interrupted run: the flows expect an empty tenure.
+"${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 "${compose[@]}" up -d --wait postgres archive
 "${compose[@]}" --profile init run --rm archive-init >/dev/null
 # gotenberg before ClamAV: LibreOffice's start fails on a host busy loading the
