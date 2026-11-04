@@ -16,17 +16,17 @@ jobs:
     name: ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -58,7 +58,7 @@ jobs:
       # Built with the job's Go: prebuilt binaries use an older Go and refuse
       # a module targeting a newer one.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.14.0
           install-mode: goinstall
@@ -90,7 +90,7 @@ jobs:
       # of docker-compose.dev.yml, the test fakes of e2e/fakes (Socrate, SMTP,
       # INSEE). TENURE_WEB_TOKEN reads the bundle's release, as in release.yml.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: e2e/.nvmrc
           cache: npm
@@ -106,7 +106,7 @@ jobs:
 
       - name: Keep the flows' traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e2e-traces
           path: e2e/test-results
