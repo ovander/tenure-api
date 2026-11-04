@@ -75,6 +75,7 @@ internal/httpx        decode, ETag/If-Match, paging, service error → problem
 internal/problem      RFC 9457 bodies and the FR/EN title catalogue
 internal/invariant    Error{Type, Detail}, ErrNotFound/ErrStale/ErrForbidden, Fields
 internal/itest        integration suite (build tag integration, testcontainers)
+e2e/                  the phase 1 flows in Playwright (run.sh); e2e/fakes: Socrate, SMTP, INSEE (tag e2e, tests only)
 migrations/           SQL migrations (embedded; seed generated from testdata/params)
 deploy/sql/roles.sql  database roles, run once per cluster by a superuser
 templates/<class>/<version>/   document templates (French, embedded); a change adds a version
@@ -176,12 +177,13 @@ testdata/params/<year>.json    legal parameter fixtures, the seed of legal_param
 ```bash
 go mod tidy && git diff --exit-code go.mod go.sum
 go build ./...
-go vet ./...
-golangci-lint run ./...          # v2.14.0 built with Go 1.27.3; staticcheck runs inside it
+go vet -tags integration,e2e ./...
+golangci-lint run --build-tags integration,e2e ./...   # v2.14.0 built with Go 1.27.3; staticcheck runs inside it
 govulncheck ./...
 go test -race -count=1 ./...
 go test -tags integration -race -count=1 ./internal/itest   # needs Docker
 ./scripts/openapi.sh && git diff --exit-code internal/httpapi/openapi   # swag v1.16.4
+./scripts/fetch-web.sh && ./e2e/run.sh   # the five flows in a browser; Docker, Node; or E2E_WEB_DIST=<dist>
 ```
 
 gitleaks runs in CI. A new mutating route goes into `testdata/audited_routes.txt` and the
