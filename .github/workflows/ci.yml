@@ -58,7 +58,7 @@ jobs:
       # Built with the job's Go: prebuilt binaries use an older Go and refuse
       # a module targeting a newer one.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.14.0
           install-mode: goinstall
