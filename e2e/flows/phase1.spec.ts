@@ -58,6 +58,11 @@ test('flow 1: an asset, a draft lease, its blockers cleared, the contract, activ
 
   // Blocked, not surprised: every missing diagnostic is listed, generation disabled.
   await expect(page.getByTestId('blockers-generation')).toContainText('diagnostic obligatoire manque')
+  // Each names its diagnostic and its asset, never an id, and links to the asset (Q-105).
+  const subject = page.getByTestId('blockers-generation').getByTestId('blocker-subject')
+  await expect(subject.first()).toHaveText('DPE · 12 rue des Lilas, 69003 Lyon')
+  await expect(subject.first()).toHaveAttribute('href', new URL(assetUrl).pathname)
+  await expect(page.getByTestId('blockers-generation')).not.toContainText('asset ')
   await expect(page.getByTestId('generate')).toBeDisabled()
   await expect(page.getByTestId('action-activate')).toBeDisabled()
 
