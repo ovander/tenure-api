@@ -9,7 +9,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  timeout: 120_000,
+  // A flow renders several PDFs, each allowed pdfWait (flows/helpers.ts).
+  timeout: 300_000,
   expect: { timeout: 20_000 },
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   outputDir: 'test-results',

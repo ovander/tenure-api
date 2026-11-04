@@ -50,9 +50,16 @@ export async function watchCSP(page: Page): Promise<string[]> {
   return violations
 }
 
+// pdfWait is how long a step waits for what a PDF render produces: tenure
+// gives gotenberg up to 50 s, within a 60 s client timeout (Q-101), so the
+// flows wait a little longer rather than give up first and cancel the render.
+export const pdfWait = { timeout: 70_000 }
+
+// confirm accepts the open dialog and waits for it to close, which for an
+// issue or a generation is after the documents are rendered.
 export async function confirm(page: Page): Promise<void> {
   await page.getByTestId('confirm').click()
-  await expect(page.getByTestId('confirm-dialog')).toBeHidden()
+  await expect(page.getByTestId('confirm-dialog')).toBeHidden(pdfWait)
 }
 
 // state is what the flows pass to one another (they run in order, one worker).
