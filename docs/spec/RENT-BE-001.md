@@ -226,6 +226,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 - Unit: pure calculation functions with table tests; state machines (lease, reconciliation) exhaustively.
 - Golden: `testdata/golden/<year>/<case>.json` holding lease, charges, payments, params and the expected fee lines, reconciliation lines and 2044 lines; one case per real asset shape (house, apartment + box, furnished studio) and per edge (prorated first month, mid-year revision, late regularisation, co-ownership split).
 - Integration: PostgreSQL in CI (testcontainers), RLS verified by a cross-owner test that must read zero rows; document pipeline end to end against MinIO; job idempotence (run twice, one document).
+- End to end: the phase 1 flows of RENT-FE-001 §4 in Playwright, against tenure built with the pinned web bundle and the services of docker-compose.dev.yml. Socrate, SMTP and the INSEE series are test fakes built with the `e2e` tag (`e2e/fakes`), never part of the binary and on the loopback only. `e2e/run.sh` runs them in the `ci` job (Q-104).
 - Contract: OpenAPI generated and diffed on each PR; breaking change fails CI unless the major is bumped.
 - Security: backendkit token tests, grant scopes, signed URL expiry; dependency audit in CI.
 
@@ -252,6 +253,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-04 | 2.8 | §10 end to end: the five phase 1 flows in a browser against a real tenure in CI, with test fakes for Socrate, SMTP and INSEE (Q-104) |
 | 2026-11-03 | 2.6 | assets.tense\_zone (migration 000010): zone tendue separated from rent-ceiling zones; relocation rule and previous rent on tense assets, contract template v2 (Q-102) |
 | 2026-11-03 | 2.5 | §6 rendering: gotenberg flags, one retry on 503, engine down or slow → `document/pdf-unavailable` 503 (Q-101) |
 | 2026-11-03 | 2.7 | §6 rendering: gotenberg start timeouts raised so a slow boot does not exit; rendering routes document their 503 (Q-103) |

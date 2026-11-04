@@ -49,10 +49,10 @@ jobs:
         run: go build ./...
 
       - name: Vet
-        run: go vet -tags integration ./...
+        run: go vet -tags integration,e2e ./...
 
       - name: Shell scripts parse
-        run: for f in scripts/*.sh deploy/*.sh deploy/*/*.sh; do bash -n "$f"; done
+        run: for f in scripts/*.sh deploy/*.sh deploy/*/*.sh e2e/*.sh; do bash -n "$f"; done
 
       # staticcheck runs inside golangci-lint (enabled in .golangci.yml).
       # Built with the job's Go: prebuilt binaries use an older Go and refuse
@@ -63,7 +63,7 @@ jobs:
           version: v2.14.0
           install-mode: goinstall
           verify: false
-          args: --build-tags integration
+          args: --build-tags integration,e2e
 
       - name: govulncheck
         run: |
@@ -84,6 +84,33 @@ jobs:
       # security across owners, one audit event per write, hash chain, step-up.
       - name: Integration tests
         run: go test -tags integration -race -count=1 -timeout=600s ./internal/itest
+
+      # The phase 1 flows of RENT-FE-001 §4 in a browser against a real tenure
+      # (e2e/run.sh, Q-104): the web bundle pinned in web/VERSION, the services
+      # of docker-compose.dev.yml, the test fakes of e2e/fakes (Socrate, SMTP,
+      # INSEE). TENURE_WEB_TOKEN reads the bundle's release, as in release.yml.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: e2e/.nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: End-to-end flows
+        env:
+          GH_TOKEN: ${{ secrets.TENURE_WEB_TOKEN }}
+        run: |
+          ./scripts/fetch-web.sh
+          (cd e2e && npm ci --no-audit --no-fund && npx playwright install --with-deps chromium)
+          ./e2e/run.sh
+
+      - name: Keep the flows' traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces
+          path: e2e/test-results
+          retention-days: 7
 
       - name: Build with version stamping
         run: |

@@ -836,3 +836,47 @@ after 21 s and 23 s. Provisional:
   Chromium's health check timed out on every one of 333 polls in a row while the API was up,
   and the 120 s wait expired; at one poll a second the same run passes. Production's compose
   healthcheck polls every 30 s.
+
+**Q-104 End-to-end flows in CI — Open (tenure-web slice 7b).** RENT-FE-001 §7 asks for
+Playwright on the key flows against a seeded backend in CI. tenure-api runs them, because it holds
+both the backend and the pinned web bundle. Provisional:
+- **Where:** `e2e/` in tenure-api. `e2e/run.sh` starts the services of docker-compose.dev.yml
+  under their own compose project with fresh volumes, then the test fakes, then
+  `tenure migrate up` and `tenure serve` built from the tree with `web/dist`. It then runs
+  `e2e/flows`. The `ci` job runs it after the integration suite, on the bundle pinned in
+  `web/VERSION` (`fetch-web.sh` with `TENURE_WEB_TOKEN`, as release.yml does). A web change is
+  therefore checked end to end when its release is pinned, not on its own PR, where tenure-web's
+  mocks run.
+- **Fakes:** `e2e/fakes` is built only with the `e2e` tag and never ships. It listens on the
+  loopback only. It provides:
+  - Socrate's authorize, token, userinfo, revoke and JWKS endpoints. Authorize signs the browser
+    in at once as one owner with a fresh MFA authentication, so the step-up routes pass. It checks
+    the client, its secret, the redirect URI and the PKCE S256 challenge;
+  - an SMTP sink (`notify/smtptest`), read through `GET /__e2e/mail`, because Mailpit's image
+    cannot always be pulled;
+  - the INSEE IRL series, with sample values.
+
+  None of this is a local login: tenure still only trusts Socrate's tokens through its JWKS.
+- **Seed:** none beyond the migrations and their legal parameters. The flows create everything
+  through the UI, in order:
+  1. the profile;
+  2. flow 1 (asset with its six diagnostics, draft lease, deposit, contract, signed copy, entry
+     inventory, activation);
+  3. flows 2 and 5 (dry run, issue and its e-mail, cancel and reissue from the archive, payment,
+     receipt);
+  4. flow 3 (syndic CSV, reconciliation, RG, new provision);
+  5. flow 4 (a property tax without its notice, the 2044 lines, issue with PDF and CSV).
+- **Years:** the income year is the latest one with a published `form_2044_line_map`, read from
+  `/params`. The lease starts on its 1st of January and the current month is billed, so the
+  tests need no year written in them.
+- **Findings while writing them**, recorded and left as they are:
+  - the tax summary is cash basis, so imported syndic lines count only once their payment date
+    is set;
+  - syndic statement lines carry `copro_statement`, a category on no 2044 line;
+  - a cancellation is archived in the class of what it cancels (Q-49);
+  - a blocker's detail names an asset by its id.
+- **Cost:** about 40 s for the flows, after the services start. ClamAV's signatures and
+  gotenberg's boot dominate. gotenberg starts before ClamAV and gets one restart, because
+  LibreOffice can miss its start timeout while the host loads the signatures (Q-103).
+- A pull request whose workflow cannot read `TENURE_WEB_TOKEN`, such as Dependabot's, fails at
+  `fetch-web.sh`. Its secret is set separately (Dependabot secrets).

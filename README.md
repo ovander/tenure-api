@@ -26,5 +26,10 @@ go run ./cmd/tenure serve                           # API on 127.0.0.1:8080, sch
 go test ./... && go test -tags integration ./internal/itest
 ```
 
+The phase 1 flows run in a browser against a real tenure with `./e2e/run.sh`. The script needs
+Docker, Go and Node, and a built web bundle: either `./scripts/fetch-web.sh` or
+`E2E_WEB_DIST=<path to a tenure-web dist>`. It starts its own services and test fakes, so stop a
+running dev stack first.
+
 ## Licence
 Proprietary — see [LICENSE](LICENSE).
