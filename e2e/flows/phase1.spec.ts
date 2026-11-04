@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { addDiagnostic, confirm, mail, pdf, period, watchCSP } from './helpers'
+import { addDiagnostic, confirm, mail, pdf, pdfWait, period, watchCSP } from './helpers'
 
 // The phase 1 flows of RENT-FE-001 §4 against a real tenure, in order: each
 // builds on what the previous one produced.
@@ -139,7 +139,7 @@ test('flow 2 and flow 5: the month reviewed and issued, a rent call cancelled an
   await expect(page.getByTestId('confirm')).toBeDisabled()
   await page.locator('#archive_reason').fill('Erreur sur le libellé')
   await page.getByTestId('confirm').click()
-  await expect(page.getByText(/réémis sous le numéro AL-/)).toBeVisible()
+  await expect(page.getByText(/réémis sous le numéro AL-/)).toBeVisible(pdfWait)
   await page.goto(`/billing/${period}`)
   await expect(page.getByTestId('doc-kind')).toContainText(['Appel de loyer', 'Annulation', 'Appel de loyer'])
   await expect(page.getByTestId('documents')).toContainText('émission 2')
@@ -154,7 +154,7 @@ test('flow 2 and flow 5: the month reviewed and issued, a rent call cancelled an
   await expect(page.getByTestId('payment-dialog')).toBeHidden()
   await expect(page.getByTestId('payments')).toContainText(/900,00\s€/)
   await page.getByTestId('issue-receipts').click()
-  await expect(page.getByText('Quittances émises')).toBeVisible()
+  await expect(page.getByText('Quittances émises')).toBeVisible(pdfWait)
   await page.goto(`/billing/${period}`)
   await expect(page.getByTestId('documents')).toContainText('Quittance')
   await expect(page.getByTestId('doc-number')).toContainText([/^QL-/])
@@ -214,7 +214,7 @@ test('flow 3: a syndic statement imported, the exercise reconciled, the RG state
   await page.getByTestId('issue-recon').click()
   await expect(page.getByTestId('confirm-dialog')).toContainText('1 décompte(s)')
   await page.getByTestId('confirm').click()
-  await expect(page.getByTestId('recon-state')).toHaveText('émise')
+  await expect(page.getByTestId('recon-state')).toHaveText('émise', pdfWait)
   await expect(page.getByTestId('statements')).toContainText(/RG-[0-9A-F]{8}-\d{4}-\d{4}/)
   expect(violations).toEqual([])
 })
@@ -252,7 +252,7 @@ test('flow 4: the tax year computed after step-up, its 2044 lines reviewed, issu
   await expect(page.getByTestId('source')).toContainText([/Taxe foncière/])
   await page.getByTestId('issue-tax').click()
   await page.getByTestId('confirm').click()
-  await expect(page.getByTestId('tax-state')).toHaveText('émis')
+  await expect(page.getByTestId('tax-state')).toHaveText('émis', pdfWait)
   await expect(page.getByTestId('tax-documents').getByTestId('document-card')).toHaveCount(2)
   await expect(page.getByTestId('tax-documents')).toContainText(`Récapitulatif ${year} (PDF)`)
   await expect(page.getByTestId('tax-documents')).toContainText(`Lignes ${year} (CSV)`)
