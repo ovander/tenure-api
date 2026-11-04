@@ -83,11 +83,21 @@ func TestContracts(t *testing.T) {
 	var dpe, erp idv
 	t.Run("diagnostics block generation", func(t *testing.T) {
 		var b struct {
-			Generation, Activation []struct{ Type, Title string }
+			Generation, Activation []struct {
+				Type, Title string
+				AssetID     string `json:"asset_id"`
+				Diagnostic  string `json:"diagnostic"`
+			}
 		}
 		call(t, "GET", "/leases/"+l1.ID+"/blockers", req{tok: tokG}).json(t, &b)
 		if len(b.Generation) == 0 || b.Generation[0].Type != "lease/diagnostic-missing" || b.Generation[0].Title == "" {
 			t.Errorf("generation blockers: %+v", b.Generation)
+		}
+		// Each diagnostic blocker names its asset and kind (Q-105).
+		for _, g := range b.Generation {
+			if g.AssetID == "" || g.Diagnostic == "" {
+				t.Errorf("blocker without its subject: %+v", g)
+			}
 		}
 		audited(t, seen, "POST /leases/{id}/contract", 409, func() resp {
 			r := call(t, "POST", "/leases/"+l1.ID+"/contract", req{tok: tokG})

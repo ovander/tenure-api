@@ -880,3 +880,19 @@ both the backend and the pinned web bundle. Provisional:
   LibreOffice can miss its start timeout while the host loads the signatures (Q-103).
 - A pull request whose workflow cannot read `TENURE_WEB_TOKEN`, such as Dependabot's, fails at
   `fetch-web.sh`. Its secret is set separately (Dependabot secrets).
+
+**Q-105 What a lease blocker is about — Open (#71).** The end-to-end flows (Q-104) showed blockers
+naming their asset only inside `detail`, as an id. The web app displayed that as it was, for
+example « (asset 01a1…: dpe) ». Provisional:
+- `lease.Blocker` gains three optional fields. Nothing is removed, and `type`, `title` and
+  `detail` keep their values; `detail` stays the English technical text of RENT-BE-001 §8:
+  - `asset_id`;
+  - `diagnostic`, the kind;
+  - `valid_until`, for an expired diagnostic.
+- They are set on `diagnostic-missing`, `diagnostic-expired`, `dpe-class-missing`,
+  `dpe-class-forbidden` and `zone-ceiling-unknown`. The other blockers concern the lease
+  itself (contract, guarantees, inventory) and carry none.
+- The fields travel in `invariant.Error.Subject`, which is never part of a problem body. A
+  refused `POST /leases/{id}/contract` therefore answers exactly as before.
+- The web app shows the asset's label and the diagnostic's French name, and links to the asset
+  where the diagnostic is recorded.

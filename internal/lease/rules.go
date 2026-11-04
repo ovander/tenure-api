@@ -282,13 +282,15 @@ func CheckDiagnostics(assets []portfolio.AssetView, diags []portfolio.Diagnostic
 			d, ok := byKind[portfolio.DiagnosticKind(k)]
 			switch {
 			case !ok:
-				out = append(out, invariant.New(TypeDiagnosticMissing, fmt.Sprintf("asset %s: %s", a.ID, k)))
+				out = append(out, invariant.New(TypeDiagnosticMissing, fmt.Sprintf("asset %s: %s", a.ID, k)).
+					About(invariant.Subject{AssetID: a.ID.String(), Diagnostic: k}))
 				continue
 			case d.NotRequiredReason != "":
 				continue
 			}
 			if exp, expires := Expiry(d, rule); expires && exp.Before(on) {
-				out = append(out, invariant.New(TypeDiagnosticExpired, fmt.Sprintf("asset %s: %s valid until %s", a.ID, k, exp)))
+				out = append(out, invariant.New(TypeDiagnosticExpired, fmt.Sprintf("asset %s: %s valid until %s", a.ID, k, exp)).
+					About(invariant.Subject{AssetID: a.ID.String(), Diagnostic: k, ValidUntil: exp.String()}))
 			}
 		}
 		if Family(a) != "dwelling" {
@@ -303,9 +305,11 @@ func CheckDiagnostics(assets []portfolio.AssetView, diags []portfolio.Diagnostic
 		}
 		switch {
 		case class == "":
-			out = append(out, invariant.New(TypeDPEClassMissing, a.ID.String()))
+			out = append(out, invariant.New(TypeDPEClassMissing, a.ID.String()).
+				About(invariant.Subject{AssetID: a.ID.String(), Diagnostic: string(portfolio.DiagnosticDPE)}))
 		case strings.Index(portfolio.DPEClasses, class) > strings.Index(portfolio.DPEClasses, minClass):
-			out = append(out, invariant.New(TypeDPEClassForbidden, fmt.Sprintf("asset %s: class %s, minimum %s", a.ID, class, minClass)))
+			out = append(out, invariant.New(TypeDPEClassForbidden, fmt.Sprintf("asset %s: class %s, minimum %s", a.ID, class, minClass)).
+				About(invariant.Subject{AssetID: a.ID.String(), Diagnostic: string(portfolio.DiagnosticDPE)}))
 		}
 	}
 	return out, nil
