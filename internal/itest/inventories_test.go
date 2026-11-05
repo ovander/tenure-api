@@ -99,7 +99,7 @@ func TestInventorySchema(t *testing.T) {
 			SET session_replication_role = DEFAULT`); err != nil {
 			t.Fatal(err)
 		}
-		if err := mig.Up(ctx, io.Discard); err != nil {
+		if err := mig.UpTo(ctx, 11, io.Discard); err != nil {
 			t.Fatalf("up 000011: %v", err)
 		}
 		var mode, state string

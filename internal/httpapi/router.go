@@ -30,6 +30,7 @@ import (
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/params"
@@ -55,6 +56,7 @@ type Deps struct {
 	Payments       payment.Handler
 	Charges        charge.Handler
 	Tax            tax.Handler
+	Inventory      inventory.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -114,6 +116,10 @@ func Routes(d Deps) []Route {
 		{"GET", "/assets/{id}/diagnostics", GuardScopeOwnerW, false, h(d.Portfolio.ListDiagnostics)},
 		{"POST", "/assets/{id}/diagnostics", GuardScopeOwnerW, false, h(d.Portfolio.CreateDiagnostic)},
 		{"PUT", "/diagnostics/{id}", GuardScopeOwnerW, false, h(d.Portfolio.UpdateDiagnostic)},
+		{"GET", "/assets/{id}/layout", GuardScopeOwnerW, false, h(d.Inventory.GetLayout)},
+		{"PUT", "/assets/{id}/layout", GuardScopeOwnerW, false, h(d.Inventory.PutLayout)},
+		{"POST", "/assets/{id}/layout/seed", GuardScopeOwnerW, false, h(d.Inventory.SeedLayout)},
+		{"GET", "/inventory-templates", GuardScopeOwnerW, false, h(d.Inventory.ListTemplates)},
 		{"GET", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.ListTenants)},
 		{"POST", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.CreateTenant)},
 		{"GET", "/tenants/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetTenant)},
