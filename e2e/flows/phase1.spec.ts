@@ -95,9 +95,12 @@ test('flow 1: an asset, a draft lease, its blockers cleared, the contract, activ
   await page.getByTestId('send-signed').click()
   await expect(page.getByText('contrat-signé.pdf')).toBeVisible()
 
-  // The entry inventory.
+  // The entry inventory, here uploaded as a signed PDF (the capture in
+  // Tenure, proposed first since tenure-web v0.16.0, is tested by its own suite).
   await page.getByTestId('tab-inventories').click()
   await page.getByTestId('add-inventory').click()
+  await page.locator('#inv_mode').click()
+  await page.getByRole('option', { name: 'Déposer le PDF signé' }).click()
   await page.locator('#inv_done').fill(`01/01/${year}`)
   await page.locator('#inv_done').press('Tab')
   await page.getByTestId('file-inventory').setInputFiles(pdf('edl-entree.pdf'))
