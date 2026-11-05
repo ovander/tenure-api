@@ -76,3 +76,17 @@ func TestDateJSON(t *testing.T) {
 		t.Error("invalid date accepted")
 	}
 }
+
+func TestAddMonthsClamped(t *testing.T) {
+	for _, c := range []struct {
+		from string
+		n    int
+		want string
+	}{{"2026-01-31", 1, "2026-02-28"}, {"2028-01-31", 1, "2028-02-29"}, {"2026-03-31", 1, "2026-04-30"},
+		{"2026-11-30", 2, "2027-01-30"}, {"2026-08-31", -6, "2026-02-28"}, {"2026-05-15", 12, "2027-05-15"}} {
+		d, _ := ParseDate(c.from)
+		if got := d.AddMonthsClamped(c.n).String(); got != c.want {
+			t.Errorf("%s + %d months = %s, want %s", c.from, c.n, got, c.want)
+		}
+	}
+}

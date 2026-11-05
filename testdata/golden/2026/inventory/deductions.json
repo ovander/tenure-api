@@ -1,0 +1,150 @@
+{
+  "case": "deductions",
+  "description": "Tenant-damage deductions in basis points: within the franchise the share is whole; after it the yearly rate applies; at the lifetime the floor; without a grid the whole cost; the share is rounded half-up to the cent (a half-cent case). The grid is synthetic.",
+  "grids": {
+    "example": {
+      "name": "Grille d’exemple",
+      "source": "synthetic grid for the tests, not a collective-agreement grid",
+      "lines": [
+        {
+          "category": "walls",
+          "lifetime_years": 9,
+          "franchise_years": 2,
+          "yearly_rate_bp": 1200,
+          "floor_bp": 1000
+        },
+        {
+          "category": "floor",
+          "lifetime_years": 10,
+          "franchise_years": 3,
+          "yearly_rate_bp": 1000,
+          "floor_bp": 2000
+        },
+        {
+          "category": "joinery",
+          "lifetime_years": 8,
+          "franchise_years": 0,
+          "yearly_rate_bp": 1250,
+          "floor_bp": 0
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "walls within the franchise",
+      "deduct": {
+        "input": {
+          "category": "walls",
+          "cost_cents": 48000,
+          "installed_on": "2025-03-01",
+          "lease_start": "2025-01-01",
+          "exit_on": "2026-11-30"
+        },
+        "grid": "example"
+      },
+      "expected": {
+        "age_years": 1,
+        "share_bp": 10000,
+        "amount_cents": 48000,
+        "line": {
+          "category": "walls",
+          "lifetime_years": 9,
+          "franchise_years": 2,
+          "yearly_rate_bp": 1200,
+          "floor_bp": 1000
+        }
+      }
+    },
+    {
+      "name": "walls after the franchise, installation unknown",
+      "deduct": {
+        "input": {
+          "category": "walls",
+          "cost_cents": 48000,
+          "lease_start": "2021-01-01",
+          "exit_on": "2026-11-30"
+        },
+        "grid": "example"
+      },
+      "expected": {
+        "age_years": 5,
+        "share_bp": 6400,
+        "amount_cents": 30720,
+        "line": {
+          "category": "walls",
+          "lifetime_years": 9,
+          "franchise_years": 2,
+          "yearly_rate_bp": 1200,
+          "floor_bp": 1000
+        }
+      }
+    },
+    {
+      "name": "floor at its lifetime",
+      "deduct": {
+        "input": {
+          "category": "floor",
+          "cost_cents": 120000,
+          "installed_on": "2016-06-01",
+          "lease_start": "2022-01-01",
+          "exit_on": "2026-06-30"
+        },
+        "grid": "example"
+      },
+      "expected": {
+        "age_years": 10,
+        "share_bp": 2000,
+        "amount_cents": 24000,
+        "line": {
+          "category": "floor",
+          "lifetime_years": 10,
+          "franchise_years": 3,
+          "yearly_rate_bp": 1000,
+          "floor_bp": 2000
+        }
+      }
+    },
+    {
+      "name": "no grid",
+      "deduct": {
+        "input": {
+          "category": "appliance",
+          "cost_cents": 35990,
+          "lease_start": "2023-01-01",
+          "exit_on": "2026-11-30"
+        }
+      },
+      "expected": {
+        "age_years": 3,
+        "share_bp": 10000,
+        "amount_cents": 35990
+      }
+    },
+    {
+      "name": "half a cent",
+      "deduct": {
+        "input": {
+          "category": "joinery",
+          "cost_cents": 12348,
+          "installed_on": "2025-01-01",
+          "lease_start": "2025-01-01",
+          "exit_on": "2026-01-01"
+        },
+        "grid": "example"
+      },
+      "expected": {
+        "age_years": 1,
+        "share_bp": 8750,
+        "amount_cents": 10805,
+        "line": {
+          "category": "joinery",
+          "lifetime_years": 8,
+          "franchise_years": 0,
+          "yearly_rate_bp": 1250,
+          "floor_bp": 0
+        }
+      }
+    }
+  ]
+}

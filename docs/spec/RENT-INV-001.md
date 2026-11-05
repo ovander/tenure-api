@@ -164,7 +164,7 @@ Age and franchise are counted in full years. All terms are integers, and the div
 Phase 2 adds a package `internal/inventory`. It imports `portfolio`, `lease`, `document` and `params`, and nothing imports it except `httpapi` and the wiring in `cmd/tenure`. That keeps RENT-BE-001's downward-only rule (INV-OD-06).
 
 - **Activation check without a cycle**: `lease` declares an interface `ActivationBlocker` (« entry inventory issued? »). `inventory` implements it and is registered in `cmd/tenure`. In phase 1, `lease` keeps its existing check: an entry row in inventories linked to an uploaded document of class `inventory`.
-- **Pure functions**, no I/O, golden-tested: `inventory.Seed(template, asset)`, `inventory.Prefill(entry, completions)`, `inventory.Validate(inv, kind)`, `inventory.Compare(entry, completions, exit)`, `inventory.Deduction(item, grid, cost, exitDate)`, `inventory.SettlementDeadline(exit, hasDeductions, params)`.
+- **Pure functions**, no I/O, golden-tested (slice 1, #89): `inventory.Seed(template, asset)` and `inventory.Draft(id, furnished, layouts…)` for a new entry; `inventory.Prefill(id, source, completions)`, both ways (entry → exit, last exit → next entry); `inventory.Validate(inv)`, whose checks carry the stage they block (complete or issue); `inventory.Compare(entry, completions, exit)`; `inventory.Deduct(input, grid)`; `inventory.SettlementDeadline(keysReturnedOn, deductionRetained, rules)`, `inventory.LatePenalty`, `inventory.HoldbackBalanceDeadline` and `inventory.Settle`. The rules are `params.DepositReturn`, read from the keys of this section. Calendar months are reckoned with `period.Date.AddMonthsClamped`: one month from 31 January is the last day of February, never 3 March.
 
 **API** (REST under `/api/v1`, swag-annotated, ETag + If-Match on PUT, as RENT-BE-001 section 3):
 
@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-05 | 0.4 | Slice 1 implemented (#89): function names and signatures in §7 as built; outdoor parts exempt from the three coverings; a furnished element replaces its base equivalent; a missing grid line refuses the deduction; the holdback rounds down; INV-OD-04 and INV-OD-13 followed as proposed (Q-107) |
 | 2026-11-05 | 0.3 | INV-OD-11 decided: RD is a financial class visible to the accountant (amounts and descriptions only). INV-OD-12 decided: img-src opened to blob: and the bucket host; RENT-FE-001 amended |
 | 2026-11-05 | 0.2 | Code and legal review applied: existing `items` migrated to `legacy_items`; inventory amendments renamed completions; `RD` restitution statement (DG stays the receipt); rates in basis points with rounding helpers; EXIF stripped and cleaned-file hash; RGPD register; `keys_returned_on` starts the deposit clock; holdback for collective buildings with the post-approval balance; calendar dependency moved to slice 10; references updated to RENT-BE-001 2.10 and RENT-FE-001 1.1; INV-OD-10 resolved, INV-OD-11 to 13 added |
 | 2026-11-05 | 0.1 | Initial inventory specification derived from RENT-SPEC-009, 008 and 005; open decisions INV-OD-01 to 10 |

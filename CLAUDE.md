@@ -62,7 +62,7 @@ issuer, JWKS URL or client; the audience is the client id unless `SOCRATE_AUDIEN
 
 ```
 cmd/tenure            serve | migrate | job <name> subcommands
-internal/<module>     portfolio lease billing charge payment tax document params
+internal/<module>     portfolio lease billing charge payment tax document params inventory
 internal/auth         the only package that reads a token (wraps backendkit)
 internal/bff          browser sessions (backendkit bff): /bff routes, session → bearer; stores tokens, never parses them
 internal/audit        audit.Record, hash chain, chain heads
@@ -83,6 +83,7 @@ deploy/sql/roles.sql  database roles, run once per cluster by a superuser
 templates/<class>/<version>/   document templates (French, embedded); a change adds a version
 testdata/golden/<year>/        golden files per calculation and tax year (internal/golden runs them)
 testdata/params/<year>.json    legal parameter fixtures, the seed of legal_params
+testdata/inventory/            inventory templates (French), the seed of inventory_templates (RENT-INV-001)
 ```
 
 - **handler → service → repository**, one direction only. Handlers decode and type-check;

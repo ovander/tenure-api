@@ -1,0 +1,210 @@
+{
+  "case": "settlement",
+  "description": "Restitution deadlines from the return of the keys, not the inventory date, clamped to the month's last day; late penalty per started month, none without a new address; holdback in a collective building and its balance deadline. The parameter values are synthetic.",
+  "params_override": [
+    {
+      "key": "deposit.return_months.conforming",
+      "effective_from": "2014-03-27",
+      "value": 3,
+      "source": "synthetic, inventory slice 1: not the legal value, which inventory slice 2 seeds in testdata/params",
+      "source_url": ""
+    },
+    {
+      "key": "deposit.return_months.with_deductions",
+      "effective_from": "2014-03-27",
+      "value": 5,
+      "source": "synthetic, inventory slice 1: not the legal value, which inventory slice 2 seeds in testdata/params",
+      "source_url": ""
+    },
+    {
+      "key": "deposit.collective_holdback_bp",
+      "effective_from": "2014-03-27",
+      "value": 1500,
+      "source": "synthetic, inventory slice 1: not the legal value, which inventory slice 2 seeds in testdata/params",
+      "source_url": ""
+    },
+    {
+      "key": "deposit.holdback_balance_months_after_approval",
+      "effective_from": "2014-03-27",
+      "value": 2,
+      "source": "synthetic, inventory slice 1: not the legal value, which inventory slice 2 seeds in testdata/params",
+      "source_url": ""
+    },
+    {
+      "key": "deposit.late_penalty_bp_of_rent",
+      "effective_from": "2014-03-27",
+      "value": 700,
+      "source": "synthetic, inventory slice 1: not the legal value, which inventory slice 2 seeds in testdata/params",
+      "source_url": ""
+    }
+  ],
+  "steps": [
+    {
+      "name": "no deduction, keys on 31 January",
+      "settlement": {
+        "keys_returned_on": "2026-01-31",
+        "deduction_retained": false,
+        "monthly_rent_cents": 80000,
+        "new_address_given": true,
+        "paid_on": "2026-04-30",
+        "settle": {
+          "deposit_cents": 80000,
+          "deductions": [],
+          "arrears_cents": 0,
+          "regularisation_cents": -1250,
+          "collective_building": false,
+          "accounts_approved": false
+        }
+      },
+      "expected": {
+        "deadline": "2026-04-30",
+        "penalty": {
+          "started_months": 0,
+          "amount_cents": 0
+        },
+        "settlement": {
+          "deductions_cents": 0,
+          "arrears_cents": 0,
+          "regularisation_cents": -1250,
+          "holdback_cents": 0,
+          "balance_cents": 81250
+        }
+      }
+    },
+    {
+      "name": "deduction retained, paid one started month late",
+      "settlement": {
+        "keys_returned_on": "2026-02-03",
+        "deduction_retained": true,
+        "monthly_rent_cents": 80000,
+        "new_address_given": true,
+        "paid_on": "2026-07-04",
+        "settle": {
+          "deposit_cents": 80000,
+          "deductions": [
+            33120,
+            9000
+          ],
+          "arrears_cents": 5000,
+          "regularisation_cents": 0,
+          "collective_building": false,
+          "accounts_approved": false
+        }
+      },
+      "expected": {
+        "deadline": "2026-07-03",
+        "penalty": {
+          "started_months": 1,
+          "amount_cents": 5600
+        },
+        "settlement": {
+          "deductions_cents": 42120,
+          "arrears_cents": 5000,
+          "regularisation_cents": 0,
+          "holdback_cents": 0,
+          "balance_cents": 32880
+        }
+      }
+    },
+    {
+      "name": "three started months late",
+      "settlement": {
+        "keys_returned_on": "2026-02-03",
+        "deduction_retained": true,
+        "monthly_rent_cents": 80000,
+        "new_address_given": true,
+        "paid_on": "2026-09-04",
+        "settle": {
+          "deposit_cents": 80000,
+          "deductions": [
+            33120
+          ],
+          "arrears_cents": 0,
+          "regularisation_cents": 0,
+          "collective_building": false,
+          "accounts_approved": false
+        }
+      },
+      "expected": {
+        "deadline": "2026-07-03",
+        "penalty": {
+          "started_months": 3,
+          "amount_cents": 16800
+        },
+        "settlement": {
+          "deductions_cents": 33120,
+          "arrears_cents": 0,
+          "regularisation_cents": 0,
+          "holdback_cents": 0,
+          "balance_cents": 46880
+        }
+      }
+    },
+    {
+      "name": "late but no new address",
+      "settlement": {
+        "keys_returned_on": "2026-02-03",
+        "deduction_retained": true,
+        "monthly_rent_cents": 80000,
+        "new_address_given": false,
+        "paid_on": "2026-09-04",
+        "settle": {
+          "deposit_cents": 80000,
+          "deductions": [],
+          "arrears_cents": 0,
+          "regularisation_cents": 0,
+          "collective_building": false,
+          "accounts_approved": false
+        }
+      },
+      "expected": {
+        "deadline": "2026-07-03",
+        "penalty": {
+          "started_months": 0,
+          "amount_cents": 0
+        },
+        "settlement": {
+          "deductions_cents": 0,
+          "arrears_cents": 0,
+          "regularisation_cents": 0,
+          "holdback_cents": 0,
+          "balance_cents": 80000
+        }
+      }
+    },
+    {
+      "name": "collective building, accounts not approved",
+      "settlement": {
+        "keys_returned_on": "2026-06-30",
+        "deduction_retained": false,
+        "monthly_rent_cents": 90000,
+        "new_address_given": true,
+        "paid_on": "2026-07-15",
+        "accounts_approved_on": "2027-04-12",
+        "settle": {
+          "deposit_cents": 90001,
+          "deductions": [],
+          "arrears_cents": 0,
+          "regularisation_cents": 4000,
+          "collective_building": true,
+          "accounts_approved": false
+        }
+      },
+      "expected": {
+        "deadline": "2026-09-30",
+        "penalty": {
+          "started_months": 0,
+          "amount_cents": 0
+        },
+        "settlement": {
+          "deductions_cents": 0,
+          "arrears_cents": 0,
+          "regularisation_cents": 0,
+          "holdback_cents": 13500,
+          "balance_cents": 76501
+        },
+        "holdback_balance_deadline": "2027-06-12"
+      }
+    }
+  ]
+}

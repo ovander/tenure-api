@@ -38,6 +38,12 @@ const (
 	KeyLeaseTerm              = "lease_term_months"
 	KeySupportingDocsMonths   = "regularisation_supporting_docs_months"
 	KeyReelLockYears          = "reel_option_lock_years"
+	// Deposit restitution (RENT-INV-001 §6, §7), seeded by inventory slice 2.
+	KeyDepositReturnConforming     = "deposit.return_months.conforming"
+	KeyDepositReturnWithDeductions = "deposit.return_months.with_deductions"
+	KeyDepositCollectiveHoldback   = "deposit.collective_holdback_bp"
+	KeyDepositHoldbackBalance      = "deposit.holdback_balance_months_after_approval"
+	KeyDepositLatePenalty          = "deposit.late_penalty_bp_of_rent"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -253,6 +259,50 @@ func (s Set) MinDPEClass(asOf period.Date) (string, error) {
 	var c string
 	err := s.Decode(KeyRentalMinDPEClass, asOf, &c)
 	return c, err
+}
+
+// DepositReturn holds the deposit restitution rules (loi 89-462 art. 22,
+// RENT-INV-001 §6): the months after the return of the keys, without and with
+// a retained deduction; the holdback allowed in a collective building, in
+// basis points of the deposit, and the months after the approval of the
+// accounts to pay its balance; the late penalty per started month, in basis
+// points of the monthly rent excluding charges.
+type DepositReturn struct {
+	ConformingMonths      int
+	WithDeductionsMonths  int
+	CollectiveHoldbackBP  int64
+	HoldbackBalanceMonths int
+	LatePenaltyBP         int64
+}
+
+// DepositReturn returns the restitution rules in force on asOf; every key
+// must be present.
+func (s Set) DepositReturn(asOf period.Date) (DepositReturn, error) {
+	var r DepositReturn
+	ints := []struct {
+		key string
+		dst *int64
+	}{{KeyDepositCollectiveHoldback, &r.CollectiveHoldbackBP}, {KeyDepositLatePenalty, &r.LatePenaltyBP}}
+	for _, x := range ints {
+		v, err := s.Int64(x.key, asOf)
+		if err != nil {
+			return DepositReturn{}, err
+		}
+		*x.dst = v
+	}
+	months := []struct {
+		key string
+		dst *int
+	}{{KeyDepositReturnConforming, &r.ConformingMonths}, {KeyDepositReturnWithDeductions, &r.WithDeductionsMonths},
+		{KeyDepositHoldbackBalance, &r.HoldbackBalanceMonths}}
+	for _, x := range months {
+		v, err := s.Int64(x.key, asOf)
+		if err != nil {
+			return DepositReturn{}, err
+		}
+		*x.dst = int(v)
+	}
+	return r, nil
 }
 
 // Range is an inclusive integer range.
