@@ -71,6 +71,9 @@ type Deps struct {
 	// Web is the embedded tenure-web bundle served outside /api and /bff
 	// (nil: none, every such path is a 404).
 	Web fs.FS
+	// ImageOrigins are the origins of the archive's signed links, allowed as
+	// image sources in the web app's CSP (INV-OD-12).
+	ImageOrigins []string
 	// BFF serves /bff and turns a browser session into a bearer in front of
 	// internal/auth; nil serves bearer clients only.
 	BFF *bff.Server
@@ -120,6 +123,8 @@ func Routes(d Deps) []Route {
 		{"PUT", "/assets/{id}/layout", GuardScopeOwnerW, false, h(d.Inventory.PutLayout)},
 		{"POST", "/assets/{id}/layout/seed", GuardScopeOwnerW, false, h(d.Inventory.SeedLayout)},
 		{"GET", "/inventory-templates", GuardScopeOwnerW, false, h(d.Inventory.ListTemplates)},
+		{"POST", "/inventories/{id}/photos", GuardScopeOwnerW, false, h(d.Inventory.UploadPhoto)},
+		{"GET", "/inventories/{id}/photos/{photoId}/content", GuardScopeOwnerW, false, h(d.Inventory.PhotoContent)},
 		{"GET", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.ListTenants)},
 		{"POST", "/tenants", GuardScopeOwnerW, false, h(d.Portfolio.CreateTenant)},
 		{"GET", "/tenants/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetTenant)},
@@ -188,11 +193,14 @@ func Routes(d Deps) []Route {
 // DefaultBodyLimit caps every request body but the upload's.
 const DefaultBodyLimit = 1 << 20
 
-// bodyLimit returns the body cap of a route: the upload route takes a 25 MB
+// bodyLimit returns the body cap of a route: the upload routes take a 25 MB
 // file, every other route 1 MiB of JSON.
 func bodyLimit(rt Route) int64 {
 	if rt.Method == http.MethodPost && rt.Pattern == "/documents" {
 		return document.UploadBodyLimit
+	}
+	if rt.Method == http.MethodPost && rt.Pattern == "/inventories/{id}/photos" {
+		return inventory.PhotoBodyLimit
 	}
 	return DefaultBodyLimit
 }
@@ -225,7 +233,7 @@ func NewRouter(d Deps) (http.Handler, error) {
 	r := chi.NewRouter()
 	// The body cap is set per route (bodyLimit): 1 MiB, except uploads.
 	r.Use(httpware.RequestID, accessLog, recoverer, httpware.SecurityHeaders, attribute(d.TrustedProxies))
-	r.NotFound(staticApp(d.Web, problemNotFound))
+	r.NotFound(staticApp(d.Web, d.ImageOrigins, problemNotFound))
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		problem.Write(w, r, problem.MethodNotAllowed, "", "", nil)
 	})

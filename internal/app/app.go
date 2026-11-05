@@ -51,7 +51,10 @@ type Deps struct {
 	BFF *bff.Server
 	// Web is the embedded web app (nil: API only).
 	Web fs.FS
-	Now func() time.Time
+	// ImageOrigins are the archive's signed-link origins the web app may
+	// load images from (inventory photos, INV-OD-12).
+	ImageOrigins []string
+	Now          func() time.Time
 }
 
 // App is the assembled service.
@@ -91,10 +94,11 @@ func New(d Deps) (*App, error) {
 	}
 	runner := &jobs.Runner{DB: d.Jobs, Jobs: reg, Now: d.Now}
 	h, err := httpapi.NewRouter(httpapi.Deps{
-		Auth:           d.Auth,
-		Portfolio:      portfolio.Handler{Service: pf},
-		Lease:          lease.Handler{Service: ls},
-		Inventory:      inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Now: d.Now, NewID: newID}},
+		Auth:      d.Auth,
+		Portfolio: portfolio.Handler{Service: pf},
+		Lease:     lease.Handler{Service: ls},
+		Inventory: inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Now: d.Now, NewID: newID,
+			Photos: inventory.PhotoStore{Store: d.Store, Scanner: d.Scanner, Params: params.Repository{}}}},
 		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
 		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
 		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
@@ -109,6 +113,7 @@ func New(d Deps) (*App, error) {
 		FailedAuthMax:  d.FailedAuthMax,
 		BFF:            d.BFF,
 		Web:            d.Web,
+		ImageOrigins:   d.ImageOrigins,
 	})
 	if err != nil {
 		return nil, err

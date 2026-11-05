@@ -189,3 +189,84 @@ func (Repository) Templates(ctx context.Context) ([]templateRow, error) {
 	err = t.Order("asset_kind, owner_id NULLS LAST, version DESC").Find(&rows).Error
 	return rows, err
 }
+
+type inventoryHead struct {
+	ID      uuid.UUID `gorm:"column:id"`
+	LeaseID uuid.UUID `gorm:"column:lease_id"`
+	State   string    `gorm:"column:state"`
+}
+
+type photoRow struct {
+	ID             uuid.UUID  `gorm:"column:id;primaryKey"`
+	OwnerID        uuid.UUID  `gorm:"column:owner_id"`
+	InventoryID    uuid.UUID  `gorm:"column:inventory_id"`
+	ItemID         *uuid.UUID `gorm:"column:item_id"`
+	MeterID        *uuid.UUID `gorm:"column:meter_id"`
+	ObjectKey      string     `gorm:"column:object_key"`
+	ObjectVersion  string     `gorm:"column:object_version"`
+	SHA256         string     `gorm:"column:sha256"`
+	OriginalSHA256 string     `gorm:"column:original_sha256"`
+	Width          int        `gorm:"column:width"`
+	Height         int        `gorm:"column:height"`
+	CreatedAt      time.Time  `gorm:"column:created_at"`
+	CreatedBy      string     `gorm:"column:created_by"`
+}
+
+func (photoRow) TableName() string { return "inventory_photos" }
+
+// Inventory returns an inventory's id, lease and state (false when the
+// scope has none of that id).
+func (Repository) Inventory(ctx context.Context, id uuid.UUID) (inventoryHead, bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return inventoryHead{}, false, err
+	}
+	var rows []inventoryHead
+	err = t.Table("inventories").Select("id, lease_id, state").Where("id = ?", id).Limit(1).Find(&rows).Error
+	if err != nil || len(rows) == 0 {
+		return inventoryHead{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+// ItemOf reports whether item belongs to inventory.
+func (Repository) ItemOf(ctx context.Context, inventory, item uuid.UUID) (bool, error) {
+	return exists(ctx, "inventory_items", inventory, item)
+}
+
+// MeterOf reports whether meter belongs to inventory.
+func (Repository) MeterOf(ctx context.Context, inventory, meter uuid.UUID) (bool, error) {
+	return exists(ctx, "inventory_meters", inventory, meter)
+}
+
+func exists(ctx context.Context, table string, inventory, id uuid.UUID) (bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return false, err
+	}
+	var n int64
+	err = t.Table(table).Where("id = ? AND inventory_id = ?", id, inventory).Count(&n).Error
+	return n > 0, err
+}
+
+// InsertPhoto records an archived photo.
+func (Repository) InsertPhoto(ctx context.Context, r photoRow) error {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&r).Error
+}
+
+// Photo returns one photo of the scope.
+func (Repository) Photo(ctx context.Context, id uuid.UUID) (photoRow, bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return photoRow{}, false, err
+	}
+	var rows []photoRow
+	if err := t.Where("id = ?", id).Limit(1).Find(&rows).Error; err != nil || len(rows) == 0 {
+		return photoRow{}, false, err
+	}
+	return rows[0], true, nil
+}

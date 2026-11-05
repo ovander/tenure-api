@@ -23,6 +23,7 @@ POST /guarantees/{id}/document
 POST /leases/{id}/contract
 POST /leases/{id}/amendments
 POST /leases/{id}/inventories
+POST /inventories/{id}/photos
 POST /documents
 POST /documents/export +
 POST /leases/{id}/revision +

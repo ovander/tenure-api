@@ -28,7 +28,7 @@ func TestStaticApp(t *testing.T) {
 		"assets/app-1a2b3c.js": {Data: []byte("console.log(1)")},
 		"manifest.webmanifest": {Data: []byte("{}")},
 	}
-	h, err := NewRouter(Deps{Auth: a, Web: files})
+	h, err := NewRouter(Deps{Auth: a, Web: files, ImageOrigins: []string{"https://archive.test"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,10 +68,11 @@ func TestStaticApp(t *testing.T) {
 			t.Errorf("%s %s: %q cache %q", c.method, c.path, rec.Body.String(), rec.Header().Get("Cache-Control"))
 		}
 		csp := rec.Header().Get("Content-Security-Policy")
-		if strings.Contains(csp, "unsafe-inline") || !strings.Contains(csp, "script-src 'self';") {
+		if strings.Contains(csp, "unsafe-inline") || !strings.Contains(csp, "script-src 'self';") ||
+			!strings.Contains(csp, "img-src 'self' data: blob: https://archive.test;") {
 			t.Errorf("%s %s: CSP %q", c.method, c.path, csp)
 		}
-		if strings.HasPrefix(c.path, "/assets/app") && csp != webCSP("") {
+		if strings.HasPrefix(c.path, "/assets/app") && csp != webCSP("", []string{"https://archive.test"}) {
 			t.Errorf("%s %s: an asset has a nonce: %q", c.method, c.path, csp)
 		}
 	}

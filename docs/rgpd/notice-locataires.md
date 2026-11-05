@@ -12,16 +12,18 @@ obligations légales du bailleur (loi du 6 juillet 1989).
 
 **Quelles données ?** Votre identité et vos coordonnées, les pièces justificatives fournies
 lors de la candidature (dans les limites fixées par le décret n° 2015-1437), le bail et ses
-annexes, l’état des lieux, vos paiements et, le cas échéant, les relances. Pour un garant :
+annexes, l’état des lieux et ses photos (qui peuvent montrer vos biens ; leurs métadonnées, dont
+la localisation, sont supprimées), vos paiements et, le cas échéant, les relances. Pour un garant :
 son identité, ses coordonnées, ses justificatifs et l’acte de cautionnement.
 
 **Qui y a accès ?** Votre bailleur ; les personnes à qui il en donne l’accès (un co-propriétaire,
-son comptable, qui ne voit ni vos pièces d’identité ni les données de votre garant) ;
+son comptable, qui ne voit ni vos pièces d’identité, ni les données de votre garant, ni l’état
+des lieux et ses photos) ;
 l’hébergeur (Scaleway, en France) et le service d’envoi d’e-mails, qui agissent pour son compte.
 Vos données ne sont ni vendues ni transférées hors de l’Union européenne.
 
 **Combien de temps ?** Pendant la location, puis dix ans après sa fin pour les documents du
-bail et les quittances. Si votre candidature n’est pas retenue, votre dossier est supprimé
+bail, l’état des lieux et ses photos, et les quittances. Si votre candidature n’est pas retenue, votre dossier est supprimé
 dans les trois mois.
 
 **Vos droits.** Vous pouvez demander à votre bailleur l’accès à vos données, leur
