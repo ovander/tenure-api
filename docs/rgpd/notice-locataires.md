@@ -19,7 +19,9 @@ son identité, ses coordonnées, ses justificatifs et l’acte de cautionnement.
 **Qui y a accès ?** Votre bailleur ; les personnes à qui il en donne l’accès (un co-propriétaire,
 son comptable, qui ne voit ni vos pièces d’identité, ni les données de votre garant, ni l’état
 des lieux et ses photos) ;
-l’hébergeur (Scaleway, en France) et le service d’envoi d’e-mails, qui agissent pour son compte.
+l’hébergeur (Scaleway, en France), le service d’envoi d’e-mails et, si vous signez l’état des
+lieux électroniquement, le prestataire de signature (Yousign, en France), qui agissent pour son
+compte.
 Vos données ne sont ni vendues ni transférées hors de l’Union européenne.
 
 **Combien de temps ?** Pendant la location, puis dix ans après sa fin pour les documents du

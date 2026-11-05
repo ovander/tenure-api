@@ -106,6 +106,11 @@ type Config struct {
 	// TrustedProxies are the reverse proxies (Caddy) whose X-Forwarded-For is
 	// believed when finding a client's address; empty trusts none.
 	TrustedProxies []*net.IPNet
+	// YousignURL and YousignAPIKey enable the electronic signature of
+	// inventories (OD-08), both set or neither; without them only the
+	// wet-signed scan is offered (RENT-INV-001 slice 6, Q-112).
+	YousignURL    string
+	YousignAPIKey string
 }
 
 // Load reads the configuration through getenv and validates the groups in
@@ -208,6 +213,15 @@ func Load(getenv func(string) string, need Need) (Config, error) {
 	if c.ClamAVAddr != "" {
 		if _, port, err := net.SplitHostPort(c.ClamAVAddr); err != nil || port == "" || strings.Contains(c.ClamAVAddr, "://") {
 			errs = append(errs, errors.New("TENURE_CLAMAV_ADDR must be host:port"))
+		}
+	}
+	c.YousignURL, c.YousignAPIKey = get("TENURE_YOUSIGN_API_URL", false), get("TENURE_YOUSIGN_API_KEY", false)
+	switch {
+	case (c.YousignURL == "") != (c.YousignAPIKey == ""):
+		errs = append(errs, errors.New("TENURE_YOUSIGN_API_URL and TENURE_YOUSIGN_API_KEY go together: set both or neither"))
+	case c.YousignURL != "":
+		if err := checkHTTPS(c.YousignURL); err != nil {
+			errs = append(errs, fmt.Errorf("TENURE_YOUSIGN_API_URL: %w", err))
 		}
 	}
 	c.IRLSourceURL = get("TENURE_IRL_SOURCE_URL", false)

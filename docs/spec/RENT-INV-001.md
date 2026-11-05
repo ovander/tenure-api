@@ -260,7 +260,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 | --- | --- | --- | --- |
 | INV-OD-01 | Keep `inventories.items jsonb` or normalise | Normalise (section 3); existing rows migrated with `legacy_items` (section 9) | Decided, 2026-11-05 |
 | INV-OD-02 | Offline capture in a cellar or a box with no network | Phase 2 online only, with per-item autosave and an in-memory retry queue. An IndexedDB draft queue only if a real site fails, which would change RENT-FE-001 « no offline writes » | Proposed |
-| INV-OD-03 | Signing on site | OD-08 provider flow opened on the tablet, one signer after the other; wet-signed scan as fallback. Check that the provider supports in-person signing | Proposed |
+| INV-OD-03 | Signing on site | OD-08 provider flow opened on the tablet, one signer after the other; wet-signed scan as fallback. Check that the provider supports in-person signing | Decided as proposed, 2026-11-05 (to check against the Yousign sandbox, Q-112) |
 | INV-OD-04 | Condition scale | 5 levels (section 4) plus a separate `works` flag | Decided, 2026-11-05 |
 | INV-OD-05 | Document prefixes | EE, ES, EC and RD added to `document/types.go`; DG stays the deposit receipt | Proposed |
 | INV-OD-06 | Module placement | New `internal/inventory`; `lease` exposes an `ActivationBlocker` interface (checked against the downward-only rule) | Proposed |
@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-05 | 0.9 | Slice 6 implemented (#102): preview to sign, wet-signed scan and Yousign request (pull, no webhook), one party per co-tenant, signed then issued at the last signature, EE template v2 with each signature's evidence, reopen refused once signed; INV-OD-03 decided (Q-112) |
 | 2026-11-05 | 0.8 | Slice 5 implemented (#99): creation with `mode amicable`, room kind copied to each item, edits per state, transitions with `dry_run`, `issue` from `signed` (signatures in slice 6), `EE` series counted apart, completion windows printed from `legal_params` (Q-111) |
 | 2026-11-05 | 0.7 | Slice 4 implemented (#97): photo limits, orientation applied, `taken_at` left empty, retention from upload until lease end is known, co-owner views and accountant refused, CSP origin taken from the store (Q-110) |
 | 2026-11-05 | 0.6 | Slice 3, API (#93): layout routes, `asset_layouts` holds the layout version (migration 000012), the accountant is refused (Q-109) |

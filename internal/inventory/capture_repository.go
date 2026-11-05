@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -91,13 +92,17 @@ type keyRow struct {
 func (keyRow) TableName() string { return "inventory_keys" }
 
 type signatureRow struct {
-	ID           uuid.UUID `gorm:"column:id;primaryKey"`
-	InventoryID  uuid.UUID `gorm:"column:inventory_id"`
-	Party        string    `gorm:"column:party"`
-	SignerName   string    `gorm:"column:signer_name"`
-	Method       string    `gorm:"column:method"`
-	SignedAt     time.Time `gorm:"column:signed_at"`
-	Reservations string    `gorm:"column:reservations"`
+	ID                 uuid.UUID  `gorm:"column:id;primaryKey"`
+	OwnerID            uuid.UUID  `gorm:"column:owner_id"`
+	InventoryID        uuid.UUID  `gorm:"column:inventory_id"`
+	Party              string     `gorm:"column:party"`
+	SignerName         string     `gorm:"column:signer_name"`
+	Method             string     `gorm:"column:method"`
+	SignedAt           time.Time  `gorm:"column:signed_at"`
+	Reservations       string     `gorm:"column:reservations"`
+	EvidenceDocumentID *uuid.UUID `gorm:"column:evidence_document_id"`
+	CreatedAt          time.Time  `gorm:"column:created_at"`
+	CreatedBy          string     `gorm:"column:created_by"`
 }
 
 func (signatureRow) TableName() string { return "inventory_signatures" }
@@ -287,4 +292,109 @@ func (Repository) Signatures(ctx context.Context, inventory uuid.UUID) ([]signat
 	var rows []signatureRow
 	err = t.Where("inventory_id = ?", inventory).Order("signed_at, id").Find(&rows).Error
 	return rows, err
+}
+
+// InsertSignatures records signatures.
+func (Repository) InsertSignatures(ctx context.Context, rows []signatureRow) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&rows).Error
+}
+
+// requestSigner is a signer of a signature request, kept as JSON.
+type requestSigner struct {
+	Key          string `json:"key"`
+	Party        string `json:"party"`
+	SignerName   string `json:"signer_name"`
+	Reservations string `json:"reservations,omitempty"`
+	SignerID     string `json:"signer_id"`
+	Link         string `json:"link"`
+	Signed       bool   `json:"signed"`
+}
+
+type requestRow struct {
+	ID                 uuid.UUID       `gorm:"column:id;primaryKey"`
+	OwnerID            uuid.UUID       `gorm:"column:owner_id"`
+	InventoryID        uuid.UUID       `gorm:"column:inventory_id"`
+	Provider           string          `gorm:"column:provider"`
+	ProviderRequestID  string          `gorm:"column:provider_request_id"`
+	State              string          `gorm:"column:state"`
+	Signers            json.RawMessage `gorm:"column:signers;type:jsonb"`
+	EvidenceDocumentID *uuid.UUID      `gorm:"column:evidence_document_id"`
+	Version            int             `gorm:"column:version"`
+	CreatedAt          time.Time       `gorm:"column:created_at"`
+	CreatedBy          string          `gorm:"column:created_by"`
+	UpdatedAt          time.Time       `gorm:"column:updated_at"`
+	UpdatedBy          string          `gorm:"column:updated_by"`
+}
+
+func (requestRow) TableName() string { return "inventory_signature_requests" }
+
+// LatestRequest returns the most recent signature request of an inventory.
+func (Repository) LatestRequest(ctx context.Context, inventory uuid.UUID) (requestRow, bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return requestRow{}, false, err
+	}
+	var rows []requestRow
+	if err := t.Where("inventory_id = ?", inventory).Order("created_at DESC, id DESC").Limit(1).Find(&rows).Error; err != nil || len(rows) == 0 {
+		return requestRow{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+// InsertRequest records a signature request.
+func (Repository) InsertRequest(ctx context.Context, r requestRow) error {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&r).Error
+}
+
+// SaveRequest writes a request at version+1; ErrStale when someone saved first.
+func (Repository) SaveRequest(ctx context.Context, r requestRow, version int) error {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&requestRow{}).Where("id = ? AND version = ?", r.ID, version).Updates(map[string]any{
+		"state": r.State, "signers": r.Signers, "evidence_document_id": r.EvidenceDocumentID, "version": version + 1,
+		"updated_at": r.UpdatedAt, "updated_by": r.UpdatedBy,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
+}
+
+// docInfo is what an inventory reads of an archived document.
+type docInfo struct {
+	ID      uuid.UUID  `gorm:"column:id"`
+	Class   string     `gorm:"column:class"`
+	LeaseID *uuid.UUID `gorm:"column:lease_id"`
+	Source  string     `gorm:"column:source"`
+	SHA256  string     `gorm:"column:sha256"`
+}
+
+// DocumentInfo returns one archived document of the scope.
+func (Repository) DocumentInfo(ctx context.Context, id uuid.UUID) (docInfo, bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return docInfo{}, false, err
+	}
+	var rows []docInfo
+	err = t.Table("documents").Select("id, class, lease_id, source, sha256").Where("id = ?", id).Limit(1).Find(&rows).Error
+	if err != nil || len(rows) == 0 {
+		return docInfo{}, false, err
+	}
+	return rows[0], true, nil
 }

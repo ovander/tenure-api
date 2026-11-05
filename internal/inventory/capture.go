@@ -241,6 +241,8 @@ type capture struct {
 	photos []photoRow
 	sigs   []signatureRow
 	facts  lease.InventoryFacts
+	// evidence is the SHA-256 of each signature's evidence document.
+	evidence map[uuid.UUID]string
 }
 
 func (s Service) load(ctx context.Context, sc db.Scope, id uuid.UUID, lock bool) (capture, error) {
@@ -266,6 +268,18 @@ func (s Service) load(ctx context.Context, sc db.Scope, id uuid.UUID, lock bool)
 	}
 	if c.sigs, err = s.Repo.Signatures(ctx, id); err != nil {
 		return capture{}, err
+	}
+	c.evidence = map[uuid.UUID]string{}
+	for _, sg := range c.sigs {
+		if sg.EvidenceDocumentID != nil {
+			d, ok, err := s.Repo.DocumentInfo(ctx, *sg.EvidenceDocumentID)
+			if err != nil {
+				return capture{}, err
+			}
+			if ok {
+				c.evidence[sg.ID] = d.SHA256
+			}
+		}
 	}
 	c.facts, err = s.Lease.InventoryFactsInTx(ctx, sc, h.LeaseID)
 	return c, err
@@ -335,8 +349,9 @@ func (c capture) engine() Inventory {
 	return inv
 }
 
-// parties are who sign (décret 2016-382): the owner and every tenant of the
-// lease; a party has signed when a signature of that party carries its name.
+// parties are who sign (décret 2016-382): the owner and every co-tenant of
+// the lease, one person at a time (RENT-INV-001 §3); a party has signed when
+// a signature of that party carries its name.
 func (c capture) parties() []Party {
 	signed := func(party, name string) bool {
 		for _, s := range c.sigs {
@@ -347,8 +362,8 @@ func (c capture) parties() []Party {
 		return false
 	}
 	out := []Party{{Party: "owner", Name: c.facts.Owner.Name, Signed: signed("owner", c.facts.Owner.Name)}}
-	for _, t := range c.facts.Tenants {
-		out = append(out, Party{Party: "tenant", Name: t, Signed: signed("tenant", t)})
+	for _, t := range c.facts.Signers {
+		out = append(out, Party{Party: "tenant", Name: t.Name, Signed: signed("tenant", t.Name)})
 	}
 	return out
 }
@@ -878,6 +893,16 @@ func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID st
 		}
 		if blocked != nil {
 			return blocked
+		}
+		if in.Action == ActionReopen {
+			if len(c.sigs) > 0 {
+				return invariant.New(TypeSignatureStarted, "")
+			}
+			if r, ok, err := s.Repo.LatestRequest(ctx, id); err != nil {
+				return err
+			} else if ok && r.State == "pending" {
+				return invariant.New(TypeSignaturePending, r.ID.String())
+			}
 		}
 		before := header(c.head)
 		before["state"] = move[0]

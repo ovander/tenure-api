@@ -79,9 +79,11 @@ consultées par un lien temporaire dont chaque émission est journalisée.
 | --- | --- | --- |
 | Scaleway SAS | Hébergement du serveur, stockage objet des documents et des sauvegardes | France (fr-par) |
 | Fournisseur d’e-mail de l’exploitant (à préciser) | Envoi des avis et quittances | Union européenne |
+| Yousign SAS (si la signature électronique est activée) | Signature électronique des états des lieux : nom, prénom et e-mail des signataires, le document à signer, la preuve de signature | France, Union européenne |
 
 Aucun transfert hors de l’Union européenne. Aucun autre tiers ne reçoit de données des
-locataires en phase 1.
+locataires en phase 1. En phase 2, Yousign ne reçoit que ce qu’exige la signature d’un état
+des lieux, et seulement si le bailleur l’active.
 
 ## Mesures de sécurité (art. 32)
 

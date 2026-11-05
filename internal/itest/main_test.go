@@ -39,6 +39,8 @@ import (
 	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/esign"
+	"github.com/ovander/tenure-api/internal/esign/esigntest"
 	"github.com/ovander/tenure-api/internal/migrate"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/notify/smtptest"
@@ -69,6 +71,7 @@ var env struct {
 	app     *app.App
 	deps    app.Deps
 	s3      *minio.Client
+	esign   *esigntest.Server // the fake signature provider
 	store   *document.S3
 	smtp    *smtptest.Server
 	insee   *httptest.Server
@@ -227,7 +230,9 @@ func setup(m *testing.M) (int, error) {
 	if env.bff, err = newBFF(ctx, socrateFake.URL, api); err != nil {
 		return 0, fmt.Errorf("bff: %w", err)
 	}
-	env.deps = app.Deps{API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL}, BFF: env.bff,
+	env.esign = esigntest.New("itest-yousign-key")
+	defer env.esign.Close()
+	env.deps = app.Deps{ESign: esign.Yousign{BaseURL: env.esign.URL + "/v3", APIKey: "itest-yousign-key"}, API: api, Jobs: env.jobsDB, Auth: authMW, Store: env.store, PDF: document.Gotenberg{URL: pdfURL}, BFF: env.bff,
 		Scanner: document.Clamd{Addr: clamAddr}, WriteBurst: 10000, FailedAuthMax: 10000,
 		Mailer: notify.SMTP{Addr: env.smtp.Addr, From: "no-reply@tenure.itest"}, INSEE: params.INSEE{URL: env.insee.URL},
 		Ready: func(ctx context.Context) error { return api.Ping(ctx) }}

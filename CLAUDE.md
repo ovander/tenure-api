@@ -46,6 +46,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | Object store | minio-go: Scaleway fr-par in production (OD-04, BE-OD-03); RustFS in docker-compose and the integration suite while no MinIO image can be pulled (Q-38) |
 | PDF | gotenberg over HTTP, HTML → PDF/A-2b (OD-03, BE-OD-02) |
 | Antivirus | ClamAV sidecar (clamd INSTREAM over TCP, `TENURE_CLAMAV_ADDR`); every upload is scanned, fail closed (§8b, Q-67) |
+| E-signature | Yousign API v3 (OD-08) through `internal/esign`, optional: `TENURE_YOUSIGN_API_URL` and `TENURE_YOUSIGN_API_KEY`, both or neither; state pulled, no webhook (Q-112) |
 | Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`); browsers through a BFF (`backendkit/bff`), never holding a token |
 | Logs | `log/slog` JSON; backendkit's logrus entry is configured to JSON as well |
 | Lint | golangci-lint v2.14.0 built with Go 1.27.3 (includes staticcheck), govulncheck, gitleaks |
@@ -69,6 +70,7 @@ internal/audit        audit.Record, hash chain, chain heads
 internal/jobs         scheduler, job_runs lock, per-owner iteration
 internal/httpapi      Chi routers, middleware, problem details, swag
 internal/notify       e-mail (SMTP, FR/EN), smtptest for tests
+internal/esign        the e-signature provider (Yousign, OD-08), esigntest for tests
 internal/document     numbering, templates, PDF engine, archive store, signed links
 internal/app          wiring of the router and the jobs (cmd/tenure and the integration suite)
 internal/db           scoped transactions (app.owner_id, app.actor_sub), column types

@@ -153,6 +153,10 @@ type AttachRequest struct {
 	Data        []byte
 	ContentType string
 	Period      *period.Period
+	// AssetID and LeaseID link the file to its asset and lease; a file of a
+	// lease-bound class with a lease keeps its clock from the lease's end.
+	AssetID *uuid.UUID
+	LeaseID *uuid.UUID
 }
 
 // Attach archives a generated file that is not rendered (no number, no
@@ -180,7 +184,11 @@ func (i Issuer) Attach(ctx context.Context, req AttachRequest, ps params.Set) (I
 	rt := retain.Time()
 	row := documentRow{ID: id, OwnerID: sc.OwnerID, Class: string(req.Class), ObjectKey: key, ObjectVersion: version, SHA256: sum,
 		SizeBytes: int64(len(req.Data)), IssuedAt: &now, RetainUntil: &rt, CreatedAt: now, CreatedBy: actor(sc),
-		Source: SourceGenerated, ContentType: req.ContentType}
+		Source: SourceGenerated, ContentType: req.ContentType, AssetID: req.AssetID, LeaseID: req.LeaseID}
+	// A file of a lease-bound class keeps its clock from the lease's end.
+	if leaseBound[req.Class] && req.LeaseID != nil {
+		row.RetainUntil = nil
+	}
 	if req.Period != nil {
 		p := req.Period.String()
 		row.Period = &p
