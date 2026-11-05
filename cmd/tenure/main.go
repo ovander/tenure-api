@@ -197,6 +197,11 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	}
 	go d.BFF.Sweep(ctx)
 	d.Web = web.FS()
+	origin, err := store.Origin(ctx)
+	if err != nil {
+		return fmt.Errorf("archive origin: %w", err)
+	}
+	d.ImageOrigins = []string{origin}
 	if tag, _, err := web.Pinned(); err != nil {
 		slog.Warn("web bundle", "error", err)
 	} else {

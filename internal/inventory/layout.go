@@ -49,6 +49,7 @@ type Service struct {
 	DB        *db.DB
 	Repo      Repository
 	Portfolio portfolio.Service
+	Photos    PhotoStore
 	Now       func() time.Time
 	NewID     func() uuid.UUID
 }

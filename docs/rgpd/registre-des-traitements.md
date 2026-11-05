@@ -18,9 +18,16 @@ sous-traitants ou des durées de conservation.
 | Finalités | Rédaction et exécution du bail ; gestion des garanties ; états des lieux ; diagnostics |
 | Base légale | Exécution du contrat (art. 6.1.b) ; obligation légale (loi du 6 juillet 1989, art. 6.1.c) |
 | Personnes concernées | Locataires, colocataires, garants |
-| Données | Identité, coordonnées, date et lieu de naissance si le bail l’exige, pièces justificatives (identité, domicile, activité, ressources) dans la limite du décret n° 2015-1437, acte de cautionnement, état des lieux |
-| Destinataires | Le propriétaire ; ses co-propriétaires et son comptable s’il leur a ouvert un accès (le comptable n’a aucune pièce d’identité ni donnée de garant) |
+| Données | Identité, coordonnées, date et lieu de naissance si le bail l’exige, pièces justificatives (identité, domicile, activité, ressources) dans la limite du décret n° 2015-1437, acte de cautionnement, état des lieux et ses photos (pièces, équipements, compteurs ; elles peuvent montrer les biens du locataire) |
+| Destinataires | Le propriétaire ; ses co-propriétaires et son comptable s’il leur a ouvert un accès (le comptable n’a aucune pièce d’identité, donnée de garant, état des lieux ni photo) |
 | Durée de conservation | Pendant le bail, puis 10 ans après sa fin (prescription et preuve) ; dossier d’un candidat écarté : supprimé après 3 mois, seule une trace datée « refusé » est conservée |
+
+**Photos des états des lieux.** Prises par le propriétaire lors de l’état des lieux, elles sont
+analysées par l’antivirus puis nettoyées avant archivage : toutes les métadonnées (EXIF,
+localisation GPS, appareil, date de prise de vue) sont supprimées et l’image est réencodée.
+Seule l’empreinte du fichier reçu est gardée, dans le journal d’audit. Elles sont archivées
+sans modification possible, conservées comme l’état des lieux (10 ans après la fin du bail) et
+consultées par un lien temporaire dont chaque émission est journalisée.
 
 ## 2. Quittancement, paiements, régularisation des charges
 

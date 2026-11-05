@@ -162,6 +162,17 @@ func (s *S3) PresignGet(ctx context.Context, key, version string, ttl time.Durat
 	return s.Client.PresignedGetObject(ctx, s.Bucket, key, ttl, p)
 }
 
+// Origin is the scheme and host of the links PresignGet signs, which the web
+// app's CSP allows as an image source (INV-OD-12). It signs a link to no
+// object, offline (the region is configured), and keeps its origin.
+func (s *S3) Origin(ctx context.Context) (string, error) {
+	u, err := s.Client.PresignedGetObject(ctx, s.Bucket, "origin-probe", time.Minute, nil)
+	if err != nil {
+		return "", err
+	}
+	return u.Scheme + "://" + u.Host, nil
+}
+
 // CheckLock implements Store.
 func (s *S3) CheckLock(ctx context.Context) error {
 	enabled, mode, _, _, err := s.Client.GetObjectLockConfig(ctx, s.Bucket)

@@ -1020,3 +1020,31 @@ layout is versioned or edited. Provisional:
   inventories and photos (RENT-INV-001 §8).
 - **Audit.** `layout.seed` and `layout.update`, on the asset, with the layouts before and after.
 
+**Q-110 Inventory photo pipeline, slice 4 — Open (#97).** RENT-INV-001 §3 and §7 name the
+pipeline and the routes, not the limits, the orientation or the retention before lease end.
+Provisional:
+- **Upload.** `POST /inventories/{id}/photos`, multipart, `item_id` or `meter_id` (exactly one)
+  before the file. The upload is capped like a document (25 MB) and waits in quarantine while
+  ClamAV scans it; an infected file is refused with `document/infected` and leaves an
+  `inventory.photo.reject` event, a scanner failure is `document/scan-unavailable` (fail closed).
+- **Cleaning.** Only JPEG and PNG are accepted, at most 8 192 px a side and 40 megapixels,
+  checked from the header before decoding (product limits, not legal values); anything else is
+  `inventory/photo-not-image`. The EXIF orientation of a JPEG is applied to the pixels, then
+  the image is re-encoded to JPEG (quality 85) from its pixels alone, so no EXIF, location,
+  maker note, XMP, ICC profile or comment survives. `sha256` is the cleaned file's,
+  `original_sha256` the upload's; the audit event `inventory.photo.add` holds both. `taken_at`
+  stays empty: it would come from the metadata that is stripped.
+- **Retention.** The photo is locked for `archive_retention_years` from its upload: the clock
+  RENT-SPEC-005 starts at lease end is not known yet. `archive.retention` extends only
+  `documents` today; extending it to `inventory_photos` at lease end (never shortening a lock)
+  is deferred to slice 7, which issues the exit; until then a photo is locked from its upload.
+- **Issued inventory.** A photo is refused with `inventory/issued-immutable` (409) once the
+  inventory is issued; the database trigger refuses it too.
+- **Viewing.** `GET …/photos/{photoId}/content` gives a 10-minute signed link, shown inline,
+  audited as `inventory.photo.view`. The owner and the co-owner may view; the accountant is
+  refused (403), as for the layout (Q-109).
+- **CSP.** The web app's `img-src` is `'self' data: blob:` plus the archive origin, taken at
+  start from a link the store signs (INV-OD-12); no other directive changes. Caddy keeps its
+  fallback policy for the API only. tenure-web mirrors the policy in its dev server with the
+  capture screen (slice 5).
+

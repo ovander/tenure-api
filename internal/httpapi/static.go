@@ -16,15 +16,18 @@ import (
 
 // webCSP is the policy of the embedded web app: its own scripts, styles,
 // images and API calls only, no inline script, no framing (RENT-BE-001 §8b).
+// Images may also come from blob: (a photo previewed before upload) and from
+// the archive's signed links (images: the origins, INV-OD-12); content is
+// still never streamed through the API.
 // index.html also allows the styles that carry its per-response nonce:
 // PrimeVue's theme is written into <style> elements at run time (Q-96,
 // tenure-web Q-W1). The API keeps backendkit's default-src 'none'.
-func webCSP(nonce string) string {
+func webCSP(nonce string, images []string) string {
 	style := "style-src 'self'; "
 	if nonce != "" {
 		style = "style-src 'self' 'nonce-" + nonce + "'; "
 	}
-	return "default-src 'self'; script-src 'self'; " + style + "img-src 'self' data:; font-src 'self'; " +
+	return "default-src 'self'; script-src 'self'; " + style + "img-src " + strings.Join(append([]string{"'self'", "data:", "blob:"}, images...), " ") + "; font-src 'self'; " +
 		"connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; " +
 		"form-action 'self'; frame-ancestors 'none'"
 }
@@ -46,7 +49,7 @@ func newNonce() (string, error) {
 // assets/ cached for a year), a path with an extension that does not exist is
 // a 404, and any other path is a route of the single-page app and gets
 // index.html, never cached. Everything else falls through to notFound.
-func staticApp(files fs.FS, notFound http.HandlerFunc) http.HandlerFunc {
+func staticApp(files fs.FS, images []string, notFound http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		if files == nil || (r.Method != http.MethodGet && r.Method != http.MethodHead) ||
@@ -85,7 +88,7 @@ func staticApp(files fs.FS, notFound http.HandlerFunc) http.HandlerFunc {
 		}
 		h.Set("Content-Type", ct)
 		h.Set("Content-Length", strconv.Itoa(len(data)))
-		h.Set("Content-Security-Policy", webCSP(nonce))
+		h.Set("Content-Security-Policy", webCSP(nonce, images))
 		if strings.HasPrefix(name, "assets/") {
 			h.Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {

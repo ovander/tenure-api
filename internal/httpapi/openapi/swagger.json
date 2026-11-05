@@ -2707,6 +2707,187 @@
                 }
             }
         },
+        "/inventories/{id}/photos": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "multipart/form-data: item_id or meter_id first, the file last. The upload waits in quarantine while the antivirus scans it; a JPEG or PNG is then turned upright, stripped of every metadata (EXIF, location) and re-encoded to JPEG, and the cleaned file is archived under compliance lock. 25 MB at most. Not on an issued inventory; owner only.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Add a photo to an inventory item or meter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "inventory id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "inventory item id",
+                        "name": "item_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "inventory meter id",
+                        "name": "meter_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "JPEG or PNG",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/inventory.PhotoView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/inventories/{id}/photos/{photoId}/content": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The photo is never streamed through the API; the link is shown inline and every link issued is recorded as an audit event. Not for an accountant.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Get a 10-minute link to an inventory photo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "inventory id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "photo id",
+                        "name": "photoId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/document.Link"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/inventory-templates": {
             "get": {
                 "security": [
@@ -7531,6 +7712,35 @@
                     }
                 },
                 "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "inventory.PhotoView": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "height": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inventory_id": {
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "string"
+                },
+                "meter_id": {
+                    "type": "string"
+                },
+                "sha256": {
+                    "type": "string"
+                },
+                "width": {
                     "type": "integer"
                 }
             }
