@@ -1,0 +1,249 @@
+{
+  "case": "house-broken-appliance",
+  "description": "A house with a garage and a garden: the extra rooms are seeded; a broken oven blocks completion until a comment or a photo explains it.",
+  "assets": [
+    {
+      "id": "house",
+      "kind": "house",
+      "bedrooms": 2,
+      "features": {
+        "garage": true,
+        "garden": true
+      }
+    }
+  ],
+  "steps": [
+    {
+      "name": "seed",
+      "seed": "house",
+      "expected": [
+        {
+          "id": "house-r1",
+          "kind": "entry",
+          "label": "Entrée",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "house-r2",
+          "kind": "living",
+          "label": "Séjour",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "house-r3",
+          "kind": "kitchen",
+          "label": "Cuisine",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Évier",
+            "Robinetterie",
+            "Plan de travail",
+            "Hotte",
+            "Plaques",
+            "Four"
+          ]
+        },
+        {
+          "id": "house-r4",
+          "kind": "bedroom",
+          "label": "Chambre 1",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "house-r5",
+          "kind": "bedroom",
+          "label": "Chambre 2",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "house-r6",
+          "kind": "bathroom",
+          "label": "Salle d’eau",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Douche ou baignoire",
+            "Lavabo",
+            "WC",
+            "VMC"
+          ]
+        },
+        {
+          "id": "house-r7",
+          "kind": "wc",
+          "label": "WC",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "WC",
+            "Éclairage"
+          ]
+        },
+        {
+          "id": "house-r8",
+          "kind": "garage",
+          "label": "Garage",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte de garage",
+            "Éclairage",
+            "Prise"
+          ]
+        },
+        {
+          "id": "house-r9",
+          "kind": "outside",
+          "label": "Extérieurs",
+          "elements": [
+            "Jardin",
+            "Façades visibles",
+            "Portail",
+            "Clôture",
+            "Terrasse",
+            "Gouttières visibles",
+            "Éclairage extérieur",
+            "Robinet extérieur"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "draft",
+      "draft": {
+        "id": "ee",
+        "assets": [
+          "house"
+        ]
+      },
+      "expected": {
+        "items": 78,
+        "rooms": 9
+      }
+    },
+    {
+      "name": "broken oven, unexplained",
+      "capture": {
+        "id": "ee",
+        "done_on": "2026-04-01",
+        "default": {
+          "id": "",
+          "room_id": "",
+          "room_label": "",
+          "category": "",
+          "label": "",
+          "condition": "good",
+          "works": "ok"
+        },
+        "items": {
+          "house-r3-e14": {
+            "condition": "broken",
+            "works": "ko"
+          }
+        },
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "quantity": 3
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "quantity": 1
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": true
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [
+          {
+            "code": "damage-unexplained",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Four"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "with a photo",
+      "capture": {
+        "id": "ee",
+        "items": {
+          "house-r3-e14": {
+            "photos": 1
+          }
+        }
+      },
+      "expected": {
+        "blocking": [],
+        "warnings": []
+      }
+    }
+  ]
+}

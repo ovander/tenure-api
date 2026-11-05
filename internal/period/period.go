@@ -66,6 +66,18 @@ func (d Date) AddDays(n int) Date { return FromTime(d.Time().AddDate(0, 0, n)) }
 // AddMonths returns d plus n calendar months, normalised as time.AddDate does.
 func (d Date) AddMonths(n int) Date { return FromTime(d.Time().AddDate(0, n, 0)) }
 
+// AddMonthsClamped returns d plus n calendar months, on the same day of the
+// month, or on the target month's last day when it has no such day (31
+// January + 1 month = 28 or 29 February): the reckoning of a legal delay in
+// months (code de procédure civile art. 641), where AddMonths would spill
+// into the next month.
+func (d Date) AddMonthsClamped(n int) Date {
+	p := Period{d.Year, d.Month}
+	t := p.First().Time().AddDate(0, n, 0)
+	q := Period{t.Year(), t.Month()}
+	return Date{q.Year, q.Month, min(d.Day, q.Days())}
+}
+
 // Period returns the billing month that contains d.
 func (d Date) Period() Period { return Period{d.Year, d.Month} }
 

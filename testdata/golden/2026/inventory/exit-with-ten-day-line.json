@@ -1,0 +1,213 @@
+{
+  "case": "exit-with-ten-day-line",
+  "description": "The tenant had the living-room floor completed to « mauvais état » within ten days; the accepted line, not the issued entry, is what the exit is compared with: the same state at exit is not a degradation. A refused line changes nothing.",
+  "assets": [
+    {
+      "id": "box",
+      "kind": "box",
+      "bedrooms": 0
+    }
+  ],
+  "steps": [
+    {
+      "name": "seed",
+      "seed": "box",
+      "expected": [
+        {
+          "id": "box-r1",
+          "kind": "box",
+          "label": "Box",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Serrure",
+            "Télécommande",
+            "Éclairage",
+            "Prise",
+            "Ventilation",
+            "Numéro de place"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "draft",
+      "draft": {
+        "id": "ee",
+        "assets": [
+          "box"
+        ]
+      },
+      "expected": {
+        "items": 10,
+        "rooms": 1
+      }
+    },
+    {
+      "name": "entry",
+      "capture": {
+        "id": "ee",
+        "done_on": "2026-02-01",
+        "default": {
+          "id": "",
+          "room_id": "",
+          "room_label": "",
+          "category": "",
+          "label": "",
+          "condition": "good",
+          "works": "ok"
+        },
+        "keys": [
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "quantity": 2
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": true
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "prefill the exit with the completion",
+      "prefill": {
+        "from": "ee",
+        "id": "es",
+        "completions": [
+          {
+            "entry_item_id": "ee/box-r1-e1",
+            "condition": "poor",
+            "comment": "taches d’huile anciennes",
+            "accepted": true
+          },
+          {
+            "entry_item_id": "ee/box-r1-e2",
+            "condition": "poor",
+            "accepted": false
+          }
+        ]
+      },
+      "expected": {
+        "entry_done_on": "2026-02-01",
+        "items": 10,
+        "keys": [
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "quantity": 2
+          }
+        ],
+        "kind": "exit",
+        "to_check": 10
+      }
+    },
+    {
+      "name": "exit",
+      "capture": {
+        "id": "es",
+        "done_on": "2026-10-31",
+        "keys_returned_on": "2026-10-31",
+        "tenant_new_address": "1 rue Nouvelle, Lyon",
+        "items": {
+          "box-r1-e1": {
+            "condition": "poor",
+            "comment": "taches d’huile anciennes"
+          },
+          "box-r1-e2": {
+            "condition": "poor",
+            "comment": "éraflures"
+          }
+        },
+        "keys": [
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "quantity": 2
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": true
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "compare with the completion",
+      "compare": {
+        "entry": "ee",
+        "exit": "es",
+        "completions": [
+          {
+            "entry_item_id": "ee/box-r1-e1",
+            "condition": "poor",
+            "comment": "taches d’huile anciennes",
+            "accepted": true
+          },
+          {
+            "entry_item_id": "ee/box-r1-e2",
+            "condition": "poor",
+            "accepted": false
+          }
+        ]
+      },
+      "expected": {
+        "items": [
+          {
+            "exit_item_id": "es/box-r1-e2",
+            "entry_item_id": "ee/box-r1-e2",
+            "room": "Box",
+            "label": "Murs",
+            "category": "walls",
+            "result": "worse",
+            "entry": {
+              "condition": "good"
+            },
+            "exit": {
+              "condition": "poor",
+              "comment": "éraflures"
+            },
+            "steps": 2
+          }
+        ],
+        "keys": [
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "entry": 2,
+            "exit": 2,
+            "result": "same"
+          }
+        ],
+        "flagged": 1
+      }
+    }
+  ]
+}

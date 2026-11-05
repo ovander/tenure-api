@@ -1,0 +1,181 @@
+{
+  "case": "furnished-studio-missing-furniture",
+  "description": "A furnished studio: no bedroom, so the bedding and blackout seeded in the living room; the eleven furniture items of décret 2015-981; a missing one only warns.",
+  "assets": [
+    {
+      "id": "studio",
+      "kind": "apartment",
+      "bedrooms": 0,
+      "furnished": true
+    }
+  ],
+  "steps": [
+    {
+      "name": "seed",
+      "seed": "studio",
+      "expected": [
+        {
+          "id": "studio-r1",
+          "kind": "entry",
+          "label": "Entrée",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "studio-r2",
+          "kind": "living",
+          "label": "Séjour",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Table et sièges",
+            "Étagères de rangement",
+            "Luminaires",
+            "Literie avec couette ou couverture",
+            "Dispositif d’occultation des fenêtres"
+          ]
+        },
+        {
+          "id": "studio-r3",
+          "kind": "kitchen",
+          "label": "Cuisine",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Évier",
+            "Robinetterie",
+            "Plan de travail",
+            "Hotte",
+            "Plaques de cuisson",
+            "Four ou four à micro-ondes",
+            "Réfrigérateur avec compartiment congélation",
+            "Vaisselle",
+            "Ustensiles de cuisine",
+            "Matériel d’entretien ménager"
+          ]
+        },
+        {
+          "id": "studio-r4",
+          "kind": "bathroom",
+          "label": "Salle d’eau",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Douche ou baignoire",
+            "Lavabo",
+            "WC",
+            "VMC"
+          ]
+        },
+        {
+          "id": "studio-r5",
+          "kind": "wc",
+          "label": "WC",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "WC",
+            "Éclairage"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "draft",
+      "draft": {
+        "id": "ee",
+        "furnished": true,
+        "assets": [
+          "studio"
+        ]
+      },
+      "expected": {
+        "items": 57,
+        "rooms": 5
+      }
+    },
+    {
+      "name": "entry with the crockery missing",
+      "capture": {
+        "id": "ee",
+        "done_on": "2026-09-01",
+        "default": {
+          "id": "",
+          "room_id": "",
+          "room_label": "",
+          "category": "",
+          "label": "",
+          "condition": "good",
+          "works": "ok"
+        },
+        "items": {
+          "studio-r3-e16": {
+            "quantity": 0
+          }
+        },
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "quantity": 3
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "quantity": 1
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": true
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [],
+        "warnings": [
+          {
+            "code": "furniture-missing",
+            "room": "Cuisine",
+            "item": "Vaisselle"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,845 @@
+{
+  "source": "RENT-INV-001 §4; furniture: décret 2015-981 art. 2. Verify the furniture list against Légifrance before inventory slice 6.",
+  "templates": [
+    {
+      "asset_kind": "apartment",
+      "version": 1,
+      "rooms": [
+        {
+          "kind": "entry",
+          "label": "Entrée",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "living",
+          "label": "Séjour",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "kitchen",
+          "label": "Cuisine",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            },
+            {
+              "category": "plumbing",
+              "label": "Évier"
+            },
+            {
+              "category": "plumbing",
+              "label": "Robinetterie"
+            },
+            {
+              "category": "other",
+              "label": "Plan de travail"
+            },
+            {
+              "category": "appliance",
+              "label": "Hotte"
+            },
+            {
+              "category": "appliance",
+              "label": "Plaques"
+            },
+            {
+              "category": "appliance",
+              "label": "Four"
+            }
+          ]
+        },
+        {
+          "kind": "bedroom",
+          "label": "Chambre",
+          "repeat": "bedroom",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "bathroom",
+          "label": "Salle d’eau",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            },
+            {
+              "category": "plumbing",
+              "label": "Douche ou baignoire"
+            },
+            {
+              "category": "plumbing",
+              "label": "Lavabo"
+            },
+            {
+              "category": "plumbing",
+              "label": "WC"
+            },
+            {
+              "category": "electrical",
+              "label": "VMC"
+            }
+          ]
+        },
+        {
+          "kind": "wc",
+          "label": "WC",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "plumbing",
+              "label": "WC"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            }
+          ]
+        },
+        {
+          "kind": "storage",
+          "label": "Cellier ou cave",
+          "when": "cellar",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            }
+          ]
+        }
+      ],
+      "furnished": {
+        "bedroom": [
+          {
+            "category": "furniture",
+            "label": "Literie avec couette ou couverture",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Dispositif d’occultation des fenêtres",
+            "quantity": 1
+          }
+        ],
+        "kitchen": [
+          {
+            "category": "furniture",
+            "label": "Plaques de cuisson",
+            "quantity": 1,
+            "replaces": "Plaques"
+          },
+          {
+            "category": "furniture",
+            "label": "Four ou four à micro-ondes",
+            "quantity": 1,
+            "replaces": "Four"
+          },
+          {
+            "category": "furniture",
+            "label": "Réfrigérateur avec compartiment congélation",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Vaisselle",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Ustensiles de cuisine",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Matériel d’entretien ménager",
+            "quantity": 1
+          }
+        ],
+        "living": [
+          {
+            "category": "furniture",
+            "label": "Table et sièges",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Étagères de rangement",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Luminaires",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "asset_kind": "house",
+      "version": 1,
+      "rooms": [
+        {
+          "kind": "entry",
+          "label": "Entrée",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "living",
+          "label": "Séjour",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "kitchen",
+          "label": "Cuisine",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            },
+            {
+              "category": "plumbing",
+              "label": "Évier"
+            },
+            {
+              "category": "plumbing",
+              "label": "Robinetterie"
+            },
+            {
+              "category": "other",
+              "label": "Plan de travail"
+            },
+            {
+              "category": "appliance",
+              "label": "Hotte"
+            },
+            {
+              "category": "appliance",
+              "label": "Plaques"
+            },
+            {
+              "category": "appliance",
+              "label": "Four"
+            }
+          ]
+        },
+        {
+          "kind": "bedroom",
+          "label": "Chambre",
+          "repeat": "bedroom",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            }
+          ]
+        },
+        {
+          "kind": "bathroom",
+          "label": "Salle d’eau",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Fenêtres et volets"
+            },
+            {
+              "category": "electrical",
+              "label": "Prises et interrupteurs"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "heating",
+              "label": "Radiateur"
+            },
+            {
+              "category": "plumbing",
+              "label": "Douche ou baignoire"
+            },
+            {
+              "category": "plumbing",
+              "label": "Lavabo"
+            },
+            {
+              "category": "plumbing",
+              "label": "WC"
+            },
+            {
+              "category": "electrical",
+              "label": "VMC"
+            }
+          ]
+        },
+        {
+          "kind": "wc",
+          "label": "WC",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "plumbing",
+              "label": "WC"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            }
+          ]
+        },
+        {
+          "kind": "storage",
+          "label": "Cellier ou cave",
+          "when": "cellar",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            }
+          ]
+        },
+        {
+          "kind": "garage",
+          "label": "Garage",
+          "when": "garage",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte de garage"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "electrical",
+              "label": "Prise"
+            }
+          ]
+        },
+        {
+          "kind": "outside",
+          "label": "Extérieurs",
+          "when": "garden",
+          "elements": [
+            {
+              "category": "other",
+              "label": "Jardin"
+            },
+            {
+              "category": "walls",
+              "label": "Façades visibles"
+            },
+            {
+              "category": "joinery",
+              "label": "Portail"
+            },
+            {
+              "category": "other",
+              "label": "Clôture"
+            },
+            {
+              "category": "floor",
+              "label": "Terrasse"
+            },
+            {
+              "category": "other",
+              "label": "Gouttières visibles"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage extérieur"
+            },
+            {
+              "category": "plumbing",
+              "label": "Robinet extérieur"
+            }
+          ]
+        }
+      ],
+      "furnished": {
+        "bedroom": [
+          {
+            "category": "furniture",
+            "label": "Literie avec couette ou couverture",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Dispositif d’occultation des fenêtres",
+            "quantity": 1
+          }
+        ],
+        "kitchen": [
+          {
+            "category": "furniture",
+            "label": "Plaques de cuisson",
+            "quantity": 1,
+            "replaces": "Plaques"
+          },
+          {
+            "category": "furniture",
+            "label": "Four ou four à micro-ondes",
+            "quantity": 1,
+            "replaces": "Four"
+          },
+          {
+            "category": "furniture",
+            "label": "Réfrigérateur avec compartiment congélation",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Vaisselle",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Ustensiles de cuisine",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Matériel d’entretien ménager",
+            "quantity": 1
+          }
+        ],
+        "living": [
+          {
+            "category": "furniture",
+            "label": "Table et sièges",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Étagères de rangement",
+            "quantity": 1
+          },
+          {
+            "category": "furniture",
+            "label": "Luminaires",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "asset_kind": "box",
+      "version": 1,
+      "rooms": [
+        {
+          "kind": "box",
+          "label": "Box",
+          "elements": [
+            {
+              "category": "floor",
+              "label": "Sol"
+            },
+            {
+              "category": "walls",
+              "label": "Murs"
+            },
+            {
+              "category": "ceiling",
+              "label": "Plafond"
+            },
+            {
+              "category": "joinery",
+              "label": "Porte"
+            },
+            {
+              "category": "joinery",
+              "label": "Serrure"
+            },
+            {
+              "category": "electrical",
+              "label": "Télécommande"
+            },
+            {
+              "category": "electrical",
+              "label": "Éclairage"
+            },
+            {
+              "category": "electrical",
+              "label": "Prise"
+            },
+            {
+              "category": "other",
+              "label": "Ventilation"
+            },
+            {
+              "category": "other",
+              "label": "Numéro de place"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

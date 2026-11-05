@@ -919,3 +919,39 @@ nothing let an owner override one. Provisional:
   - a specimen preview, which needs sample data in production code and a render on every look.
   §6 now says the override is deferred. Both wait for an owner's request and its review.
 
+**Q-107 Inventory engine, slice 1 — Open (#89).** RENT-INV-001 slice 1 builds the pure functions
+before INV-OD-04 and INV-OD-13 are decided, and leaves a few points to the implementation.
+Provisional, each the conservative reading:
+- **Condition scale (INV-OD-04, proposed).** The code follows the proposal: five levels, `new`,
+  `good`, `fair`, `poor`, `broken`, with `works` (ok, ko, n/a) recorded apart. `works` going
+  from ok to ko is « worse » even when the condition stays the same.
+- **Restitution delay (INV-OD-13, proposed).** The code follows the proposal: the shorter delay
+  applies whenever no deduction is retained, even when the exit differs from the entry. This can
+  only bring the date closer for the tenant.
+- **Months.** A legal delay in months ends on the same day of the month, or on the month's last
+  day when there is none (`period.Date.AddMonthsClamped`; code de procédure civile art. 641).
+  `AddMonths`, which would turn 31 January + 1 month into 3 March, is not used for deadlines.
+- **Started months of delay.** One day after the deadline starts the first month. The m-th month
+  starts the day after the deadline + (m − 1) months.
+- **Vétusté.** Age is counted in full years. At the line's lifetime, the share is the floor even
+  if the yearly formula gives more. A grid with no line for the item's category refuses the
+  deduction (`ErrNoGridLine`) rather than charging the whole cost. Without a grid, the whole
+  cost is charged and must be justified item by item, as §6 says.
+- **Holdback.** The share of the deposit held back in a collective building is rounded down, so
+  it never exceeds the allowed share.
+- **Coverings.** Outdoor parts (room kind `outside`: garden, façades, gate) are not rooms. The
+  floor, walls and ceiling are required in every other room.
+- **Furnished.** A furniture element of décret 2015-981 replaces its unfurnished equivalent (the
+  kitchen hob, the oven) instead of being added twice. The furniture of a room kind the asset
+  lacks, such as a studio's bedroom, is seeded in the living room. A furniture item with
+  quantity 0 or `broken` at entry warns, and never blocks.
+- **Parameters.** The restitution keys of RENT-INV-001 §7 are named in `internal/params`
+  (`DepositReturn`), but slice 1 does not seed them: inventory slice 2 adds them to
+  `testdata/params` with their legal values and sources. The settlement golden case uses
+  synthetic values labelled as such, deliberately different from the law's, so that no one
+  takes them for legal figures.
+- **Templates.** The system templates are data in `testdata/inventory/templates.json`, in French,
+  which slice 2 seeds as `inventory_templates` rows. The furniture list is to be checked against
+  Légifrance before inventory slice 6, with the other points RENT-INV-001 §12 lists.
+- **Golden cases.** They use made-up assets, never real tenant data.
+

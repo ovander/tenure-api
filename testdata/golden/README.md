@@ -44,6 +44,29 @@ the diff.
 To add a case, write its inputs and steps with `"expected": null` and run `-update`. Then check
 the figures by hand and record that check in the PR.
 
+## Inventory cases (RENT-INV-001)
+
+`testdata/golden/<year>/inventory/*.json` replay `internal/inventory` (`TestInventoryGolden`). A
+case lists `assets` and optional vétusté `grids`, then `steps`, each one of:
+- `seed`, an asset id: its layout from `testdata/inventory/templates.json`. The harness gives
+  rooms and elements the ids `<asset>-r<n>` and `<asset>-r<n>-e<m>`;
+- `draft`: a new entry over the seeded assets;
+- `capture`: what was found on site (a `default` condition for every item, then `items` by
+  element id), then `Validate`;
+- `prefill`: the next inventory from one, with completion lines;
+- `compare`: only the items that are not `same`;
+- `deduct`;
+- `settlement`: deadline, late penalty, balance and holdback.
+
+| Case (2026) | Proves |
+| --- | --- |
+| `apartment-with-box` | One inventory, two room blocks (71 items); entry passes; exit pre-filled and marked to check; worn wall, remote ko, a key and the remote missing: 4 flagged; an unsigned exit without the new address cannot be issued |
+| `furnished-studio-missing-furniture` | Studio with no bedroom: bedding and blackout seeded in the living room; the 11 furniture items, the hob and oven replacing the unfurnished ones; missing crockery warns, does not block |
+| `house-broken-appliance` | Garage and outdoor parts seeded; no coverings required outdoors; a broken oven blocks until a photo explains it |
+| `exit-with-ten-day-line` | An accepted completion line, not the issued entry, is compared: the same state at exit is not worse; a refused line changes nothing |
+| `deductions` | Synthetic grid: within the franchise 100 %; after it 64 % (30 720 of 48 000); at the lifetime the floor 20 %; no grid 100 %; half a cent rounds up (12 348 × 87,5 % = 10 804,5 → 10 805) |
+| `settlement` | Synthetic delays: 31 January + 3 months = 30 April; a deduction retained + 5 months; penalty 1 and 3 started months (7 % of 800 € = 56 €, 168 €), none without a new address; holdback rounded down (15 % of 900,01 € = 135,00 €) and its balance 2 months after the approval |
+
 ## Cases (2025)
 
 | Case | Proves | Key figures |

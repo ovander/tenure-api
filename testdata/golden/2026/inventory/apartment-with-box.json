@@ -1,0 +1,969 @@
+{
+  "case": "apartment-with-box",
+  "description": "An apartment and its box under one lease: one inventory, two room blocks. The entry passes every check; the exit is pre-filled from it; a wall worn, a key and the box remote missing are flagged; an exit without the tenant's new address cannot be issued.",
+  "assets": [
+    {
+      "id": "apt",
+      "kind": "apartment",
+      "bedrooms": 1,
+      "features": {
+        "cellar": true
+      }
+    },
+    {
+      "id": "box",
+      "kind": "box",
+      "bedrooms": 0
+    }
+  ],
+  "steps": [
+    {
+      "name": "seed the apartment",
+      "seed": "apt",
+      "expected": [
+        {
+          "id": "apt-r1",
+          "kind": "entry",
+          "label": "Entrée",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "apt-r2",
+          "kind": "living",
+          "label": "Séjour",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "apt-r3",
+          "kind": "kitchen",
+          "label": "Cuisine",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Évier",
+            "Robinetterie",
+            "Plan de travail",
+            "Hotte",
+            "Plaques",
+            "Four"
+          ]
+        },
+        {
+          "id": "apt-r4",
+          "kind": "bedroom",
+          "label": "Chambre",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur"
+          ]
+        },
+        {
+          "id": "apt-r5",
+          "kind": "bathroom",
+          "label": "Salle d’eau",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Fenêtres et volets",
+            "Prises et interrupteurs",
+            "Éclairage",
+            "Radiateur",
+            "Douche ou baignoire",
+            "Lavabo",
+            "WC",
+            "VMC"
+          ]
+        },
+        {
+          "id": "apt-r6",
+          "kind": "wc",
+          "label": "WC",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "WC",
+            "Éclairage"
+          ]
+        },
+        {
+          "id": "apt-r7",
+          "kind": "storage",
+          "label": "Cellier ou cave",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Éclairage"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "seed the box",
+      "seed": "box",
+      "expected": [
+        {
+          "id": "box-r1",
+          "kind": "box",
+          "label": "Box",
+          "elements": [
+            "Sol",
+            "Murs",
+            "Plafond",
+            "Porte",
+            "Serrure",
+            "Télécommande",
+            "Éclairage",
+            "Prise",
+            "Ventilation",
+            "Numéro de place"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "draft the entry",
+      "draft": {
+        "id": "ee",
+        "assets": [
+          "apt",
+          "box"
+        ]
+      },
+      "expected": {
+        "items": 71,
+        "rooms": 8
+      }
+    },
+    {
+      "name": "entry before capture",
+      "capture": {
+        "id": "ee"
+      },
+      "expected": {
+        "blocking": [
+          {
+            "code": "done-on-missing",
+            "stage": "complete"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "ceiling"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "floor"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "walls"
+          },
+          {
+            "code": "covering-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "ceiling"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Fenêtres et volets"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Prises et interrupteurs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Entrée",
+            "item": "Radiateur"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Fenêtres et volets"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Prises et interrupteurs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Séjour",
+            "item": "Radiateur"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Fenêtres et volets"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Prises et interrupteurs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Radiateur"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Évier"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Robinetterie"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Plan de travail"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Hotte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Plaques"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cuisine",
+            "item": "Four"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Fenêtres et volets"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Prises et interrupteurs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Chambre",
+            "item": "Radiateur"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Fenêtres et volets"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Prises et interrupteurs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Radiateur"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Douche ou baignoire"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "Lavabo"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "WC"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Salle d’eau",
+            "item": "VMC"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "WC"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "WC",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Cellier ou cave",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Sol"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Murs"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Plafond"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Porte"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Serrure"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Télécommande"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Éclairage"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Prise"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Ventilation"
+          },
+          {
+            "code": "item-not-assessed",
+            "stage": "complete",
+            "room": "Box",
+            "item": "Numéro de place"
+          },
+          {
+            "code": "no-key-line",
+            "stage": "complete"
+          },
+          {
+            "code": "no-party",
+            "stage": "issue"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "entry captured",
+      "capture": {
+        "id": "ee",
+        "done_on": "2026-01-02",
+        "default": {
+          "id": "",
+          "room_id": "",
+          "room_label": "",
+          "category": "",
+          "label": "",
+          "condition": "good",
+          "works": "ok"
+        },
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "quantity": 3
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "quantity": 1
+          },
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "quantity": 1
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": true
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "prefill the exit",
+      "prefill": {
+        "from": "ee",
+        "id": "es"
+      },
+      "expected": {
+        "entry_done_on": "2026-01-02",
+        "items": 71,
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "quantity": 3
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "quantity": 1
+          },
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "quantity": 1
+          }
+        ],
+        "kind": "exit",
+        "to_check": 71
+      }
+    },
+    {
+      "name": "exit captured without the new address",
+      "capture": {
+        "id": "es",
+        "done_on": "2026-11-30",
+        "keys_returned_on": "2026-11-30",
+        "items": {
+          "apt-r2-e2": {
+            "condition": "poor",
+            "comment": "traces de fixations, trous rebouchés"
+          },
+          "box-r1-e6": {
+            "works": "ko"
+          }
+        },
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "quantity": 2
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "quantity": 1
+          }
+        ],
+        "parties": [
+          {
+            "party": "owner",
+            "name": "Bailleur Exemple",
+            "signed": true
+          },
+          {
+            "party": "tenant",
+            "name": "Locataire Exemple",
+            "signed": false
+          }
+        ]
+      },
+      "expected": {
+        "blocking": [
+          {
+            "code": "party-not-signed",
+            "stage": "issue",
+            "party": "Locataire Exemple"
+          },
+          {
+            "code": "exit-new-address-missing",
+            "stage": "issue"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "compare",
+      "compare": {
+        "entry": "ee",
+        "exit": "es"
+      },
+      "expected": {
+        "items": [
+          {
+            "exit_item_id": "es/apt-r2-e2",
+            "entry_item_id": "ee/apt-r2-e2",
+            "room": "Séjour",
+            "label": "Murs",
+            "category": "walls",
+            "result": "worse",
+            "entry": {
+              "condition": "good"
+            },
+            "exit": {
+              "condition": "poor",
+              "comment": "traces de fixations, trous rebouchés"
+            },
+            "steps": 2
+          },
+          {
+            "exit_item_id": "es/box-r1-e6",
+            "entry_item_id": "ee/box-r1-e6",
+            "room": "Box",
+            "label": "Télécommande",
+            "category": "electrical",
+            "result": "worse",
+            "entry": {
+              "condition": "good",
+              "works": "ok"
+            },
+            "exit": {
+              "condition": "good",
+              "works": "ko"
+            },
+            "steps": 0
+          }
+        ],
+        "keys": [
+          {
+            "kind": "key",
+            "destination": "porte d’entrée",
+            "entry": 3,
+            "exit": 2,
+            "result": "missing"
+          },
+          {
+            "kind": "badge",
+            "destination": "hall",
+            "entry": 1,
+            "exit": 1,
+            "result": "same"
+          },
+          {
+            "kind": "remote",
+            "destination": "portail box",
+            "entry": 1,
+            "exit": 0,
+            "result": "missing"
+          }
+        ],
+        "flagged": 4
+      }
+    }
+  ]
+}
