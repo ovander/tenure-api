@@ -288,7 +288,7 @@ func (s Service) activationBlockers(ctx context.Context, f contractFacts) ([]*in
 	if err != nil {
 		return nil, err
 	}
-	if !slices.ContainsFunc(invs, func(i inventoryRow) bool { return i.Kind == "entry" }) {
+	if !slices.ContainsFunc(invs, func(i inventoryRow) bool { return i.Kind == "entry" && i.State == "issued" }) {
 		out = append(out, invariant.New(TypeEntryInventoryMissing, ""))
 	}
 	return out, nil
@@ -644,21 +644,40 @@ type InventoryInput struct {
 	DoneOn period.Date `json:"done_on" swaggertype:"string" format:"date"`
 	// DocumentID is the uploaded état des lieux (class inventory, this lease).
 	DocumentID uuid.UUID `json:"document_id"`
-	// Items are structured from phase 2; free JSON array until then.
-	Items json.RawMessage `json:"items" swaggertype:"array,object"`
+	// Items is retired (RENT-INV-001 §9): a non-empty value is refused with
+	// inventory/items-field-retired; the structured items come with the
+	// inventory capture.
+	Items json.RawMessage `json:"items,omitempty" swaggertype:"array,object"`
 }
 
-// InventoryView is a recorded inventory.
+// InventoryView is a recorded inventory. LegacyItems is the free JSON a phase
+// 1 inventory was recorded with, kept as it was.
 type InventoryView struct {
-	ID      uuid.UUID `json:"id"`
-	LeaseID uuid.UUID `json:"lease_id"`
-	InventoryInput
-	CreatedAt time.Time `json:"created_at"`
+	ID          uuid.UUID       `json:"id"`
+	LeaseID     uuid.UUID       `json:"lease_id"`
+	Kind        string          `json:"kind" enums:"entry,exit"`
+	DoneOn      period.Date     `json:"done_on" swaggertype:"string" format:"date"`
+	DocumentID  uuid.UUID       `json:"document_id"`
+	Mode        string          `json:"mode" enums:"amicable,bailiff,upload"`
+	State       string          `json:"state" enums:"draft,scheduled,in_progress,completed,signed,issued"`
+	LegacyItems json.RawMessage `json:"legacy_items,omitempty" swaggertype:"array,object"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
 
 func inventoryView(i inventoryRow) InventoryView {
-	return InventoryView{ID: i.ID, LeaseID: i.LeaseID, CreatedAt: i.CreatedAt,
-		InventoryInput: InventoryInput{Kind: i.Kind, DoneOn: period.FromTime(i.DoneOn), DocumentID: i.DocumentID, Items: i.Items}}
+	v := InventoryView{ID: i.ID, LeaseID: i.LeaseID, Kind: i.Kind, DoneOn: period.FromTime(i.DoneOn), DocumentID: i.DocumentID,
+		Mode: i.Mode, State: i.State, CreatedAt: i.CreatedAt}
+	if s := strings.TrimSpace(string(i.LegacyItems)); s != "" && s != "[]" && s != "null" {
+		v.LegacyItems = i.LegacyItems
+	}
+	return v
+}
+
+// itemsGiven reports whether a body carries items: anything but nothing, null
+// or an empty array.
+func itemsGiven(raw json.RawMessage) bool {
+	s := strings.TrimSpace(string(raw))
+	return s != "" && s != "null" && s != "[]"
 }
 
 // CreateInventory records the entry or exit inventory of a lease, from its
@@ -679,13 +698,11 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 	} else if s.today().Before(in.DoneOn) {
 		f.Add("done_on", "La date de l’état des lieux est dans le futur.")
 	}
-	if len(in.Items) == 0 {
-		in.Items = json.RawMessage("[]")
-	} else if !json.Valid(in.Items) {
-		f.Add("items", "Les éléments doivent être un JSON valide.")
-	}
 	if err := f.Err(); err != nil {
 		return InventoryView{}, err
+	}
+	if itemsGiven(in.Items) {
+		return InventoryView{}, invariant.New(TypeInventoryItemsRetired, "items")
 	}
 	var out InventoryView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
@@ -706,7 +723,8 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 			return invariant.New(TypeInventoryDocument, in.DocumentID.String())
 		}
 		row := inventoryRow{ID: s.NewID(), OwnerID: sc.OwnerID, LeaseID: leaseID, Kind: in.Kind, DoneOn: in.DoneOn.Time(),
-			Items: in.Items, DocumentID: in.DocumentID, CreatedAt: s.now(), CreatedBy: p.Sub}
+			LegacyItems: json.RawMessage("[]"), Mode: "upload", State: "issued", DocumentID: in.DocumentID,
+			CreatedAt: s.now(), CreatedBy: p.Sub}
 		if err := s.Repo.InsertInventory(ctx, row); err != nil {
 			if db.IsUniqueViolation(err) {
 				return invariant.New(TypeInventoryExists, in.Kind)

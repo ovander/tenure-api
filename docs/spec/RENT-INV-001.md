@@ -38,7 +38,7 @@ French law fixes what an inventory must contain, not its layout. Tenure enforces
 | Décret 2016-382 art. 4 | Vétusté = wear from time or normal use. The parties may agree on a grid (collective-agreement grid) giving a theoretical lifetime and a yearly flat reduction per material | Optional grid attached to the lease as an annex (RENT-SPEC-008); used by the deduction calculation (section 6) |
 | Loi 89-462 art. 3-2 | The tenant may ask within 10 days to complete the entry inventory; the heating items within the first month of the heating season | Entry completion request with a dated window; accepted lines become an `EC` completion document, the issued entry is never edited |
 | Loi 89-462 art. 7 | The tenant is not liable for vétusté, defects, construction faults, accidents or force majeure | A worsened item is flagged, not charged; the owner qualifies it before any deduction |
-| Loi 89-462 art. 22 | Deposit returned within 1 month of the return of the keys if the exit inventory conforms to the entry, 2 months otherwise | The clock starts at `keys_returned_on`, not at `done_at`. Tenure applies a stricter rule by choice: 1 month unless a deduction is retained (INV-OD-13) |
+| Loi 89-462 art. 22 | Deposit returned within 1 month of the return of the keys if the exit inventory conforms to the entry, 2 months otherwise | The clock starts at `keys_returned_on`, not at `done_on`. Tenure applies a stricter rule by choice: 1 month unless a deduction is retained (INV-OD-13) |
 | Loi 89-462 art. 22 | Deductions justified, no flat amount; in a collective building (immeuble collectif), up to 20 % held back until the annual accounts, the balance due within the month after their approval | Each deduction needs a quote, invoice or grid line; holdback allowed when `assets.collective_building` is set; the balance deadline is dated from the approval of the accounts |
 | Loi 89-462 art. 22 | 10 % of the monthly rent per started month of delay, not due if the tenant gave no new address | Penalty computed and shown from the deadline |
 | Décret 2015-981 | A furnished dwelling contains at least 11 items of furniture | Furnished template seeds the list; a missing item at entry warns (lease classification risk) |
@@ -54,8 +54,8 @@ The current row `inventories (id, lease_id, kind, done_on, items jsonb, document
 | --- | --- | --- |
 | asset\_rooms | id, owner\_id, asset\_id, position, kind, label, surface\_m2 | The asset's layout, kept between leases. Kinds: entry, living, kitchen, bedroom, bathroom, wc, storage, outside, garage, box, other |
 | asset\_elements | id, owner\_id, room\_id, position, category, label, installed\_on | Category: floor, walls, ceiling, joinery, electrical, plumbing, heating, appliance, furniture, other. `installed_on` feeds the vétusté age |
-| inventory\_templates | id, owner\_id (null = system), asset\_kind, furnished, version, structure jsonb | Seeds a new asset layout (section 4); system rows are read-only |
-| inventories | id, owner\_id, lease\_id, kind (entry/exit), mode (amicable/bailiff/upload), state, scheduled\_at, done\_at, keys\_returned\_on, place, entry\_inventory\_id, tenant\_new\_address, observations, legacy\_items jsonb, template\_version, document\_id, version | `entry_inventory_id` is set on an exit. `keys_returned_on` starts the deposit clock (exit). `mode upload` = the phase 1 path, no child rows. `legacy_items` = the former `items`, kept read-only |
+| inventory\_templates | id, owner\_id (null = system), asset\_kind, version, structure jsonb, source | Seeds a new asset layout (section 4); the structure carries the furniture a furnished dwelling adds, so one row serves both; system rows are seeded from `testdata/inventory/templates.json` and read-only |
+| inventories | id, owner\_id, lease\_id, kind (entry/exit), mode (amicable/bailiff/upload), state, scheduled\_at, done\_on (the day of the inventory, a date, nullable until completed), keys\_returned\_on, place, entry\_inventory\_id, tenant\_new\_address, observations, legacy\_items jsonb, template\_version, document\_id, version | `entry_inventory_id` is set on an exit. `keys_returned_on` starts the deposit clock (exit). `mode upload` = the phase 1 path, no child rows. `legacy_items` = the former `items`, kept read-only |
 | inventory\_items | id, owner\_id, inventory\_id, room\_id, element\_id, label, condition, works, quantity, comment, entry\_item\_id | `label` is copied from the element when the item is created, so later layout edits never change an issued inventory. `works`: ok / ko / n/a |
 | inventory\_meters | id, owner\_id, inventory\_id, kind, meter\_number, reading, unit, photo\_id | Kinds: elec\_peak, elec\_offpeak, elec\_base, gas, water\_cold, water\_hot, heating\_energy |
 | inventory\_keys | id, owner\_id, inventory\_id, kind, destination, quantity, comment | Kind: key, badge, remote, card, code. Destination is free text (« porte d'entrée », « boîte aux lettres », « portail box ») |
@@ -63,7 +63,7 @@ The current row `inventories (id, lease_id, kind, done_on, items jsonb, document
 | inventory\_signatures | id, owner\_id, inventory\_id, party, signer\_name, method, signed\_at, reservations, evidence\_document\_id | Party: owner, tenant (one row per co-tenant), representative. Method: esign (OD-08 provider), wet\_scan |
 | inventory\_completions | id, owner\_id, inventory\_id, reason (ten\_day/heating), requested\_on, lines jsonb, decision, decided\_on, document\_id | Completes an issued entry; the decision and its `EC` PDF are archived. Named apart from lease amendments (`AV`) |
 | vetuste\_grids | id, owner\_id, name, source, lines jsonb | Line: category, lifetime\_years, franchise\_years, yearly\_rate\_bp, floor\_bp |
-| deposit\_deductions | id, owner\_id, lease\_id, exit\_item\_id, description, cost\_cents, tenant\_share\_bp, amount\_cents, basis (quote/invoice), document\_id, charge\_id | Feeds the `RD` restitution statement (RENT-SPEC-008) |
+| deposit\_deductions | id, owner\_id, lease\_id, exit\_item\_id, description, cost\_cents, tenant\_share\_bp, amount\_cents, basis (quote/invoice), document\_id (required: a grid sets the share, never the cost), charge\_id | Feeds the `RD` restitution statement (RENT-SPEC-008) |
 
 All rates and shares are integers in basis points (10 000 bp = 100 %), like the ownership shares; no float touches money (CLAUDE.md).
 
@@ -246,7 +246,7 @@ Phase 2 slices:
 
 The same strategy as RENT-BE-001 section 10, with golden files under `testdata/golden/<year>/inventory/`.
 
-- Golden cases: apartment with box (one inventory, two room blocks); furnished studio with a missing furniture item; house with a broken appliance; exit with an accepted 10-day line; deduction with and without a grid, with age below and above the franchise, and a rounding case at half a cent; deadline at 1 and 2 months from `keys_returned_on` when it differs from `done_at`; late penalty over 1 and 3 started months; 20 % holdback in a collective building and its balance one month after approval.
+- Golden cases: apartment with box (one inventory, two room blocks); furnished studio with a missing furniture item; house with a broken appliance; exit with an accepted 10-day line; deduction with and without a grid, with age below and above the franchise, and a rounding case at half a cent; deadline at 1 and 2 months from `keys_returned_on` when it differs from `done_on`; late penalty over 1 and 3 started months; 20 % holdback in a collective building and its balance one month after approval.
 - Integration: cross-owner RLS on every new table and on photo signed URLs (zero rows); an issued inventory refuses UPDATE and DELETE on header and children; photo upload rejected when infected or not an image; the archived photo carries no EXIF and its `sha256` matches the stored object; activation refused without an issued entry (`lease/entry-inventory-missing`).
 - Migration: a phase 1 row with `items` JSON comes out as issued, `mode upload`, `legacy_items` identical; a later POST with `items` gets `inventory/items-field-retired`.
 - Contract: OpenAPI diff on each PR; new routes listed in `audited_routes.txt`; the template test of tenure-api#84 passes with the `inventory/v1` constant.
@@ -258,10 +258,10 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Id | Question | Proposal | Status |
 | --- | --- | --- | --- |
-| INV-OD-01 | Keep `inventories.items jsonb` or normalise | Normalise (section 3); existing rows migrated with `legacy_items` (section 9) | Proposed |
+| INV-OD-01 | Keep `inventories.items jsonb` or normalise | Normalise (section 3); existing rows migrated with `legacy_items` (section 9) | Decided, 2026-11-05 |
 | INV-OD-02 | Offline capture in a cellar or a box with no network | Phase 2 online only, with per-item autosave and an in-memory retry queue. An IndexedDB draft queue only if a real site fails, which would change RENT-FE-001 « no offline writes » | Proposed |
 | INV-OD-03 | Signing on site | OD-08 provider flow opened on the tablet, one signer after the other; wet-signed scan as fallback. Check that the provider supports in-person signing | Proposed |
-| INV-OD-04 | Condition scale | 5 levels (section 4) plus a separate `works` flag | Proposed |
+| INV-OD-04 | Condition scale | 5 levels (section 4) plus a separate `works` flag | Decided, 2026-11-05 |
 | INV-OD-05 | Document prefixes | EE, ES, EC and RD added to `document/types.go`; DG stays the deposit receipt | Proposed |
 | INV-OD-06 | Module placement | New `internal/inventory`; `lease` exposes an `ActivationBlocker` interface (checked against the downward-only rule) | Proposed |
 | INV-OD-07 | Heating-season window | The law does not fix the dates; parameter October–May, editable per asset | Proposed |
@@ -270,12 +270,13 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 | INV-OD-10 | Alignment with the code | Done by the 2026-11-05 code review: items already writable, amendments naming, DG prefix, accountant classes, bp, CSP, EXIF, spec versions (changelog 0.2) | Resolved |
 | INV-OD-11 | Accountant and the `RD` statement | (a) `RD` is a financial class: the accountant sees amounts and deduction descriptions, no photos, guarantor or tenant address; or (b) the accountant does not see it. Proposal (a), because retained amounts are figures they reconcile; class `deposit` stays non-financial (Q-91) | Decided (a), 2026-11-05 |
 | INV-OD-12 | CSP for photos | (a) `img-src 'self' data: blob: <bucket host>`, signed URLs unchanged; or (b) thumbnails served by the API, which breaks « content never streamed through the API ». Proposal (a), amending RENT-FE-001 section 7 and the Caddy CSP | Decided (a), 2026-11-05 |
-| INV-OD-13 | 1-month deadline test | Stricter than the law: 1 month unless a deduction is retained, instead of « exit conforms to entry ». Safe for the tenant, simpler to compute; kept as an explicit choice | Proposed |
+| INV-OD-13 | 1-month deadline test | Stricter than the law: 1 month unless a deduction is retained, instead of « exit conforms to entry ». Safe for the tenant, simpler to compute; kept as an explicit choice | Decided, 2026-11-05 |
 
 ## 12. Changelog and sources
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-05 | 0.5 | Slice 2 implemented (#91, migration 000011): INV-OD-01, 04 and 13 decided as proposed; `done_on` kept as a date; `inventory_templates` without a `furnished` column; a deduction always has its document; restitution and window keys seeded in `legal_params` (Q-108) |
 | 2026-11-05 | 0.4 | Slice 1 implemented (#89): function names and signatures in §7 as built; outdoor parts exempt from the three coverings; a furnished element replaces its base equivalent; a missing grid line refuses the deduction; the holdback rounds down; INV-OD-04 and INV-OD-13 followed as proposed (Q-107) |
 | 2026-11-05 | 0.3 | INV-OD-11 decided: RD is a financial class visible to the accountant (amounts and descriptions only). INV-OD-12 decided: img-src opened to blob: and the bucket host; RENT-FE-001 amended |
 | 2026-11-05 | 0.2 | Code and legal review applied: existing `items` migrated to `legacy_items`; inventory amendments renamed completions; `RD` restitution statement (DG stays the receipt); rates in basis points with rounding helpers; EXIF stripped and cleaned-file hash; RGPD register; `keys_returned_on` starts the deposit clock; holdback for collective buildings with the post-approval balance; calendar dependency moved to slice 10; references updated to RENT-BE-001 2.10 and RENT-FE-001 1.1; INV-OD-10 resolved, INV-OD-11 to 13 added |

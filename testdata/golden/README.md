@@ -65,7 +65,7 @@ case lists `assets` and optional vétusté `grids`, then `steps`, each one of:
 | `house-broken-appliance` | Garage and outdoor parts seeded; no coverings required outdoors; a broken oven blocks until a photo explains it |
 | `exit-with-ten-day-line` | An accepted completion line, not the issued entry, is compared: the same state at exit is not worse; a refused line changes nothing |
 | `deductions` | Synthetic grid: within the franchise 100 %; after it 64 % (30 720 of 48 000); at the lifetime the floor 20 %; no grid 100 %; half a cent rounds up (12 348 × 87,5 % = 10 804,5 → 10 805) |
-| `settlement` | Synthetic delays: 31 January + 3 months = 30 April; a deduction retained + 5 months; penalty 1 and 3 started months (7 % of 800 € = 56 €, 168 €), none without a new address; holdback rounded down (15 % of 900,01 € = 135,00 €) and its balance 2 months after the approval |
+| `settlement` | The legal fixtures (loi 89-462 art. 22): 31 January + 1 month = 28 February; with a deduction, 3 February + 2 months = 3 April; penalty 1 and 3 started months (10 % of 800 € = 80 €, 240 €), none without a new address; holdback rounded down (20 % of 900,01 € = 180,00 €) and its balance 1 month after the approval |
 
 ## Cases (2025)
 

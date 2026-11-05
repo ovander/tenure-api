@@ -1,7 +1,7 @@
 package inventory
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -21,21 +21,27 @@ func d(s string) period.Date {
 
 func pd(s string) *period.Date { v := d(s); return &v }
 
-// rules reads the synthetic restitution parameters of the settlement golden
-// case, so no figure is written here.
+// rules reads the restitution parameters of the legal fixtures
+// (testdata/params), so no figure is written here.
 func rules(t *testing.T) params.DepositReturn {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", "golden", "2026", "inventory", "settlement.json"))
-	if err != nil {
-		t.Fatal(err)
+	files, err := filepath.Glob(filepath.Join("..", "..", "testdata", "params", "*.json"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no parameter fixtures: %v", err)
 	}
-	var c struct {
-		ParamsOverride []params.Entry `json:"params_override"`
+	var all []params.Entry
+	for _, f := range files {
+		raw, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		set, err := params.Load(bytes.NewReader(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		all = append(all, set.Entries()...)
 	}
-	if err := json.Unmarshal(raw, &c); err != nil {
-		t.Fatal(err)
-	}
-	s, err := params.New(c.ParamsOverride...)
+	s, err := params.New(all...)
 	if err != nil {
 		t.Fatal(err)
 	}
