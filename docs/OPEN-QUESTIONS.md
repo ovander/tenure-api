@@ -896,3 +896,26 @@ example « (asset 01a1…: dpe) ». Provisional:
   refused `POST /leases/{id}/contract` therefore answers exactly as before.
 - The web app shows the asset's label and the diagnostic's French name, and links to the asset
   where the diagnostic is recorded.
+
+**Q-106 Document templates in S14 — Open (#83).** RENT-FE-001 S14 lists « templates and versions »,
+and RENT-BE-001 §6 said « one set per owner overridable ». No route served the templates, and
+nothing let an owner override one. Provisional:
+- `GET /templates` lists the templates embedded in the release. For each one it gives:
+  - its name (the directory) and the class it renders (`deposit_receipt` renders `deposit`);
+  - its versions, oldest first, each with the SHA-256 of its `document.html`;
+  - which version is current: the latest, since a template change only ever adds a version.
+    A unit test in `internal/app` fails if a module renders a version other than the latest
+    embedded one;
+  - how many of the scope's generated documents each version rendered, with the first and last
+    issue times, read under RLS.
+- `shared/v1` (style and footer of every document) is not listed as a template.
+- An accountant lists only the templates of financial classes, and cancellation, which only
+  cancels billing documents (Q-49). This matches their documents (Q-91).
+- The route is read only, so it needs no audit event.
+- Not built, conservatively:
+  - a per-owner override set. Editing the French model contract or a receipt is a legal and
+    security matter: templates are code, reviewed and released, and an uploaded template would
+    run in the renderer;
+  - a specimen preview, which needs sample data in production code and a render on every look.
+  §6 now says the override is deferred. Both wait for an owner's request and its review.
+

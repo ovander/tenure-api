@@ -165,6 +165,7 @@ func Routes(d Deps) []Route {
 		{"POST", "/documents", GuardScopeOwnerW, false, h(d.Documents.Upload)},
 		{"POST", "/documents/export", GuardScope, true, h(d.Documents.CreateExport)},
 		{"GET", "/documents/exports/{id}", GuardScopeOwnerW, false, h(d.Documents.GetExport)},
+		{"GET", "/templates", GuardScopeOwnerW, false, h(d.Documents.Templates)},
 		{"GET", "/params", GuardAuthenticated, false, h(d.Params.List)},
 		{"GET", "/params/irl", GuardAuthenticated, false, h(d.Params.IRLSeries)},
 		{"PUT", "/params/irl/{quarter}", GuardAdmin, true, h(d.Params.PutIRL)},

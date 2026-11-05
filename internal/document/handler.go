@@ -120,6 +120,26 @@ func (h Handler) Get(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, v)
 }
 
+// Templates godoc
+//
+//	@Summary		List the document templates and their versions
+//	@Description	The templates embedded in this release (French only), each version with its SHA-256, whether new documents use it, and how many of the scope's documents it rendered. Read only; an accountant sees the financial ones.
+//	@Tags			document
+//	@Produce		json
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		TemplateView
+//	@Failure		401,403			{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/templates [get]
+func (h Handler) Templates(w http.ResponseWriter, r *http.Request) {
+	v, err := h.Service.Templates(r.Context(), caller(r), httpx.RequestID(r))
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
 // Content godoc
 //
 //	@Summary		Get a 10-minute download link to a document
