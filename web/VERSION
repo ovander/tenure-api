@@ -2,4 +2,4 @@
 #   <tag> <sha256 of tenure-web-<tag>.tar.gz>
 # or "none" (Q-96). scripts/fetch-web.sh replaces the placeholder in dist/
 # with this release, checksum verified, before a release build.
-v0.13.0 5b38a575cf56e082727ca6618b2ea350947553be133606cc79181302c5dea14a
+v0.14.0 ef54ece014fd1d803305d22e401f4df1cf05f310e059c9298c21d9d546c13078
