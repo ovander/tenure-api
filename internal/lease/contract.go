@@ -1035,15 +1035,24 @@ type InventoryAsset struct {
 	Label string
 }
 
+// InventorySigner is a co-tenant who signs an inventory.
+type InventorySigner struct {
+	Name  string
+	Email string
+}
+
 // InventoryFacts is what a captured inventory needs of its lease: the parties
 // who sign it and the premises it describes.
 type InventoryFacts struct {
-	LeaseID   uuid.UUID
-	Kind      Kind
-	State     State
-	StartOn   period.Date
-	Owner     document.Party
-	Tenants   []string
+	LeaseID uuid.UUID
+	Kind    Kind
+	State   State
+	StartOn period.Date
+	Owner   document.Party
+	Tenants []string
+	// Signers are the tenants one person at a time (RENT-INV-001 §3: one
+	// signature per co-tenant), with the e-mail of their tenant record.
+	Signers   []InventorySigner
 	Assets    []InventoryAsset
 	Principal uuid.UUID
 	Params    params.Set
@@ -1061,6 +1070,11 @@ func (s Service) InventoryFactsInTx(ctx context.Context, sc db.Scope, id uuid.UU
 		Principal: principalID(f.lease), Params: f.ps}
 	for _, a := range f.assets {
 		out.Assets = append(out.Assets, InventoryAsset{ID: a.ID, Kind: string(a.Kind), Label: assetLabel(a)})
+	}
+	for _, t := range f.tenants {
+		for _, n := range t.Names {
+			out.Signers = append(out.Signers, InventorySigner{Name: n, Email: t.Email})
+		}
 	}
 	return out, nil
 }

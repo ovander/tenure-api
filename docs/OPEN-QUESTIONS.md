@@ -1089,3 +1089,52 @@ an inventory is issued before the signatures exist. Provisional:
   migration 000013). The document is of class `inventory`, so its retention clock starts at
   lease end.
 
+**Q-112 Signatures of an inventory, slice 6 — Open (#102).** RENT-INV-001 §5 and §7 name the
+`sign` step and `POST /inventories/{id}/signatures`. OD-08 (Yousign, external eIDAS provider)
+and INV-OD-03 (signing on site, decided 2026-11-05) say who provides the signature. None says
+what is signed, how the provider's state reaches Tenure, or what each party signs.
+Provisional:
+- **What is signed.** `GET /inventories/{id}/preview` renders the completed inventory as a PDF:
+  unnumbered and not archived, under a « projet soumis à la signature » banner, with one
+  signature block per party still to sign. It is printed to be signed by hand, or sent to the
+  provider with an invisible anchor per signer (`{{s1|signature|180|60}}`) placing each
+  signature field. The EE document stays the one Tenure issues once every party has signed. It
+  lists each signature with its method, date, reservations and the SHA-256 of its evidence
+  (template `inventory/v2`).
+- **Parties.** The owner (legal name) and each co-tenant, one person at a time (RENT-INV-001
+  §3), from the names of the lease's tenant records. A party has signed when a signature of that
+  party carries that name. A representative signing for someone, and the e-mailing of the EE
+  to each party, are left for later.
+- **By hand (`wet_scan`).** The signed copy is uploaded through `POST /documents` (class
+  inventory, this lease: scanned, archived) and named with the parties who signed it and their
+  reservations. Parties may sign on separate copies, one request each.
+- **Electronic (`esign`, when configured).**
+  - One request covers every party still to sign, each with an e-mail, which Yousign requires.
+    The owner has no e-mail in Tenure and types theirs; a tenant's comes from their record.
+  - The request uses delivery mode none, simple electronic signature, no OTP. Each signer's
+    link is shown to the owner only, while the request is pending, and opened on the tablet for
+    each party in turn (INV-OD-03). The links are never logged and never in an audit event.
+  - The state is pulled: `POST …/signatures/refresh`, called after each party signs. There is
+    no public webhook, so deny-by-default (RENT-BE-001 §4) holds.
+  - A party's signature is recorded once the whole request is done, with the provider's signed
+    file archived as evidence (class inventory, on the lease, clock at lease end). Until then
+    the request shows who has signed.
+  - A request refused at the provider (declined, expired, cancelled) ends as `refused`; one
+    cancelled in Tenure (`POST …/signatures/cancel`) as `cancelled`. Only one request is pending
+    at a time (`inventory/signature-pending`). A provider error is
+    `inventory/esign-failed` (503).
+  - Without `TENURE_YOUSIGN_API_URL` and `TENURE_YOUSIGN_API_KEY` (both or neither, https),
+    `esign` is refused with `inventory/esign-unavailable`.
+- **Issue.** The last signature moves the inventory to `signed`, then issues `EE` in the same
+  transaction (two `inventory.transition` events). If the PDF engine fails, nothing is
+  recorded and the signature or refresh is retried.
+- **Reopen.** Refused once a party has signed (`inventory/signature-started`) or while a request
+  is pending: the parties signed that content.
+- **Not verified yet.** The Yousign client follows the v3 API as documented and is tested
+  against a fake of the routes it calls. Before production, it must be checked against the
+  sandbox:
+  - anchors parsed from a Chromium PDF;
+  - in-person signing with delivery mode none;
+  - the signer and request statuses;
+  - the download of a single signed file.
+

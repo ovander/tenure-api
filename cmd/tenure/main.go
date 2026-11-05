@@ -37,6 +37,7 @@ import (
 	"github.com/ovander/tenure-api/internal/config"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/esign"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/migrate"
 	"github.com/ovander/tenure-api/internal/notify"
@@ -191,6 +192,9 @@ func serve(ctx context.Context, getenv func(string) string) error {
 		return err
 	}
 	d.Scanner = document.Clamd{Addr: cfg.ClamAVAddr}
+	if cfg.YousignURL != "" {
+		d.ESign = esign.Yousign{BaseURL: cfg.YousignURL, APIKey: cfg.YousignAPIKey}
+	}
 	d.Auth, d.Ready = authMW, readiness(api, cfg.Socrate.JWKSURL, store, pdf, d.Scanner)
 	if d.BFF, err = browserSessions(ctx, cfg, api); err != nil {
 		return err

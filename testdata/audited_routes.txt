@@ -29,6 +29,9 @@ PUT /inventories/{id}/items/{itemId}
 PUT /inventories/{id}/meters
 PUT /inventories/{id}/keys
 POST /inventories/{id}/transitions
+POST /inventories/{id}/signatures +
+POST /inventories/{id}/signatures/refresh +
+POST /inventories/{id}/signatures/cancel
 POST /inventories/{id}/photos
 POST /documents
 POST /documents/export +

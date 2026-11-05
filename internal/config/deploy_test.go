@@ -41,7 +41,8 @@ func TestDeployTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	optional := map[string]bool{"TENURE_S3_INSECURE": true, "TENURE_IRL_SOURCE_URL": true, "SOCRATE_AUDIENCE": true}
+	optional := map[string]bool{"TENURE_S3_INSECURE": true, "TENURE_IRL_SOURCE_URL": true, "SOCRATE_AUDIENCE": true,
+		"TENURE_YOUSIGN_API_URL": true, "TENURE_YOUSIGN_API_KEY": true}
 	for _, k := range regexp.MustCompile(`"((?:TENURE|SOCRATE)_[A-Z0-9_]+)"`).FindAllStringSubmatch(string(src), -1) {
 		if _, old := RenamedSocrate[k[1]]; old {
 			if _, set := m[k[1]]; set {

@@ -20,7 +20,7 @@ import (
 
 // EntryTemplate is the version of templates/inventory the entry inventory
 // (EE) renders with; a template change adds a version (tenure-api#84).
-const EntryTemplate = "v1"
+const EntryTemplate = "v2"
 
 // thumbSide is the long side of a photo thumbnail embedded in the PDF; the
 // full photo stays in the archive, listed by hash in the annex.
@@ -60,11 +60,20 @@ type EntryLine struct {
 	Photos                       []int
 }
 
-// EntrySignature is a signature of the EE document.
+// EntrySignature is a signature of the EE document, with the hash of its
+// evidence (the scanned copy, or the provider's signed file).
 type EntrySignature struct {
 	Party, Name, Method string
 	SignedOn            period.Date
 	Reservations        string
+	Evidence            string
+}
+
+// EntrySigner is a party of a draft to sign; Anchor places their signature
+// field for the provider ({{s1|signature|…}}), empty for a copy printed to
+// sign by hand.
+type EntrySigner struct {
+	Party, Name, Anchor string
 }
 
 // EntryPhoto is a line of the photo annex: the archived photo by hash.
@@ -96,6 +105,10 @@ type EntryData struct {
 	// from legal_params as of the inventory's date.
 	CompletionDays int64
 	HeatingMonths  int64
+	// Draft is the unnumbered copy to sign (GET /inventories/{id}/preview),
+	// with its signers.
+	Draft   bool
+	Signers []EntrySigner
 }
 
 // entryData builds the document's content from a capture; thumbs holds the
@@ -170,35 +183,45 @@ func entryData(c capture, thumbs map[uuid.UUID]template.URL) EntryData {
 	}
 	for _, s := range c.sigs {
 		d.Signatures = append(d.Signatures, EntrySignature{Party: partyFR[s.Party], Name: s.SignerName, Method: methodFR[s.Method],
-			SignedOn: period.FromTime(s.SignedAt.In(paris())), Reservations: s.Reservations})
+			SignedOn: period.FromTime(s.SignedAt.In(paris())), Reservations: s.Reservations, Evidence: c.evidence[s.ID]})
 	}
 	return d
+}
+
+// documentData is the EE content with its thumbnails and the completion
+// windows, and the snapshot fingerprinted (the same without thumbnails).
+func (s Service) documentData(ctx context.Context, c capture) (data, snapshot EntryData, err error) {
+	thumbs := map[uuid.UUID]template.URL{}
+	for _, p := range c.photos {
+		t, err := s.thumbnail(ctx, p)
+		if err != nil {
+			return EntryData{}, EntryData{}, fmt.Errorf("inventory: thumbnail of photo %s: %w", p.ID, err)
+		}
+		thumbs[p.ID] = t
+	}
+	snapshot = entryData(c, nil)
+	on := snapshot.DoneOn
+	days, err := c.facts.Params.Int64(params.KeyCompletionWindowDays, on)
+	if err != nil {
+		return EntryData{}, EntryData{}, err
+	}
+	months, err := c.facts.Params.Int64(params.KeyHeatingWindowMonths, on)
+	if err != nil {
+		return EntryData{}, EntryData{}, err
+	}
+	snapshot.CompletionDays, snapshot.HeatingMonths = days, months
+	data = entryData(c, thumbs)
+	data.CompletionDays, data.HeatingMonths = days, months
+	return data, snapshot, nil
 }
 
 // issueEntry renders and archives the EE document of a signed entry, inside
 // the transition's transaction, and returns its id.
 func (s Service) issueEntry(ctx context.Context, c capture) (uuid.UUID, error) {
-	thumbs := map[uuid.UUID]template.URL{}
-	for _, p := range c.photos {
-		t, err := s.thumbnail(ctx, p)
-		if err != nil {
-			return uuid.Nil, fmt.Errorf("inventory: thumbnail of photo %s: %w", p.ID, err)
-		}
-		thumbs[p.ID] = t
-	}
-	snapshot := entryData(c, nil)
-	on := snapshot.DoneOn
-	days, err := c.facts.Params.Int64(params.KeyCompletionWindowDays, on)
+	data, snapshot, err := s.documentData(ctx, c)
 	if err != nil {
 		return uuid.Nil, err
 	}
-	months, err := c.facts.Params.Int64(params.KeyHeatingWindowMonths, on)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	snapshot.CompletionDays, snapshot.HeatingMonths = days, months
-	data := entryData(c, thumbs)
-	data.CompletionDays, data.HeatingMonths = days, months
 	lid := c.head.LeaseID
 	iss, err := s.Issuer.Issue(ctx, document.Request{Class: document.ClassInventory, Template: document.ClassInventory,
 		TemplateVersion: EntryTemplate, Series: document.SeriesEntry, AssetID: c.facts.Principal, LeaseID: &lid, Snapshot: snapshot,

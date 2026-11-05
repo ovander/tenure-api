@@ -70,7 +70,7 @@ func sampleCapture() capture {
 		sigs: []signatureRow{{Party: "owner", SignerName: "Bailleur A", Method: "wet_scan", SignedAt: done},
 			{Party: "tenant", SignerName: "Léa Martin", Method: "esign", SignedAt: done, Reservations: "Tache au plafond non relevée"}},
 		facts: lease.InventoryFacts{Kind: lease.KindUnfurnished, Owner: document.Party{Name: "Bailleur A", Address: "1 rue A"},
-			Tenants: []string{"Léa Martin"}, Assets: []lease.InventoryAsset{{Label: "2 rue B, Lyon"}}},
+			Tenants: []string{"Léa Martin"}, Signers: []lease.InventorySigner{{Name: "Léa Martin"}}, Assets: []lease.InventoryAsset{{Label: "2 rue B, Lyon"}}},
 	}
 }
 

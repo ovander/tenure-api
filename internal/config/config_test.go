@@ -60,6 +60,8 @@ func TestLoadDocuments(t *testing.T) {
 		"public url with a path": {"TENURE_PUBLIC_URL", "https://tenure.example.test/app"},
 		"short session key":      {"TENURE_SESSION_KEY", "c2hvcnQ="},
 		"missing session key":    {"TENURE_SESSION_KEY", ""},
+		"yousign key alone":      {"TENURE_YOUSIGN_API_KEY", "fake-key"},
+		"yousign url alone":      {"TENURE_YOUSIGN_API_URL", "https://api-sandbox.yousign.app/v3"},
 	}
 	for name, kv := range bad {
 		m := withDocs(valid())
@@ -142,5 +144,20 @@ func TestLoadRefuses(t *testing.T) {
 	m["SOCRATE_ISSUER"] = "http://127.0.0.1:9000"
 	if _, err := Load(env(m), NeedAPI); err != nil {
 		t.Errorf("loopback http issuer refused: %v", err)
+	}
+}
+
+func TestLoadYousign(t *testing.T) {
+	e := withDocs(valid())
+	if c, err := Load(env(e), NeedAPI|NeedDocuments); err != nil || c.YousignURL != "" || c.YousignAPIKey != "" {
+		t.Fatalf("without Yousign: %+v %v", c, err)
+	}
+	e["TENURE_YOUSIGN_API_URL"], e["TENURE_YOUSIGN_API_KEY"] = "https://api-sandbox.yousign.app/v3", "fake-key"
+	if c, err := Load(env(e), NeedAPI|NeedDocuments); err != nil || c.YousignAPIKey != "fake-key" {
+		t.Fatalf("with Yousign: %v", err)
+	}
+	e["TENURE_YOUSIGN_API_URL"] = "http://yousign.example.test/v3"
+	if _, err := Load(env(e), NeedAPI|NeedDocuments); err == nil {
+		t.Error("Yousign over http accepted")
 	}
 }

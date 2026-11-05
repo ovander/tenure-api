@@ -13,6 +13,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/esign"
 	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/period"
@@ -54,8 +55,11 @@ type Service struct {
 	Lease     lease.Service
 	Issuer    document.Issuer
 	Photos    PhotoStore
-	Now       func() time.Time
-	NewID     func() uuid.UUID
+	// ESign is the electronic signature provider (OD-08), nil when not
+	// configured: only the wet-signed scan is offered then.
+	ESign esign.Provider
+	Now   func() time.Time
+	NewID func() uuid.UUID
 }
 
 func (s Service) now() time.Time { return s.Now().UTC().Truncate(time.Microsecond) }

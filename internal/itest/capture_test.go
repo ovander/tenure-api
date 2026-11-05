@@ -308,7 +308,7 @@ func TestInventoryCapture(t *testing.T) {
 			RetainUntil     *string `json:"retain_until"`
 		}
 		call(t, "GET", "/documents/"+*inv.DocumentID, req{tok: tok}).json(t, &doc)
-		if doc.Class != "inventory" || doc.TemplateVersion != "inventory/v1" || doc.RetainUntil != nil {
+		if doc.Class != "inventory" || doc.TemplateVersion != "inventory/v2" || doc.RetainUntil != nil {
 			t.Errorf("document %+v: class inventory, its clock started at lease end", doc)
 		}
 		var key string

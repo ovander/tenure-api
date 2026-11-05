@@ -20,6 +20,7 @@ import (
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/esign"
 	"github.com/ovander/tenure-api/internal/httpapi"
 	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/jobs"
@@ -33,12 +34,15 @@ import (
 
 // Deps are the external dependencies of the service.
 type Deps struct {
-	API            *db.DB // tenure_api
-	Jobs           *db.DB // tenure_jobs
-	Auth           *auth.Middleware
-	Store          document.Store
-	PDF            document.PDFEngine
-	Scanner        document.Scanner
+	API     *db.DB // tenure_api
+	Jobs    *db.DB // tenure_jobs
+	Auth    *auth.Middleware
+	Store   document.Store
+	PDF     document.PDFEngine
+	Scanner document.Scanner
+	// ESign is the inventories' signature provider (OD-08), nil when not
+	// configured.
+	ESign          esign.Provider
 	Mailer         notify.Mailer
 	INSEE          params.INSEE
 	Ready          func(context.Context) error
@@ -99,7 +103,7 @@ func New(d Deps) (*App, error) {
 		Portfolio: portfolio.Handler{Service: pf},
 		Lease:     lease.Handler{Service: ls},
 		Inventory: inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Lease: ls, Issuer: issuer, Now: d.Now, NewID: newID,
-			Photos: inventory.PhotoStore{Store: d.Store, Scanner: d.Scanner, Params: params.Repository{}}}},
+			Photos: inventory.PhotoStore{Store: d.Store, Scanner: d.Scanner, Params: params.Repository{}}, ESign: d.ESign}},
 		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
 		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
 		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
