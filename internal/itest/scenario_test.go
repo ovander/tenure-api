@@ -237,6 +237,16 @@ func TestScenario(t *testing.T) {
 				t.Errorf("read-only grantee writes: %d", r.Status)
 			}
 		}
+		var tpl []struct{ Name string }
+		call(t, "GET", "/templates", req{tok: acc, scope: ownerA.ID}).json(t, &tpl)
+		for _, x := range tpl {
+			if x.Name == "contract" || x.Name == "surety" || x.Name == "amendment" || x.Name == "deposit_receipt" {
+				t.Errorf("accountant lists the %s template: lease documents are not theirs to read", x.Name)
+			}
+		}
+		if len(tpl) == 0 {
+			t.Error("accountant lists no template")
+		}
 		if r := call(t, "GET", "/audit/events", req{tok: acc, scope: ownerA.ID}); r.Status != 200 {
 			t.Errorf("accountant reads the audit trail: %d", r.Status)
 		}

@@ -9,10 +9,12 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/params"
 )
 
@@ -362,6 +364,58 @@ func TestContracts(t *testing.T) {
 		call(t, "GET", "/documents/"+csv.ID+"/content", req{tok: tokG}).json(t, &link)
 		if !strings.Contains(link.URL, "response-content-type=text%2Fcsv") || !strings.Contains(link.URL, "attachment") {
 			t.Errorf("an upload is served as an attachment of its sniffed type: %s", link.URL)
+		}
+	})
+
+	t.Run("templates", func(t *testing.T) {
+		type version struct {
+			Version   string     `json:"version"`
+			Current   bool       `json:"current"`
+			SHA256    string     `json:"sha256"`
+			Documents int        `json:"documents"`
+			LastAt    *time.Time `json:"last_issued_at"`
+		}
+		type tmpl struct {
+			Name     string    `json:"name"`
+			Class    string    `json:"class"`
+			Versions []version `json:"versions"`
+		}
+		read := func(tok string) map[string]tmpl {
+			t.Helper()
+			var ts []tmpl
+			call(t, "GET", "/templates", req{tok: tok}).json(t, &ts)
+			out := map[string]tmpl{}
+			for _, x := range ts {
+				out[x.Name] = x
+			}
+			return out
+		}
+		g := read(tokG)
+		cur := func(x tmpl) version {
+			for _, v := range x.Versions {
+				if v.Current {
+					return v
+				}
+			}
+			return version{}
+		}
+		c := cur(g["contract"])
+		if c.Version != lease.ContractTemplate || c.Documents == 0 || c.LastAt == nil || len(c.SHA256) != 64 {
+			t.Errorf("G's contract template %+v: want %s, with the contract generated above", c, lease.ContractTemplate)
+		}
+		if a := cur(g["amendment"]); a.Documents == 0 {
+			t.Errorf("G's amendment template counts no amendment: %+v", a)
+		}
+		if g["deposit_receipt"].Class != "deposit" {
+			t.Errorf("deposit_receipt renders %q", g["deposit_receipt"].Class)
+		}
+		// Another owner sees the same templates, none of G's documents.
+		for name, x := range read(tokH) {
+			for _, v := range x.Versions {
+				if v.Documents != 0 {
+					t.Errorf("H counts %d documents of %s/%s", v.Documents, name, v.Version)
+				}
+			}
 		}
 	})
 

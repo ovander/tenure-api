@@ -360,3 +360,18 @@ func (Repository) Sample(ctx context.Context, n int) ([]documentRow, error) {
 	err = tx.Where("issued_at IS NOT NULL").Order("random()").Limit(n).Find(&rows).Error
 	return rows, err
 }
+
+// TemplateUsage counts the scope's generated documents by template version,
+// with the first and last issue times.
+func (Repository) TemplateUsage(ctx context.Context) ([]TemplateUsage, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []TemplateUsage
+	err = tx.Model(&documentRow{}).
+		Select("template_version, count(*) AS documents, min(issued_at) AS first_at, max(issued_at) AS last_at").
+		Where("source = ? AND template_version <> '' AND issued_at IS NOT NULL", SourceGenerated).
+		Group("template_version").Order("template_version").Scan(&out).Error
+	return out, err
+}
