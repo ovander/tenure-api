@@ -15,7 +15,7 @@ linters:
     misspell:
       # User-facing strings are French (CLAUDE.md, Language); these are
       # correct French words, not misspelt English.
-      ignore-rules: [partiel, exemple]
+      ignore-rules: [partiel, exemple, chambre, chambres]
     revive:
       rules:
         - name: exported

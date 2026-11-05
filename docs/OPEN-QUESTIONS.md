@@ -997,3 +997,26 @@ INV-OD-01 (normalised items), INV-OD-04 (the scale) and INV-OD-13 (the delay) we
 - **Reversibility.** Down restores the phase 1 schema while no phase 2 row exists. It fails,
   deliberately, on a draft without a date or a document.
 
+**Q-109 Asset layout API, slice 3 — Open (#93).** RENT-INV-001 §7 names the routes, not how a
+layout is versioned or edited. Provisional:
+- **Version.** An asset's layout has its own version in `asset_layouts` (migration 000012),
+  apart from `assets.version`, so an asset edit and a layout edit never overwrite each other.
+  Version 0 means nothing has been seeded or saved yet: `GET` answers W/"0", and the first
+  `PUT` sends `If-Match: W/"0"`.
+- **Edit.** `PUT` replaces the whole layout in its new order, the positions following the array.
+  A room or element with an `id` keeps it, so the items of past inventories stay linked
+  (`element_id`); an id that is not of this asset is a field error. Rooms and elements left out
+  are removed: a removed room takes its remaining elements, while an element moved to another
+  room is moved first. An inventory keeps its copied label whatever happens to the layout. A
+  room or element changes version only when it actually changes.
+- **Seed.** `POST …/seed` uses the latest template of the asset's kind (the owner's own first,
+  else the system's) with the bedroom count, the features (cellar, garage, garden) and the
+  furnished flag (the asset's own unless the body says otherwise). It is refused with
+  `inventory/layout-exists` once the asset has rooms: a seeded layout is edited, never seeded
+  again. No migration seeds the owners' real assets: each owner seeds from screen S15a.
+- **Limits.** At most 60 rooms and 80 elements per room: product limits, not legal values.
+  `installed_on` cannot be in the future (Europe/Paris).
+- **Roles.** The owner writes and the co-owner reads. The accountant is refused (403), as for
+  inventories and photos (RENT-INV-001 §8).
+- **Audit.** `layout.seed` and `layout.update`, on the asset, with the layouts before and after.
+

@@ -10,6 +10,8 @@ POST /assets
 PUT /assets/{id}
 POST /assets/{id}/diagnostics
 PUT /diagnostics/{id}
+PUT /assets/{id}/layout
+POST /assets/{id}/layout/seed
 POST /tenants
 PUT /tenants/{id}
 POST /leases

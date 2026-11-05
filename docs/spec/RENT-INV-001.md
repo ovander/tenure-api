@@ -170,7 +170,7 @@ Phase 2 adds a package `internal/inventory`. It imports `portfolio`, `lease`, `d
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET/PUT /assets/{id}/layout` | Rooms and elements of the asset; `POST /assets/{id}/layout/seed` from a template |
+| `GET/PUT /assets/{id}/layout` | Rooms and elements of the asset, PUT as a whole with If-Match on `asset_layouts.version`; `POST /assets/{id}/layout/seed` from a template (slice 3, #93) |
 | `GET /inventory-templates` | System and owner templates |
 | `GET/POST /leases/{id}/inventories` | List, or create an entry or exit (kind, mode); existing endpoint, extended. `items` stays accepted for `mode upload` until the migration of section 9, then is refused with `inventory/items-field-retired` |
 | `GET/PUT /inventories/{id}` | Header: schedule, place, participants, observations, new address, `keys_returned_on` |
@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-05 | 0.6 | Slice 3, API (#93): layout routes, `asset_layouts` holds the layout version (migration 000012), the accountant is refused (Q-109) |
 | 2026-11-05 | 0.5 | Slice 2 implemented (#91, migration 000011): INV-OD-01, 04 and 13 decided as proposed; `done_on` kept as a date; `inventory_templates` without a `furnished` column; a deduction always has its document; restitution and window keys seeded in `legal_params` (Q-108) |
 | 2026-11-05 | 0.4 | Slice 1 implemented (#89): function names and signatures in §7 as built; outdoor parts exempt from the three coverings; a furnished element replaces its base equivalent; a missing grid line refuses the deduction; the holdback rounds down; INV-OD-04 and INV-OD-13 followed as proposed (Q-107) |
 | 2026-11-05 | 0.3 | INV-OD-11 decided: RD is a financial class visible to the accountant (amounts and descriptions only). INV-OD-12 decided: img-src opened to blob: and the bucket host; RENT-FE-001 amended |
