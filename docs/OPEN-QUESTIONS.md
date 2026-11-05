@@ -922,10 +922,10 @@ nothing let an owner override one. Provisional:
 **Q-107 Inventory engine, slice 1 — Open (#89).** RENT-INV-001 slice 1 builds the pure functions
 before INV-OD-04 and INV-OD-13 are decided, and leaves a few points to the implementation.
 Provisional, each the conservative reading:
-- **Condition scale (INV-OD-04, proposed).** The code follows the proposal: five levels, `new`,
+- **Condition scale (INV-OD-04, decided 2026-11-05 as proposed).** The code follows the proposal: five levels, `new`,
   `good`, `fair`, `poor`, `broken`, with `works` (ok, ko, n/a) recorded apart. `works` going
   from ok to ko is « worse » even when the condition stays the same.
-- **Restitution delay (INV-OD-13, proposed).** The code follows the proposal: the shorter delay
+- **Restitution delay (INV-OD-13, decided 2026-11-05 as proposed).** The code follows the proposal: the shorter delay
   applies whenever no deduction is retained, even when the exit differs from the entry. This can
   only bring the date closer for the tenant.
 - **Months.** A legal delay in months ends on the same day of the month, or on the month's last
@@ -946,12 +946,54 @@ Provisional, each the conservative reading:
   lacks, such as a studio's bedroom, is seeded in the living room. A furniture item with
   quantity 0 or `broken` at entry warns, and never blocks.
 - **Parameters.** The restitution keys of RENT-INV-001 §7 are named in `internal/params`
-  (`DepositReturn`), but slice 1 does not seed them: inventory slice 2 adds them to
-  `testdata/params` with their legal values and sources. The settlement golden case uses
-  synthetic values labelled as such, deliberately different from the law's, so that no one
-  takes them for legal figures.
+  (`DepositReturn`). Slice 1 left them unseeded; slice 2 seeded them (Q-108), and the
+  settlement golden case now reads the legal fixtures instead of synthetic values.
 - **Templates.** The system templates are data in `testdata/inventory/templates.json`, in French,
   which slice 2 seeds as `inventory_templates` rows. The furniture list is to be checked against
   Légifrance before inventory slice 6, with the other points RENT-INV-001 §12 lists.
 - **Golden cases.** They use made-up assets, never real tenant data.
+
+**Q-108 Inventory schema, slice 2 — Open (#91).** Migration 000011 builds RENT-INV-001 §3.
+INV-OD-01 (normalised items), INV-OD-04 (the scale) and INV-OD-13 (the delay) were decided on
+2026-11-05 as proposed. Provisional readings:
+- **Phase 1 rows.** `tenure_migrate` reads no owner's rows (FORCE ROW LEVEL SECURITY), so the
+  migration cannot UPDATE them. `state` and `mode` are therefore added with the defaults
+  `issued` and `upload`, which DDL writes into every existing row, and the defaults are then
+  dropped so a new row must state both. `items` is renamed `legacy_items`, its content
+  unchanged. The integration suite proves this on a database stood at 000010 with a phase 1
+  row; the row is not turned into `inventory_items`, since it has no link to a layout.
+- **Items retired.** `POST /leases/{id}/inventories` now refuses a non-empty `items` (422
+  `inventory/items-field-retired`). An uploaded inventory is recorded `issued`, `mode upload`,
+  and only an issued entry clears `lease/entry-inventory-missing`. The view shows `mode`,
+  `state` and, when not empty, `legacy_items`; the former `items` field is no longer
+  returned.
+- **Immutable once issued.** A trigger refuses to UPDATE or DELETE an issued `inventories`
+  row, and to INSERT, UPDATE or DELETE an item, meter, key, photo or signature of one, even as
+  superuser. If the parent cannot be read, the trigger refuses (fail closed). A completion
+  belongs to an issued entry by nature, so it is not under that rule: it has its own decision.
+  Other checks: an issued inventory has its document; a completed or later one has its date;
+  an upload goes from draft to issued only.
+- **Dates.** `done_on` stays a date, nullable until the inventory is completed, rather than the
+  `done_at` timestamp of §3: an inventory is dated by its day, as the décret asks.
+- **Templates.** `inventory_templates` has no `furnished` column: one structure per asset kind
+  carries the furniture a furnished dwelling adds (`internal/inventory.Template`). System rows
+  (`owner_id` null) are seeded from `testdata/inventory/templates.json` with an id derived from
+  the asset kind and the version. They are checked by `go test ./migrations`: a changed
+  template is a new version, never an edited row. Every scope and job reads them; only
+  `tenure_migrate` writes them (its own policy, limited to system rows).
+- **Deductions.** `deposit_deductions.document_id` is required: a vétusté grid sets the
+  tenant's share, never the cost, which always comes from a quote or an invoice (art. 22).
+  `amount_cents` is at most `cost_cents`, and the share is 0 to 10 000 bp.
+- **Meters.** A reading is a decimal string as read (`123,45`), checked by a pattern, never a
+  float.
+- **Parameters.** The five restitution keys (loi 89-462 art. 22) and the two completion windows
+  (art. 3-2) are seeded with their legal values and sources. `heating_season.start_month` and
+  `.end_month` are a product rule (INV-OD-07: the law fixes no heating season) and say so in
+  their source. All are dated 2024-01-01, like the other deposit fixtures; the legal texts date
+  from loi 2014-366.
+- **Policies.** Rows that may be removed before issue (layout edits, replaced meter and key
+  lists, a photo, a deduction) have a delete policy for the owner. The signatures, the
+  completions and the grids have none.
+- **Reversibility.** Down restores the phase 1 schema while no phase 2 row exists. It fails,
+  deliberately, on a draft without a date or a document.
 

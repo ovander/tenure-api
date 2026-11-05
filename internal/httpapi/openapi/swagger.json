@@ -7591,7 +7591,7 @@
                     "format": "date"
                 },
                 "items": {
-                    "description": "Items are structured from phase 2; free JSON array until then.",
+                    "description": "Items is retired (RENT-INV-001 §9): a non-empty value is refused with\ninventory/items-field-retired; the structured items come with the\ninventory capture.",
                     "type": "array",
                     "items": {
                         "type": "object"
@@ -7613,7 +7613,6 @@
                     "type": "string"
                 },
                 "document_id": {
-                    "description": "DocumentID is the uploaded état des lieux (class inventory, this lease).",
                     "type": "string"
                 },
                 "done_on": {
@@ -7622,13 +7621,6 @@
                 },
                 "id": {
                     "type": "string"
-                },
-                "items": {
-                    "description": "Items are structured from phase 2; free JSON array until then.",
-                    "type": "array",
-                    "items": {
-                        "type": "object"
-                    }
                 },
                 "kind": {
                     "type": "string",
@@ -7639,6 +7631,31 @@
                 },
                 "lease_id": {
                     "type": "string"
+                },
+                "legacy_items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "amicable",
+                        "bailiff",
+                        "upload"
+                    ]
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "in_progress",
+                        "completed",
+                        "signed",
+                        "issued"
+                    ]
                 }
             }
         },

@@ -48,6 +48,16 @@ func (m *Migrator) Up(ctx context.Context, out io.Writer) error {
 	return err
 }
 
+// UpTo applies the pending migrations up to and including version, so a test
+// can stand a database at an earlier schema.
+func (m *Migrator) UpTo(ctx context.Context, version int64, out io.Writer) error {
+	res, err := m.p.UpTo(ctx, version)
+	for _, r := range res {
+		_, _ = fmt.Fprintln(out, r)
+	}
+	return err
+}
+
 // Down reverts the latest migration.
 func (m *Migrator) Down(ctx context.Context, out io.Writer) error {
 	r, err := m.p.Down(ctx)

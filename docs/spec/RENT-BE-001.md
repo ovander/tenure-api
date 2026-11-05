@@ -37,7 +37,7 @@ Every business table carries `owner_id`, and PostgreSQL row-level security filte
 | lease\_assets | lease\_id, asset\_id | Many-to-many |
 | lease\_tenants | lease\_id, tenant\_id, solidary | — |
 | guarantees | id, lease\_id, kind, guarantor jsonb, amount\_cents, valid\_from, valid\_to, status, document\_id | kind: deposit, surety, visale, insurance; combination rules on every write (Q-72); document\_id is the generated DG or CA |
-| inventories | id, lease\_id, kind (entry/exit), done\_on, items jsonb, document\_id | One per kind and lease, from an uploaded document, recorded once (Q-70); structured items from phase 2 |
+| inventories | id, lease\_id, kind (entry/exit), mode, state, done\_on, legacy\_items jsonb, document\_id, and the capture columns of RENT-INV-001 §3 | One per kind and lease (Q-70). An uploaded inventory is recorded issued, `mode upload`; phase 1 rows were migrated so, their free JSON kept as `legacy_items` and `items` refused since (migration 000011). Immutable once issued, with its items, meters, keys, photos and signatures (trigger). The other inventory tables are in RENT-INV-001 §3 (Q-108) |
 | asset\_diagnostics | id, owner\_id, asset\_id, kind (dpe, erp, electricity, gas, lead, asbestos), done\_on, valid\_until, result, not\_required\_reason, document\_id | One per asset and kind (Q-23, Q-73); a kind not needed is declared with a reason |
 | lease\_documents | id, owner\_id, lease\_id, kind (contract, amendment, deposit\_receipt, surety\_act), number, lease\_version, guarantee\_id, document\_id, input\_snapshot, issued\_at | Created issued and never changed (trigger); a contract is current while the lease version and its guarantees match (Q-69) |
 | charges | id, owner\_id, asset\_id, charged\_on, paid\_on, category, label, amount\_cents, recoverable\_cents, syndic\_recoverable\_cents, exercise\_year, document\_id, source (manual/syndic/invoice), status (draft/confirmed), reconciliation\_id | category enum drives 2044 line; the recoverable part is stored in cents beside the syndic's own split; frozen once an issued reconciliation uses it (Q-77) |
@@ -253,6 +253,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-05 | 2.11 | Migration 000011: the inventory tables of RENT-INV-001 §3, RLS, issued inventories immutable, `legal_params` restitution and window keys; `items` retired (Q-108) |
 | 2026-11-05 | 2.10 | `GET /templates`: the embedded templates and their versions, read only; per-owner override deferred (Q-106) |
 | 2026-11-04 | 2.9 | Lease blockers carry `asset_id`, `diagnostic` and `valid_until` (Q-105) |
 | 2026-11-04 | 2.8 | §10 end to end: the five phase 1 flows in a browser against a real tenure in CI, with test fakes for Socrate, SMTP and INSEE (Q-104) |
