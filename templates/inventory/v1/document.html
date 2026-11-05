@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>État des lieux d’entrée {{.Number}}</title>{{template "style"}}
+<style>
+  h2 { font-size: 11.5pt; margin: 7mm 0 1mm 0; break-after: avoid; }
+  tr, .signature { break-inside: avoid; }
+  td.state { white-space: nowrap; width: 28mm; }
+  td.qty { text-align: right; width: 12mm; }
+  td.photos { width: 40mm; }
+  img.thumb { width: 18mm; height: 18mm; object-fit: cover; margin: 0 1mm 1mm 0; }
+  .signature { border: .3mm solid #ccc; padding: 3mm; margin-bottom: 3mm; }
+  .hash { font-family: "DejaVu Sans Mono", monospace; font-size: 7.5pt; word-break: break-all; }
+</style></head>
+<body>
+<h1>État des lieux d’entrée{{if .Furnished}} — logement meublé{{end}}</h1>
+<p class="meta">N° {{.Number}} · établi le {{date .DoneOn}} · émis le {{date .IssuedOn}}</p>
+<p>Établi contradictoirement et amiablement entre les parties, conformément à l’article 3-2 de la loi n° 89-462 du 6 juillet 1989 et au décret n° 2016-382 du 30 mars 2016.</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p><p class="label">Domicile</p><p>Les locaux décrits ci-dessous, à compter de leur entrée dans les lieux.</p></div>
+</div>
+<p class="label">Locaux</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+
+<h2>Relevés des compteurs</h2>
+{{if .Meters}}<table><tr><th>Compteur</th><th>N°</th><th>Index</th><th>Photos</th></tr>
+{{range .Meters}}<tr><td>{{.Kind}}</td><td>{{.Detail}}</td><td>{{.Value}}</td><td>{{range $i, $n := .Photos}}{{if $i}}, {{end}}n° {{$n}}{{end}}</td></tr>
+{{end}}</table>{{else}}<p>Aucun compteur individuel relevé.</p>{{end}}
+
+<h2>Clés et moyens d’accès remis</h2>
+<table><tr><th>Type</th><th>Ouvre</th><th class="qty">Nombre</th><th>Observation</th></tr>
+{{range .Keys}}<tr><td>{{.Kind}}</td><td>{{.Detail}}</td><td class="qty">{{.Value}}</td><td>{{.Comment}}</td></tr>
+{{end}}</table>
+
+{{range .Rooms}}<h2>{{.Label}}</h2>
+<table><tr><th>Élément</th><th>État</th><th class="qty">Qté</th><th>Observations</th><th>Photos</th></tr>
+{{range .Items}}<tr><td>{{.Label}}</td><td class="state">{{.Condition}}{{if .Works}}<br>{{.Works}}{{end}}</td><td class="qty">{{if .Quantity}}{{.Quantity}}{{end}}</td><td>{{.Comment}}</td><td class="photos">{{range .Thumbs}}<img class="thumb" src="{{.}}" alt="">{{end}}{{if .Photos}}<br>{{range $i, $n := .Photos}}{{if $i}}, {{end}}n° {{$n}}{{end}}{{end}}</td></tr>
+{{end}}</table>
+{{end}}
+
+{{if .Observations}}<h2>Observations générales</h2>
+<p>{{.Observations}}</p>{{end}}
+
+<h2>Échelle des états</h2>
+<p class="note">Neuf : jamais utilisé ou refait à neuf. Bon état : propre, sans usure visible. État d’usage : usure normale, fonctionne. Mauvais état : abîmé, taché ou en partie cassé. Hors d’usage : inutilisable, à réparer ou remplacer.</p>
+
+<h2>Signatures</h2>
+{{range .Signatures}}<div class="signature"><p class="label">{{.Party}}</p><p>{{.Name}} — {{.Method}}, le {{date .SignedOn}}</p>{{if .Reservations}}<p>Réserves : {{.Reservations}}</p>{{end}}</div>
+{{end}}
+<p class="note">Le locataire peut demander au bailleur, dans un délai de {{.CompletionDays}} jours à compter de son établissement, de compléter le présent état des lieux ; pour les éléments de chauffage, cette demande peut être faite durant {{if eq .HeatingMonths 1}}le premier mois{{else}}les {{.HeatingMonths}} premiers mois{{end}} de la période de chauffe (article 3-2 de la loi n° 89-462).</p>
+
+{{if .Photos}}<h2>Annexe : photographies archivées</h2>
+<p class="note">Chaque photographie est conservée dans l’archive, sans métadonnées, sous l’empreinte SHA-256 ci-dessous.</p>
+<table><tr><th>N°</th><th>Objet</th><th>Dimensions</th><th>Empreinte SHA-256</th></tr>
+{{range .Photos}}<tr><td>{{.N}}</td><td>{{.Of}}</td><td>{{.Width}} × {{.Height}}</td><td class="hash">{{.SHA256}}</td></tr>
+{{end}}</table>{{end}}
+</body></html>

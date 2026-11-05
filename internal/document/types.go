@@ -38,6 +38,17 @@ var prefixes = map[Class]string{
 	ClassContract: "CT", ClassAmendment: "AV", ClassDeposit: "DG", ClassTaxSummary: "RF", ClassSurety: "CA",
 }
 
+// Series of the classes that number with several prefixes (RENT-INV-001 §7):
+// an inventory is an entry (EE), an exit (ES) or an entry completion (EC).
+var series = map[Class]map[string]bool{ClassInventory: {SeriesEntry: true, SeriesExit: true, SeriesCompletion: true}}
+
+// Inventory number series.
+const (
+	SeriesEntry      = "EE"
+	SeriesExit       = "ES"
+	SeriesCompletion = "EC"
+)
+
 // Sources of a document (documents.source).
 const (
 	SourceGenerated = "generated"
@@ -69,6 +80,18 @@ func Number(c Class, assetCode string, year, seq int) (string, error) {
 		return "", fmt.Errorf("document: no number prefix for class %s", c)
 	}
 	return fmt.Sprintf("%s-%s-%04d-%04d", p, assetCode, year, seq), nil
+}
+
+// SeriesNumber formats a number like Number, with the prefix of series when
+// the class numbers with several; an empty series is the class's own prefix.
+func SeriesNumber(c Class, s, assetCode string, year, seq int) (string, error) {
+	if s == "" {
+		return Number(c, assetCode, year, seq)
+	}
+	if !series[c][s] {
+		return "", fmt.Errorf("document: no series %s in class %s", s, c)
+	}
+	return fmt.Sprintf("%s-%s-%04d-%04d", s, assetCode, year, seq), nil
 }
 
 // ObjectKey is the archive key <owner_id>/<class>/<YYYY>/<number>.pdf.

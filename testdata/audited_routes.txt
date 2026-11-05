@@ -23,6 +23,12 @@ POST /guarantees/{id}/document
 POST /leases/{id}/contract
 POST /leases/{id}/amendments
 POST /leases/{id}/inventories
+PUT /inventories/{id}
+POST /inventories/{id}/items
+PUT /inventories/{id}/items/{itemId}
+PUT /inventories/{id}/meters
+PUT /inventories/{id}/keys
+POST /inventories/{id}/transitions
 POST /inventories/{id}/photos
 POST /documents
 POST /documents/export +

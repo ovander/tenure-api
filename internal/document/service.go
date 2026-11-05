@@ -31,7 +31,10 @@ type Request struct {
 	// cancelling document) and TemplateVersion its version.
 	Template        Class
 	TemplateVersion string
-	AssetID         uuid.UUID
+	// Series is the number prefix of a class with several (inventory: EE
+	// entry, ES exit), counted apart; empty for the class's own prefix.
+	Series  string
+	AssetID uuid.UUID
 	// Code replaces the asset segment of the number for a document of no
 	// asset (the owner's tax summary): AssetID is then uuid.Nil.
 	Code     string
@@ -86,11 +89,11 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 	if req.Code != "" {
 		code = req.Code
 	}
-	seq, err := i.Repo.ReserveNumber(ctx, sc.OwnerID, req.Class, code, issuedOn.Year)
+	seq, err := i.Repo.ReserveNumber(ctx, sc.OwnerID, req.Class, req.Series, code, issuedOn.Year)
 	if err != nil {
 		return Issued{}, fmt.Errorf("document: reserve number: %w", err)
 	}
-	number, err := Number(req.Class, code, issuedOn.Year, seq)
+	number, err := SeriesNumber(req.Class, req.Series, code, issuedOn.Year, seq)
 	if err != nil {
 		return Issued{}, err
 	}

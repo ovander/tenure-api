@@ -27,19 +27,21 @@ type leaseDocumentRow struct {
 func (leaseDocumentRow) TableName() string { return "lease_documents" }
 
 type inventoryRow struct {
-	ID      uuid.UUID `gorm:"column:id;primaryKey"`
-	OwnerID uuid.UUID `gorm:"column:owner_id"`
-	LeaseID uuid.UUID `gorm:"column:lease_id"`
-	Kind    string    `gorm:"column:kind"`
-	DoneOn  time.Time `gorm:"column:done_on"`
+	ID      uuid.UUID  `gorm:"column:id;primaryKey"`
+	OwnerID uuid.UUID  `gorm:"column:owner_id"`
+	LeaseID uuid.UUID  `gorm:"column:lease_id"`
+	Kind    string     `gorm:"column:kind"`
+	DoneOn  *time.Time `gorm:"column:done_on"`
 	// LegacyItems is the free JSON of phase 1, kept read-only (RENT-INV-001 §9).
 	LegacyItems json.RawMessage `gorm:"column:legacy_items;type:jsonb"`
 	// Mode and State: an uploaded inventory is recorded issued (Q-70, RENT-INV-001 §5).
-	Mode       string    `gorm:"column:mode"`
-	State      string    `gorm:"column:state"`
-	DocumentID uuid.UUID `gorm:"column:document_id"`
-	CreatedAt  time.Time `gorm:"column:created_at"`
-	CreatedBy  string    `gorm:"column:created_by"`
+	Mode       string     `gorm:"column:mode"`
+	State      string     `gorm:"column:state"`
+	DocumentID *uuid.UUID `gorm:"column:document_id"`
+	CreatedAt  time.Time  `gorm:"column:created_at"`
+	CreatedBy  string     `gorm:"column:created_by"`
+	UpdatedAt  *time.Time `gorm:"column:updated_at"`
+	UpdatedBy  *string    `gorm:"column:updated_by"`
 }
 
 func (inventoryRow) TableName() string { return "inventories" }
