@@ -21,6 +21,8 @@ check), and a 10-year immutable document archive with a hash-chained audit trail
    (§3), identity (§4), jobs (§5), document pipeline (§6), legal parameters (§7), errors (§8),
    audit and security controls (§8b), repository and CI (§9), tests (§10). `BE-OD-xx` are final.
 3. `docs/spec/RENT-FE-001.md` — the web app; read it for anything the API must serve the UI.
+   `docs/spec/RENT-INV-001.md` — inventories, vétusté and deposit restitution (phase 2); its
+   `INV-OD-xx` marked Decided are final, the others are proposals.
 4. `CONTRIBUTING.md` — rules that are never relaxed.
 5. `docs/IMPLEMENTATION-PLAN.md` — phase 1 slices: what each one builds and how it is accepted.
 6. `docs/OPEN-QUESTIONS.md` — spec gaps and the provisional reading chosen for each.
