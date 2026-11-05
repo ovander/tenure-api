@@ -6,6 +6,7 @@ import (
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/document"
+	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/tax"
 	"github.com/ovander/tenure-api/templates"
@@ -31,7 +32,7 @@ func TestModulesRenderTheCurrentTemplate(t *testing.T) {
 		"contract": lease.ContractTemplate, "amendment": lease.AmendmentTemplate, "deposit_receipt": lease.DepositReceiptTemplate,
 		"surety": lease.SuretyTemplate, "rent_call": billing.RentCallTemplate, "revision_notice": billing.RevisionTemplate,
 		"cancellation": billing.CancellationTemplate, "receipt": billing.ReceiptTemplate, "regularisation": charge.RegularisationTemplate,
-		"tax_summary": tax.SummaryTemplate,
+		"tax_summary": tax.SummaryTemplate, "inventory": inventory.EntryTemplate,
 	}
 	for name, v := range used {
 		if current[name] != v {

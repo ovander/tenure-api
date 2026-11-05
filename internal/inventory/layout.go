@@ -12,7 +12,9 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
@@ -49,6 +51,8 @@ type Service struct {
 	DB        *db.DB
 	Repo      Repository
 	Portfolio portfolio.Service
+	Lease     lease.Service
+	Issuer    document.Issuer
 	Photos    PhotoStore
 	Now       func() time.Time
 	NewID     func() uuid.UUID

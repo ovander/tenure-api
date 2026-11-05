@@ -640,10 +640,15 @@ func (s Service) GuaranteeDocument(ctx context.Context, p *auth.Principal, reque
 
 // InventoryInput is the body of POST /leases/{id}/inventories.
 type InventoryInput struct {
-	Kind   string      `json:"kind" enums:"entry,exit"`
-	DoneOn period.Date `json:"done_on" swaggertype:"string" format:"date"`
+	Kind string `json:"kind" enums:"entry,exit"`
+	// Mode is upload (the default: a signed PDF already archived) or amicable
+	// (an entry captured in Tenure, created as a draft from the layouts of
+	// the lease's assets, RENT-INV-001 §5).
+	Mode string `json:"mode,omitempty" enums:"upload,amicable"`
+	// DoneOn and DocumentID are those of an upload, absent for a capture.
+	DoneOn period.Date `json:"done_on,omitempty" swaggertype:"string" format:"date"`
 	// DocumentID is the uploaded état des lieux (class inventory, this lease).
-	DocumentID uuid.UUID `json:"document_id"`
+	DocumentID uuid.UUID `json:"document_id,omitempty"`
 	// Items is retired (RENT-INV-001 §9): a non-empty value is refused with
 	// inventory/items-field-retired; the structured items come with the
 	// inventory capture.
@@ -651,13 +656,14 @@ type InventoryInput struct {
 }
 
 // InventoryView is a recorded inventory. LegacyItems is the free JSON a phase
-// 1 inventory was recorded with, kept as it was.
+// 1 inventory was recorded with, kept as it was. A captured inventory has a
+// date once started and a document once issued.
 type InventoryView struct {
 	ID          uuid.UUID       `json:"id"`
 	LeaseID     uuid.UUID       `json:"lease_id"`
 	Kind        string          `json:"kind" enums:"entry,exit"`
-	DoneOn      period.Date     `json:"done_on" swaggertype:"string" format:"date"`
-	DocumentID  uuid.UUID       `json:"document_id"`
+	DoneOn      *period.Date    `json:"done_on,omitempty" swaggertype:"string" format:"date"`
+	DocumentID  *uuid.UUID      `json:"document_id,omitempty"`
 	Mode        string          `json:"mode" enums:"amicable,bailiff,upload"`
 	State       string          `json:"state" enums:"draft,scheduled,in_progress,completed,signed,issued"`
 	LegacyItems json.RawMessage `json:"legacy_items,omitempty" swaggertype:"array,object"`
@@ -665,8 +671,12 @@ type InventoryView struct {
 }
 
 func inventoryView(i inventoryRow) InventoryView {
-	v := InventoryView{ID: i.ID, LeaseID: i.LeaseID, Kind: i.Kind, DoneOn: period.FromTime(i.DoneOn), DocumentID: i.DocumentID,
-		Mode: i.Mode, State: i.State, CreatedAt: i.CreatedAt}
+	v := InventoryView{ID: i.ID, LeaseID: i.LeaseID, Kind: i.Kind, DocumentID: i.DocumentID, Mode: i.Mode, State: i.State,
+		CreatedAt: i.CreatedAt}
+	if i.DoneOn != nil {
+		d := period.FromTime(*i.DoneOn)
+		v.DoneOn = &d
+	}
 	if s := strings.TrimSpace(string(i.LegacyItems)); s != "" && s != "[]" && s != "null" {
 		v.LegacyItems = i.LegacyItems
 	}
@@ -680,29 +690,70 @@ func itemsGiven(raw json.RawMessage) bool {
 	return s != "" && s != "null" && s != "[]"
 }
 
-// CreateInventory records the entry or exit inventory of a lease, from its
-// uploaded document; an inventory is recorded once and never changed. The
-// entry inventory is recorded on a draft or active lease, the exit one on a
-// lease under notice or ended (Q-70).
+// DraftRequest asks the inventory module for the items of a new captured
+// entry inventory, inside the lease's transaction.
+type DraftRequest struct {
+	InventoryID uuid.UUID
+	OwnerID     uuid.UUID
+	AssetIDs    []uuid.UUID
+	Furnished   bool
+	Actor       string
+	At          time.Time
+}
+
+// Drafter drafts the items of a captured inventory from the asset layouts
+// (internal/inventory): lease never imports it, the wiring passes it in.
+type Drafter interface {
+	DraftEntryInTx(ctx context.Context, r DraftRequest) (items int, err error)
+}
+
+// CreateInventory records the entry or exit inventory of a lease, once:
+//   - upload: from its uploaded document, recorded issued and never changed;
+//     the entry on a draft or active lease, the exit on a lease under notice
+//     or ended (Q-70);
+//   - amicable: an entry to capture in Tenure, created as a draft whose items
+//     come from the layouts of the lease's assets (RENT-INV-001 §5, Q-111);
+//     the exit capture comes with inventory slice 8.
 func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, requestID string, leaseID uuid.UUID, in InventoryInput) (InventoryView, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
 		return InventoryView{}, err
 	}
+	if in.Mode == "" {
+		in.Mode = "upload"
+	}
 	var f invariant.Fields
 	if in.Kind != "entry" && in.Kind != "exit" {
 		f.Add("kind", "Type attendu : entry ou exit.")
 	}
-	if in.DoneOn.IsZero() {
-		f.Add("done_on", "La date de l’état des lieux est obligatoire.")
-	} else if s.today().Before(in.DoneOn) {
-		f.Add("done_on", "La date de l’état des lieux est dans le futur.")
+	switch in.Mode {
+	case "upload":
+		if in.DoneOn.IsZero() {
+			f.Add("done_on", "La date de l’état des lieux est obligatoire.")
+		} else if s.today().Before(in.DoneOn) {
+			f.Add("done_on", "La date de l’état des lieux est dans le futur.")
+		}
+	case "amicable":
+		if in.Kind == "exit" {
+			f.Add("kind", "Seul l’état des lieux d’entrée se saisit pour l’instant dans Tenure ; déposez le PDF signé de la sortie.")
+		}
+		if !in.DoneOn.IsZero() {
+			f.Add("done_on", "La date d’un état des lieux saisi est celle de sa réalisation : ne la donnez pas à la création.")
+		}
+		if in.DocumentID != uuid.Nil {
+			f.Add("document_id", "Un état des lieux saisi n’a pas de document : Tenure l’émet à la fin.")
+		}
+	default:
+		f.Add("mode", "Mode attendu : upload ou amicable.")
 	}
 	if err := f.Err(); err != nil {
 		return InventoryView{}, err
 	}
 	if itemsGiven(in.Items) {
 		return InventoryView{}, invariant.New(TypeInventoryItemsRetired, "items")
+	}
+	if in.Mode == "amicable" && s.Drafts == nil {
+		return InventoryView{}, errors.New("lease: no inventory drafter wired")
 	}
 	var out InventoryView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
@@ -715,16 +766,22 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 			(in.Kind == "exit" && state != StateNotice && state != StateEnded) {
 			return invariant.New(TypeInventoryState, in.Kind+" in "+st.lease.State)
 		}
-		d, ok, err := s.Repo.Document(ctx, in.DocumentID)
-		if err != nil {
-			return err
+		now := s.now()
+		row := inventoryRow{ID: s.NewID(), OwnerID: sc.OwnerID, LeaseID: leaseID, Kind: in.Kind, LegacyItems: json.RawMessage("[]"),
+			Mode: in.Mode, CreatedAt: now, CreatedBy: p.Sub}
+		if in.Mode == "upload" {
+			d, ok, err := s.Repo.Document(ctx, in.DocumentID)
+			if err != nil {
+				return err
+			}
+			if !ok || d.Class != string(document.ClassInventory) || d.Source != document.SourceUpload || d.LeaseID == nil || *d.LeaseID != leaseID {
+				return invariant.New(TypeInventoryDocument, in.DocumentID.String())
+			}
+			done, doc := in.DoneOn.Time(), in.DocumentID
+			row.DoneOn, row.DocumentID, row.State = &done, &doc, "issued"
+		} else {
+			row.State, row.UpdatedAt, row.UpdatedBy = "draft", &now, &p.Sub
 		}
-		if !ok || d.Class != string(document.ClassInventory) || d.Source != document.SourceUpload || d.LeaseID == nil || *d.LeaseID != leaseID {
-			return invariant.New(TypeInventoryDocument, in.DocumentID.String())
-		}
-		row := inventoryRow{ID: s.NewID(), OwnerID: sc.OwnerID, LeaseID: leaseID, Kind: in.Kind, DoneOn: in.DoneOn.Time(),
-			LegacyItems: json.RawMessage("[]"), Mode: "upload", State: "issued", DocumentID: in.DocumentID,
-			CreatedAt: s.now(), CreatedBy: p.Sub}
 		if err := s.Repo.InsertInventory(ctx, row); err != nil {
 			if db.IsUniqueViolation(err) {
 				return invariant.New(TypeInventoryExists, in.Kind)
@@ -732,7 +789,17 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 			return err
 		}
 		out = inventoryView(row)
-		return audit.Record(ctx, "inventory.create", audit.Entity{Type: "inventory", ID: row.ID.String()}, nil, out)
+		var after any = out
+		if in.Mode == "amicable" {
+			v := view(st)
+			n, err := s.Drafts.DraftEntryInTx(ctx, DraftRequest{InventoryID: row.ID, OwnerID: sc.OwnerID, AssetIDs: v.AssetIDs,
+				Furnished: v.Kind == KindFurnished, Actor: p.Sub, At: now})
+			if err != nil {
+				return err
+			}
+			after = map[string]any{"inventory": out, "items": n}
+		}
+		return audit.Record(ctx, "inventory.create", audit.Entity{Type: "inventory", ID: row.ID.String()}, nil, after)
 	})
 	return out, err
 }
@@ -959,4 +1026,41 @@ func (s Service) Amend(ctx context.Context, p *auth.Principal, requestID string,
 		return audit.Record(ctx, "lease.amend", audit.Entity{Type: "lease", ID: id.String()}, before, out)
 	})
 	return out, err
+}
+
+// InventoryAsset is an asset of a lease as an inventory names it.
+type InventoryAsset struct {
+	ID    uuid.UUID
+	Kind  string
+	Label string
+}
+
+// InventoryFacts is what a captured inventory needs of its lease: the parties
+// who sign it and the premises it describes.
+type InventoryFacts struct {
+	LeaseID   uuid.UUID
+	Kind      Kind
+	State     State
+	StartOn   period.Date
+	Owner     document.Party
+	Tenants   []string
+	Assets    []InventoryAsset
+	Principal uuid.UUID
+	Params    params.Set
+}
+
+// InventoryFactsInTx returns, inside the current scoped transaction, the
+// facts of a lease an inventory needs (internal/inventory).
+func (s Service) InventoryFactsInTx(ctx context.Context, sc db.Scope, id uuid.UUID) (InventoryFacts, error) {
+	f, err := s.facts(ctx, sc, id, false)
+	if err != nil {
+		return InventoryFacts{}, err
+	}
+	out := InventoryFacts{LeaseID: id, Kind: f.view.Kind, State: f.view.State, StartOn: f.view.StartOn,
+		Owner: document.Party{Name: f.owner.LegalName, Address: f.owner.Address}, Tenants: tenantNames(f.tenants),
+		Principal: principalID(f.lease), Params: f.ps}
+	for _, a := range f.assets {
+		out.Assets = append(out.Assets, InventoryAsset{ID: a.ID, Kind: string(a.Kind), Label: assetLabel(a)})
+	}
+	return out, nil
 }

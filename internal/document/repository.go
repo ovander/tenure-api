@@ -59,15 +59,15 @@ type Repository struct{}
 // ReserveNumber returns the next sequence of (class, asset, year) for the
 // scope's owner, locking the counter row until the transaction ends, so a
 // rollback gives the number back.
-func (Repository) ReserveNumber(ctx context.Context, owner uuid.UUID, class Class, assetCode string, year int) (int, error) {
+func (Repository) ReserveNumber(ctx context.Context, owner uuid.UUID, class Class, series, assetCode string, year int) (int, error) {
 	tx, err := db.Tx(ctx)
 	if err != nil {
 		return 0, err
 	}
 	var seq int
-	err = tx.Raw(`INSERT INTO document_counters (owner_id, class, asset_code, year, last_seq) VALUES (?, ?, ?, ?, 1)
-		ON CONFLICT (owner_id, class, asset_code, year) DO UPDATE SET last_seq = document_counters.last_seq + 1
-		RETURNING last_seq`, owner, string(class), assetCode, year).Scan(&seq).Error
+	err = tx.Raw(`INSERT INTO document_counters (owner_id, class, series, asset_code, year, last_seq) VALUES (?, ?, ?, ?, ?, 1)
+		ON CONFLICT (owner_id, class, series, asset_code, year) DO UPDATE SET last_seq = document_counters.last_seq + 1
+		RETURNING last_seq`, owner, string(class), series, assetCode, year).Scan(&seq).Error
 	return seq, err
 }
 

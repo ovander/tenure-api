@@ -177,8 +177,9 @@ func (s Service) UploadPhoto(ctx context.Context, p *auth.Principal, requestID s
 	return out, err
 }
 
-// photoTarget checks that the inventory exists, is not issued, and holds the
-// item or meter; it returns the inventory's lease.
+// photoTarget checks that the inventory exists, takes photos at its stage (a
+// draft, or on site), and holds the item or meter; it returns the
+// inventory's lease.
 func (s Service) photoTarget(ctx context.Context, in PhotoInput) (uuid.UUID, error) {
 	inv, ok, err := s.Repo.Inventory(ctx, in.InventoryID)
 	if err != nil {
@@ -187,8 +188,8 @@ func (s Service) photoTarget(ctx context.Context, in PhotoInput) (uuid.UUID, err
 	if !ok {
 		return uuid.Nil, invariant.ErrNotFound
 	}
-	if inv.State == "issued" {
-		return uuid.Nil, invariant.New(TypeIssuedImmutable, in.InventoryID.String())
+	if !itemsEditable(inv.State) {
+		return uuid.Nil, editError(inv.State)
 	}
 	var belongs bool
 	if in.ItemID != nil {

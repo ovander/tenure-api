@@ -1048,3 +1048,44 @@ Provisional:
   fallback policy for the API only. tenure-web mirrors the policy in its dev server with the
   capture screen (slice 5).
 
+**Q-111 Entry inventory captured in Tenure, slice 5 — Open (#99).** RENT-INV-001 §5 and §7
+give the lifecycle and the routes, not the creation body, what each state lets change, or how
+an inventory is issued before the signatures exist. Provisional:
+- **Creation.** `POST /leases/{id}/inventories` takes `mode: amicable` (the default stays
+  `upload`) with no date and no document: the entry is created as a draft, one item per element
+  of every room of each asset's layout, in the lease's asset order. Each item copies its room's
+  label and kind (`inventory_items.room_kind`, migration 000013), so a later layout edit never
+  changes the inventory or its checks. An asset without a layout is refused with
+  `inventory/layout-missing`. The exit capture waits for slice 8, and `bailiff` keeps the upload
+  path. One entry per lease remains (Q-70): a draft entry stands in for the upload.
+- **Edits per state.** The header (date, appointment, place, observations), the meters and the
+  keys change in draft, scheduled and in progress; the items and the photos change in draft and
+  in progress only. Anything else is `inventory/not-editable` (409), and an issued inventory
+  answers `inventory/issued-immutable`. The header, meters and keys use If-Match on the
+  inventory's version; an item uses its own version. A meter with photos cannot be removed
+  (`inventory/meter-has-photos`). Product limits: 5 000 items, 30 meters, 50 key lines,
+  1 500-character comments.
+- **Transitions.**
+  - `schedule` needs `scheduled_at` and `place` (in the body or the header).
+  - `start` sets the date to today (Europe/Paris) unless one is set.
+  - `complete` runs `Validate` and refuses with `inventory/mandatory-mention-missing` while a
+    complete-stage check blocks.
+  - `reopen` takes a completed inventory back on site.
+  - `issue` takes a signed inventory: it refuses with `inventory/signature-missing` while a
+    party has not signed, then renders the EE document. A wrong starting state is
+    `inventory/transition-invalid`. `dry_run` answers `{allowed, checks}` and writes nothing.
+  - `sign` and the signatures come with slice 6. Until then no inventory reaches `signed`
+    through the API.
+- **Parties.** The owner (legal name) and each tenant of the lease (their names joined) sign. A
+  party has signed when a signature of that party carries that name. Representatives and the
+  e-mailing of the EE to each party come with slice 6.
+- **EE document.** `templates/inventory/v1`, French only, with:
+  - the mentions of décret 2016-382;
+  - a 320 px thumbnail of each photo, re-encoded from the archived file;
+  - an annex listing the photos by SHA-256.
+
+  The tenant's completion windows are printed from `legal_params` as of the inventory's date.
+  The number is `EE-<asset>-<YYYY>-<seq>` on a sequence of its own (`document_counters.series`,
+  migration 000013). The document is of class `inventory`, so its retention clock starts at
+  lease end.
+

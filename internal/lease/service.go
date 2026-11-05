@@ -131,8 +131,10 @@ type Service struct {
 	Portfolio portfolio.Service
 	Params    params.Repository
 	Issuer    document.Issuer
-	Now       func() time.Time
-	NewID     func() uuid.UUID
+	// Drafts drafts a captured inventory's items (internal/inventory).
+	Drafts Drafter
+	Now    func() time.Time
+	NewID  func() uuid.UUID
 }
 
 // NewService returns a service with the real clock and UUIDv7 ids.

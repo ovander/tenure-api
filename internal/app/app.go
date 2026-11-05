@@ -72,7 +72,8 @@ func New(d Deps) (*App, error) {
 	newID := func() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 	pf := portfolio.Service{DB: d.API, Now: d.Now, NewID: newID}
 	issuer := document.Issuer{PDF: d.PDF, Store: d.Store, Now: d.Now, NewID: newID}
-	ls := lease.Service{DB: d.API, Portfolio: pf, Issuer: issuer, Now: d.Now, NewID: newID}
+	ls := lease.Service{DB: d.API, Portfolio: pf, Issuer: issuer, Now: d.Now, NewID: newID,
+		Drafts: inventory.Drafter{NewID: newID}}
 	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer, Issuer: issuer}
 	docs := document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner, Now: d.Now, NewID: newID}
 	cs := charge.Service{DB: d.API, Lease: ls, Billing: bs, Docs: docs, Issuer: issuer, Now: d.Now, NewID: newID}
@@ -97,7 +98,7 @@ func New(d Deps) (*App, error) {
 		Auth:      d.Auth,
 		Portfolio: portfolio.Handler{Service: pf},
 		Lease:     lease.Handler{Service: ls},
-		Inventory: inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Now: d.Now, NewID: newID,
+		Inventory: inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Lease: ls, Issuer: issuer, Now: d.Now, NewID: newID,
 			Photos: inventory.PhotoStore{Store: d.Store, Scanner: d.Scanner, Params: params.Repository{}}}},
 		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
 		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
