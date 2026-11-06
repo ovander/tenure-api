@@ -58,8 +58,11 @@ type Service struct {
 	// ESign is the electronic signature provider (OD-08), nil when not
 	// configured: only the wet-signed scan is offered then.
 	ESign esign.Provider
-	Now   func() time.Time
-	NewID func() uuid.UUID
+	// Arrears reads a lease's unpaid rent calls for the deposit settlement
+	// (internal/app wires billing's); nil refuses the settlement (503).
+	Arrears ArrearsFunc
+	Now     func() time.Time
+	NewID   func() uuid.UUID
 }
 
 func (s Service) now() time.Time { return s.Now().UTC().Truncate(time.Microsecond) }

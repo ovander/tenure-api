@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Restitution du dépôt de garantie {{.Number}}</title>{{template "style"}}
+<style>
+  tr { break-inside: avoid; }
+  td.amount, th.amount { text-align: right; white-space: nowrap; }
+  tr.total td { font-weight: bold; border-top: .4mm solid #333; }
+  .hash { font-family: "DejaVu Sans Mono", monospace; font-size: 7pt; word-break: break-all; }
+</style></head>
+<body>
+<h1>{{if .Release}}Solde de la provision retenue sur le dépôt de garantie{{else}}Restitution du dépôt de garantie{{end}}</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}}{{if .ExitNumber}} · état des lieux de sortie n° {{.ExitNumber}}{{end}}{{if .FirstNumber}} · fait suite au relevé n° {{.FirstNumber}}{{end}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+{{with .Statement}}
+{{if $.Release}}
+<p>Le relevé initial a retenu une provision de {{euros .DepositCents}} dans l’attente de l’approbation des comptes annuels de l’immeuble (article 22 de la loi n° 89-462 du 6 juillet 1989). Son solde est dû au plus tard le {{date .Deadline}}.</p>
+<table>
+<tr><td>Provision retenue</td><td class="amount">{{euros .DepositCents}}</td></tr>
+<tr><td>Régularisation des charges</td><td class="amount">− {{euros .RegularisationCents}}</td></tr>
+{{if .PenaltyCents}}<tr><td>Majoration pour retard ({{.PenaltyMonths}} mois commencé{{if gt .PenaltyMonths 1}}s{{end}})</td><td class="amount">+ {{euros .PenaltyCents}}</td></tr>{{end}}
+<tr class="total"><td>{{if $.Owed}}Reste dû par le locataire{{else}}À restituer au locataire{{end}}</td><td class="amount">{{euros $.TotalAbs}}</td></tr>
+</table>
+{{else}}
+<p>Les clés ont été remises le {{date $.KeysReturnedOn}}. Le dépôt de garantie est restitué au plus tard le {{date .Deadline}}, déduction faite des sommes restant dues au bailleur et dûment justifiées (article 22 de la loi n° 89-462 du 6 juillet 1989).</p>
+{{if $.Lines}}
+<h2>Retenues justifiées</h2>
+<table><tr><th>Élément</th><th>Entrée → sortie</th><th>Motif</th><th class="amount">Coût</th><th class="amount">Part locataire</th><th class="amount">Retenue</th></tr>
+{{range $.Lines}}<tr><td>{{.Item}}</td><td>{{if .Entry}}{{.Entry}} → {{.Exit}}{{end}}</td><td>{{.Description}}<br><small>{{.Basis}}{{if .Grid}} · grille « {{.Grid}} »{{end}}</small>{{if .Document}}<br><span class="hash">{{.Document}}</span>{{end}}</td><td class="amount">{{euros .CostCents}}</td><td class="amount">{{.SharePct}}</td><td class="amount">{{euros .AmountCents}}</td></tr>
+{{end}}</table>
+{{else}}<p>Aucune retenue au titre de l’état des lieux.</p>{{end}}
+<h2>Décompte</h2>
+<table>
+<tr><td>Dépôt de garantie versé</td><td class="amount">{{euros .DepositCents}}</td></tr>
+<tr><td>Retenues justifiées</td><td class="amount">− {{euros .DeductionsCents}}</td></tr>
+<tr><td>Loyers et charges restant dus</td><td class="amount">− {{euros .ArrearsCents}}</td></tr>
+{{if .RegularisationCents}}<tr><td>Régularisation des charges</td><td class="amount">− {{euros .RegularisationCents}}</td></tr>{{end}}
+{{if .HoldbackCents}}<tr><td>Provision retenue jusqu’à l’approbation des comptes de l’immeuble</td><td class="amount">− {{euros .HoldbackCents}}</td></tr>{{end}}
+{{if .PenaltyCents}}<tr><td>Majoration pour retard ({{.PenaltyMonths}} mois commencé{{if gt .PenaltyMonths 1}}s{{end}})</td><td class="amount">+ {{euros .PenaltyCents}}</td></tr>{{end}}
+<tr class="total"><td>{{if $.Owed}}Reste dû par le locataire{{else}}À restituer au locataire{{end}}</td><td class="amount">{{euros $.TotalAbs}}</td></tr>
+</table>
+{{if .HoldbackCents}}<p class="note">La provision est soldée dans le mois qui suit l’approbation des comptes annuels de l’immeuble, par un second relevé.</p>{{end}}
+{{end}}
+{{end}}
+</body></html>

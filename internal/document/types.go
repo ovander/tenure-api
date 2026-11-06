@@ -27,6 +27,9 @@ const (
 	ClassSupporting     Class = "supporting"
 	ClassOther          Class = "other"
 	ClassSurety         Class = "surety"
+	// ClassRestitution is the deposit restitution statement (RD), financial
+	// for the accountant (RENT-INV-001 §6, INV-OD-11).
+	ClassRestitution Class = "restitution"
 	// ClassCancellation renders a cancelling document; it is archived and
 	// numbered in the class of the document it cancels (Q-49).
 	ClassCancellation Class = "cancellation"
@@ -36,6 +39,7 @@ const (
 var prefixes = map[Class]string{
 	ClassRentCall: "AL", ClassReceipt: "QL", ClassRegularisation: "RG", ClassRevisionNotice: "RV",
 	ClassContract: "CT", ClassAmendment: "AV", ClassDeposit: "DG", ClassTaxSummary: "RF", ClassSurety: "CA",
+	ClassRestitution: "RD",
 }
 
 // Series of the classes that number with several prefixes (RENT-INV-001 §7):
@@ -58,11 +62,11 @@ const (
 // leaseBound classes keep their archive from the lease's end (RENT-SPEC-005):
 // their retain_until stays unset until the lease ends (Q-68).
 var leaseBound = map[Class]bool{ClassContract: true, ClassAmendment: true, ClassDeposit: true, ClassSurety: true,
-	ClassInventory: true}
+	ClassInventory: true, ClassRestitution: true}
 
 // Financial classes an accountant may download (RENT-FE-001 §5).
 var financial = map[Class]bool{ClassRentCall: true, ClassReceipt: true, ClassRegularisation: true,
-	ClassRevisionNotice: true, ClassTaxSummary: true}
+	ClassRevisionNotice: true, ClassTaxSummary: true, ClassRestitution: true}
 
 // Financial reports whether an accountant may download documents of class c.
 func Financial(c Class) bool { return financial[c] }

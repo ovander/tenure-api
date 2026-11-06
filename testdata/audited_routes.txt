@@ -35,6 +35,12 @@ POST /inventories/{id}/signatures/cancel
 POST /inventories/{id}/photos
 POST /inventories/{id}/completions
 PUT /completions/{id} +
+POST /vetuste-grids
+PUT /vetuste-grids/{id}
+PUT /leases/{id}/vetuste-grid
+POST /leases/{id}/deposit-deductions
+DELETE /deposit-deductions/{id}
+POST /leases/{id}/deposit-settlement +
 POST /documents
 POST /documents/export +
 POST /leases/{id}/revision +

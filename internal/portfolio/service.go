@@ -56,12 +56,15 @@ type AssetInput struct {
 	ControlledZone      bool      `json:"controlled_zone"`
 	// TenseZone is the zone tendue (Q-102); it is stored and returned as
 	// true whenever ControlledZone is set.
-	TenseZone           bool         `json:"tense_zone"`
-	RentControlZone     string       `json:"rent_control_zone"`
-	RentControlCategory string       `json:"rent_control_category"`
-	AcquiredOn          *period.Date `json:"acquired_on" swaggertype:"string" format:"date"`
-	AcquisitionCents    *int64       `json:"acquisition_cents"`
-	ParentAssetID       *uuid.UUID   `json:"parent_asset_id"`
+	TenseZone           bool   `json:"tense_zone"`
+	RentControlZone     string `json:"rent_control_zone"`
+	RentControlCategory string `json:"rent_control_category"`
+	// CollectiveBuilding is an asset in a building under a syndic: its
+	// annual accounts gate the deposit holdback (RENT-INV-001 §6).
+	CollectiveBuilding bool         `json:"collective_building"`
+	AcquiredOn         *period.Date `json:"acquired_on" swaggertype:"string" format:"date"`
+	AcquisitionCents   *int64       `json:"acquisition_cents"`
+	ParentAssetID      *uuid.UUID   `json:"parent_asset_id"`
 	// Shares defaults to 100 % for the owner of the scope.
 	Shares []ShareView `json:"shares"`
 }
@@ -265,7 +268,7 @@ func assetView(a assetRow, shares []shareRow) AssetView {
 	v := AssetView{ID: a.ID, Version: a.Version, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, AssetInput: AssetInput{
 		Kind: AssetKind(a.Kind), Address: a.Address, Lot: a.Lot, Furnished: a.Furnished, DPEClass: a.DPEClass,
 		ControlledZone: a.ControlledZone, TenseZone: a.TenseZone || a.ControlledZone, RentControlZone: a.RentControlZone, RentControlCategory: a.RentControlCategory,
-		AcquisitionCents: a.AcquisitionCents, ParentAssetID: a.ParentAssetID, Shares: []ShareView{}}}
+		CollectiveBuilding: a.CollectiveBuilding, AcquisitionCents: a.AcquisitionCents, ParentAssetID: a.ParentAssetID, Shares: []ShareView{}}}
 	if a.Surface != nil {
 		n := int64(*a.Surface)
 		v.SurfaceHundredthsM2 = &n
@@ -402,7 +405,7 @@ func validateAsset(in *AssetInput, owner uuid.UUID) invariant.Fields {
 func assetRowFrom(in AssetInput) assetRow {
 	a := assetRow{Kind: string(in.Kind), Address: in.Address, Lot: in.Lot, Furnished: in.Furnished, DPEClass: in.DPEClass,
 		ControlledZone: in.ControlledZone, TenseZone: in.TenseZone || in.ControlledZone, RentControlZone: in.RentControlZone, RentControlCategory: in.RentControlCategory,
-		AcquisitionCents: in.AcquisitionCents, ParentAssetID: in.ParentAssetID}
+		CollectiveBuilding: in.CollectiveBuilding, AcquisitionCents: in.AcquisitionCents, ParentAssetID: in.ParentAssetID}
 	if in.SurfaceHundredthsM2 != nil {
 		h := db.Hundredths(*in.SurfaceHundredthsM2)
 		a.Surface = &h
