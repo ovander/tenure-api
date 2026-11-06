@@ -671,9 +671,6 @@ func (s Service) statement(ctx context.Context, df depositFacts, in SettleInput)
 	if in.RegularisationCents < 0 {
 		return Statement{}, invariant.Fields{{Field: "regularisation_cents", Message: "La régularisation ne peut pas être négative."}}
 	}
-	if in.RegularisationCents > 0 && in.RegularisationDocumentID == nil {
-		return Statement{}, invariant.New(TypeRegularisationProof, "missing")
-	}
 	if in.AccountsApprovedOn != nil && today.Before(*in.AccountsApprovedOn) {
 		return Statement{}, invariant.Fields{{Field: "accounts_approved_on", Message: "L’approbation des comptes ne peut pas être dans le futur."}}
 	}
@@ -768,6 +765,11 @@ func (s Service) Settle(ctx context.Context, p *auth.Principal, requestID string
 	}
 	if in.Release && in.AccountsApprovedOn == nil && !dryRun {
 		return Statement{}, invariant.Fields{{Field: "accounts_approved_on", Message: "La date d’approbation des comptes est obligatoire pour libérer la provision."}}
+	}
+	// A dry run previews the figures; the regularisation's document is
+	// required to issue them.
+	if in.RegularisationCents > 0 && in.RegularisationDocumentID == nil && !dryRun {
+		return Statement{}, invariant.New(TypeRegularisationProof, "missing")
 	}
 	var out Statement
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
