@@ -362,3 +362,15 @@ func (s Service) moveMatches(ctx context.Context, from, to uuid.UUID, total mone
 
 // errReceipted is returned when a cancelled rent call already has a quittance.
 func receiptedError(number string) error { return invariant.New(TypeReceiptIssued, number) }
+
+// OutstandingInTx is, inside the caller's scoped transaction, what the
+// lease's live rent calls still owe (total − matched): the arrears the
+// deposit settlement deducts (RENT-INV-001 §6). internal/app hands it to the
+// inventory module, which does not import billing.
+func (s Service) OutstandingInTx(ctx context.Context, leaseID uuid.UUID, today period.Date) (money.Cents, error) {
+	calls, err := s.calls(ctx, leaseID)
+	if err != nil {
+		return 0, err
+	}
+	return Arrears(leaseID, calls, today, 0).OutstandingCents, nil
+}

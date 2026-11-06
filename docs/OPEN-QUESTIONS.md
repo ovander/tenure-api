@@ -1227,3 +1227,58 @@ request, how the windows are counted, nor how the owner learns of a request. Pro
 
   The e-mail waits for an owner contact address.
 - **Roles.** The co-owner reads; the accountant gets 403, as for every inventory route.
+
+**Q-115 Deposit deductions and the RD statement, slice 9 — Open (#110).** RENT-INV-001 §6 gives
+the arithmetic (built and golden-tested in slice 1). It does not say where the arrears and the
+regularisation come from, how a holdback is released, or how a deduction is tied to the exit.
+Provisional:
+- **Wear grids.**
+  - `GET/POST /vetuste-grids` and `PUT /vetuste-grids/{id}` (If-Match). Each line gives a
+    category, once, with a lifetime, a franchise, a yearly rate and a floor of at most
+    10 000 bp. Name and source are required; none is shipped (INV-OD-08).
+  - A grid is annexed with `PUT /leases/{id}/vetuste-grid` rather than `PUT /leases/{id}`:
+    lease edits are draft only, and the grid may be agreed later. It can be annexed until the
+    deposit is settled.
+  - An RD statement keeps the grid as it was used (a snapshot).
+- **Collective building.** `assets.collective_building` is now in the asset API (create and
+  update).
+- **Deductions.** `GET/POST /leases/{id}/deposit-deductions` and `DELETE
+  /deposit-deductions/{id}`, once the exit is issued and compared with its entry. A deduction is
+  either:
+  - on an exit item whose result is `worse` or `missing`, once per item;
+  - or on a key line `missing` at exit.
+
+  Anything else is `inventory/deduction-unjustified`: Tenure never charges an unflagged item.
+  The cost comes from a quote or invoice uploaded as class `supporting` on this lease. The
+  tenant's share is `Deduct`, with the lease's grid line for the item's category. The age runs
+  from the layout element's `installed_on`, or the lease start, to the exit's date. A missing
+  grid line refuses the deduction (`inventory/grid-line-missing`). A key, or a lease without a
+  grid, takes the whole cost.
+- **First statement.** `POST /leases/{id}/deposit-settlement` (`dry_run` in the body, as the
+  billing runs do), once the exit is issued with `keys_returned_on`:
+  - the deposit is the lease's `deposit_cents`;
+  - the arrears are what the lease's live rent calls still owe (billing, handed to the
+    inventory module by `internal/app`; issued RG documents are in them);
+  - in a collective building without `accounts_approved_on`, the holdback of
+    `deposit.collective_holdback_bp`, rounded down;
+  - otherwise, an optional regularisation not yet billed, backed by a `supporting` document of
+    this lease.
+
+  The deadline is the keys' day plus `with_deductions` months when a deduction is retained, or
+  `conforming` months otherwise (INV-OD-13). The late penalty owed on the day of issue is added
+  to the total: what is paid back, or, if negative, what the tenant still owes. It is issued as
+  `RD` (class `restitution`, financial and lease-bound; INV-OD-11 makes it visible to the
+  accountant).
+- **Release.** `release: true` needs `accounts_approved_on`. It pays back the holdback, less
+  the regularisation backed by its RG or `supporting` document. It is due
+  `holdback_balance_months` after the approval, and it issues a second `RD` that cites the
+  first.
+- **Freeze.** Once the first statement exists, the deductions and the annexed grid no longer
+  change. Triggers in migration 000016 also refuse any change to a statement row. One statement
+  of each kind per lease.
+- **Not built yet.** An uploaded exit (phase 1 path) has no `keys_returned_on`, so it cannot be
+  settled in Tenure. The commissaire-de-justice half-cost (INV-OD-09) and posting a deduction as
+  a charge (`charge_id`) are left for later.
+- **Roles.** `GET /leases/{id}/deposit` is read by the co-owner; the accountant gets 403 and
+  reads the RD documents.
+

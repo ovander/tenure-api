@@ -182,10 +182,10 @@ Phase 2 adds a package `internal/inventory`. It imports `portfolio`, `lease`, `d
 | `POST /inventories/{id}/signatures` | Start the e-signature request or attach a wet-signed scan |
 | `GET /inventories/{id}/comparison` | Exit only: per-item results of section 6 |
 | `GET/POST /inventories/{id}/completions`, `PUT /completions/{id}` | Windows and requests; 10-day and heating requests, decision per line issuing `EC`; distinct from lease amendments `POST /leases/{id}/amendments` (Q-114) |
-| `GET/POST /vetuste-grids`, `PUT /leases/{id}` with `vetuste_grid_id` | Grids and their attachment to a lease |
-| `GET/POST /leases/{id}/deposit-deductions`, `POST /leases/{id}/deposit-settlement?dry_run=` | Deductions and the `RD` statement (RENT-SPEC-008) |
+| `GET/POST /vetuste-grids`, `PUT /vetuste-grids/{id}`, `PUT /leases/{id}/vetuste-grid` | Grids and their attachment to a lease, until the deposit is settled (Q-115) |
+| `GET /leases/{id}/deposit`, `GET/POST /leases/{id}/deposit-deductions`, `DELETE /deposit-deductions/{id}`, `POST /leases/{id}/deposit-settlement` (`dry_run`, `release`) | Where the deposit stands, deductions on flagged items or missing keys, and the `RD` statements: the first, then the release of a holdback (RENT-SPEC-008, Q-115) |
 
-**Problem types**: `inventory/issued-immutable`, `inventory/exit-without-entry`, `inventory/mandatory-mention-missing` (with the missing list), `inventory/signature-missing`, `inventory/completion-window-closed`, `inventory/completion-unavailable`, `inventory/completion-decided`, `inventory/deduction-unjustified`, `inventory/items-field-retired`. Activation keeps the existing `lease/entry-inventory-missing`.
+**Problem types**: `inventory/issued-immutable`, `inventory/exit-without-entry`, `inventory/mandatory-mention-missing` (with the missing list), `inventory/signature-missing`, `inventory/completion-window-closed`, `inventory/completion-unavailable`, `inventory/completion-decided`, `inventory/deduction-unjustified`, `inventory/grid-line-missing`, `inventory/settlement-unavailable`, `inventory/deposit-settled`, `inventory/items-field-retired`. Activation keeps the existing `lease/entry-inventory-missing`.
 
 **Documents**: new prefixes `EE` (entry), `ES` (exit), `EC` (entry completion) and `RD` (deposit restitution statement), added to `document/types.go` beside `DG` (deposit receipt), numbered `<prefix>-<asset>-<YYYY>-<seq>` like the others. The template `templates/inventory/v1` declares its version constant in the inventory module, as the template test of [ovander/tenure-api#84](https://github.com/ovander/tenure-api/pull/84) requires. It is always in French and renders to PDF/A-2b via gotenberg. Each item shows a photo thumbnail embedded in the PDF at render time; the full-size photos stay in the archive, listed by hash in an annex. Class `inventory` keeps its RENT-SPEC-005 retention clock (lease end).
 
@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-06 | 0.12 | Slice 9 implemented (#110): wear grids and their annex to a lease, deductions only on a flagged item or a missing key with a quote or invoice, the first `RD` statement (arrears from billing, holdback, late penalty) and the release of the holdback; deductions frozen once settled; class `restitution` (Q-115) |
 | 2026-11-06 | 0.11 | Slice 7 implemented (#107): completion windows as a pure function, request on an issued entry within its window, decision per line issuing `EC` (template `inventory_completion/v1`), request frozen once decided; the owner reminder waits for an owner e-mail, a pending request is a lease warning (Q-114) |
 | 2026-11-06 | 0.10 | Slice 8 implemented (#105): exit pre-filled from the issued entry, refused without one, each item to check before completing; `keys_returned_on` and the new address block completing; comparison route; template v3 with the `ES` series; slice 7 still to do (Q-113) |
 | 2026-11-05 | 0.9 | Slice 6 implemented (#102): preview to sign, wet-signed scan and Yousign request (pull, no webhook), one party per co-tenant, signed then issued at the last signature, EE template v2 with each signature's evidence, reopen refused once signed; INV-OD-03 decided (Q-112) |

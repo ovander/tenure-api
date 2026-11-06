@@ -34,6 +34,7 @@ func TestModulesRenderTheCurrentTemplate(t *testing.T) {
 		"cancellation": billing.CancellationTemplate, "receipt": billing.ReceiptTemplate, "regularisation": charge.RegularisationTemplate,
 		"tax_summary": tax.SummaryTemplate, "inventory": inventory.DocumentTemplate,
 		"inventory_completion": inventory.CompletionTemplate,
+		"restitution":          inventory.RestitutionTemplate,
 	}
 	for name, v := range used {
 		if current[name] != v {
