@@ -130,6 +130,7 @@ func Routes(d Deps) []Route {
 		{"PUT", "/inventories/{id}/meters", GuardScopeOwnerW, false, h(d.Inventory.PutMeters)},
 		{"PUT", "/inventories/{id}/keys", GuardScopeOwnerW, false, h(d.Inventory.PutKeys)},
 		{"POST", "/inventories/{id}/transitions", GuardScopeOwnerW, false, h(d.Inventory.PostTransition)},
+		{"GET", "/inventories/{id}/comparison", GuardScopeOwnerW, false, h(d.Inventory.GetComparison)},
 		{"GET", "/inventories/{id}/preview", GuardScopeOwnerW, false, h(d.Inventory.GetPreview)},
 		{"GET", "/inventories/{id}/signatures", GuardScopeOwnerW, false, h(d.Inventory.GetSignatures)},
 		{"POST", "/inventories/{id}/signatures", GuardScopeOwnerW, false, h(d.Inventory.PostSignatures)},

@@ -79,7 +79,7 @@ func TestEntryDocumentRenders(t *testing.T) {
 	thumb := template.URL("data:image/jpeg;base64,AAAA")
 	d := entryData(c, map[uuid.UUID]template.URL{c.photos[0].ID: thumb})
 	d.Number, d.IssuedOn, d.CompletionDays, d.HeatingMonths = "EE-X-2026-0001", period.NewDate(2026, 3, 2), 7, 2
-	html, _, err := document.Renderer{}.Render(document.ClassInventory, EntryTemplate, d, document.Footer{Number: d.Number, SnapshotHash: "abcd"})
+	html, _, err := document.Renderer{}.Render(document.ClassInventory, DocumentTemplate, d, document.Footer{Number: d.Number, SnapshotHash: "abcd"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,5 +151,48 @@ func TestShrink(t *testing.T) {
 	small := image.NewRGBA(image.Rect(0, 0, 10, 20))
 	if shrink(small, thumbSide) != image.Image(small) {
 		t.Error("a small image is kept as is")
+	}
+}
+
+func TestExitDocumentRenders(t *testing.T) {
+	entry := sampleCapture()
+	exit := sampleCapture()
+	exit.head.Kind = "exit"
+	returned := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+	exit.head.KeysReturnedOn, exit.head.TenantNewAddress = &returned, "8 avenue Neuve, Grenoble"
+	for i := range exit.items {
+		id := entry.items[i].ID
+		exit.items[i].EntryItemID = &id
+		exit.items[i].ID = uuid.Must(uuid.NewV7())
+	}
+	exit.items[0].Condition = str("poor")
+	exit.photos = nil
+	exit.entry = &entry
+	d := entryData(exit, nil)
+	d.Number, d.IssuedOn = "ES-X-2026-0001", period.NewDate(2026, 10, 1)
+	html, _, err := document.Renderer{}.Render(document.ClassInventory, DocumentTemplate, d, document.Footer{Number: d.Number, SnapshotHash: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(html)
+	for _, want := range []string{"État des lieux de sortie", "8 avenue Neuve, Grenoble", "Nouveau domicile", "30/09/2026", "À l’entrée",
+		"Bon état", "Mauvais état", "restitués"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("the ES document lacks %q", want)
+		}
+	}
+	if strings.Contains(s, "compléter le présent état des lieux") {
+		t.Error("an exit offers the entry's completion window")
+	}
+	if c, err := exit.comparison(); err != nil || c.Items[0].Result != Worse || c.Flagged != 1 {
+		t.Errorf("comparison %+v %v", c, err)
+	}
+	if _, err := entry.comparison(); err == nil {
+		t.Error("an entry has no comparison")
+	}
+	// An exit's header mentions block completing.
+	exit.head.TenantNewAddress = ""
+	if !exit.checks().Blocks(StageComplete) {
+		t.Error("an exit without the new address completes")
 	}
 }

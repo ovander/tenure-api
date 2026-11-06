@@ -88,13 +88,15 @@ func TestInventoryCapture(t *testing.T) {
 			t.Errorf("an asset without a layout: %d %s", r.Status, r.Body)
 		}
 		for name, body := range map[string]map[string]any{
-			"exit":        {"kind": "exit", "mode": "amicable"},
 			"with a date": {"kind": "entry", "mode": "amicable", "done_on": "2025-01-01"},
 			"bad mode":    {"kind": "entry", "mode": "tablet"},
 		} {
 			if r := call(t, "POST", "/leases/"+l1.ID+"/inventories", req{tok: tok, body: body}); r.Status != 422 {
 				t.Errorf("%s: %d %s", name, r.Status, r.Body)
 			}
+		}
+		if r := call(t, "POST", "/leases/"+l1.ID+"/inventories", req{tok: tok, body: map[string]any{"kind": "exit", "mode": "amicable"}}); r.problemType(t) != "inventory/not-allowed-in-state" {
+			t.Errorf("an exit on a draft lease: %d %s", r.Status, r.Body)
 		}
 		var created struct {
 			ID    string `json:"id"`
@@ -308,7 +310,7 @@ func TestInventoryCapture(t *testing.T) {
 			RetainUntil     *string `json:"retain_until"`
 		}
 		call(t, "GET", "/documents/"+*inv.DocumentID, req{tok: tok}).json(t, &doc)
-		if doc.Class != "inventory" || doc.TemplateVersion != "inventory/v2" || doc.RetainUntil != nil {
+		if doc.Class != "inventory" || doc.TemplateVersion != "inventory/v3" || doc.RetainUntil != nil {
 			t.Errorf("document %+v: class inventory, its clock started at lease end", doc)
 		}
 		var key string

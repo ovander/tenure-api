@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -115,6 +116,9 @@ type ItemView struct {
 	ElementID *uuid.UUID  `json:"element_id,omitempty"`
 	Photos    []uuid.UUID `json:"photos"`
 	Version   int         `json:"version"`
+	// Entry is the item's state at entry, corrected by the accepted
+	// completion lines, for an exit item linked to its entry item.
+	Entry *State `json:"entry,omitempty"`
 }
 
 // CaptureRoom is a room of a captured inventory: its label and kind as
@@ -148,30 +152,38 @@ type KeyView struct {
 // reads it: the header, the rooms and items, meters, keys, the parties who
 // sign and the checks still open.
 type CaptureView struct {
-	ID           uuid.UUID     `json:"id"`
-	LeaseID      uuid.UUID     `json:"lease_id"`
-	Kind         string        `json:"kind" enums:"entry,exit"`
-	Mode         string        `json:"mode" enums:"amicable,bailiff,upload"`
-	State        string        `json:"state" enums:"draft,scheduled,in_progress,completed,signed,issued"`
-	DoneOn       *period.Date  `json:"done_on,omitempty" swaggertype:"string" format:"date"`
-	ScheduledAt  *time.Time    `json:"scheduled_at,omitempty"`
-	Place        string        `json:"place"`
-	Observations string        `json:"observations"`
-	DocumentID   *uuid.UUID    `json:"document_id,omitempty"`
-	Version      int           `json:"version"`
-	Rooms        []CaptureRoom `json:"rooms"`
-	Meters       []MeterView   `json:"meters"`
-	Keys         []KeyView     `json:"keys"`
-	Parties      []Party       `json:"parties"`
-	Checks       Checks        `json:"checks"`
-}
-
-// HeaderInput is the body of PUT /inventories/{id}: the whole header.
-type HeaderInput struct {
+	ID           uuid.UUID    `json:"id"`
+	LeaseID      uuid.UUID    `json:"lease_id"`
+	Kind         string       `json:"kind" enums:"entry,exit"`
+	Mode         string       `json:"mode" enums:"amicable,bailiff,upload"`
+	State        string       `json:"state" enums:"draft,scheduled,in_progress,completed,signed,issued"`
 	DoneOn       *period.Date `json:"done_on,omitempty" swaggertype:"string" format:"date"`
 	ScheduledAt  *time.Time   `json:"scheduled_at,omitempty"`
 	Place        string       `json:"place"`
 	Observations string       `json:"observations"`
+	DocumentID   *uuid.UUID   `json:"document_id,omitempty"`
+	Version      int          `json:"version"`
+	// An exit's entry, the return of the keys and the tenant's new address.
+	EntryInventoryID *uuid.UUID    `json:"entry_inventory_id,omitempty"`
+	KeysReturnedOn   *period.Date  `json:"keys_returned_on,omitempty" swaggertype:"string" format:"date"`
+	TenantNewAddress string        `json:"tenant_new_address"`
+	Rooms            []CaptureRoom `json:"rooms"`
+	Meters           []MeterView   `json:"meters"`
+	Keys             []KeyView     `json:"keys"`
+	Parties          []Party       `json:"parties"`
+	Checks           Checks        `json:"checks"`
+}
+
+// HeaderInput is the body of PUT /inventories/{id}: the whole header. An
+// exit also records the day the keys were returned (it starts the deposit's
+// clock) and the tenant's new address; an entry leaves them empty.
+type HeaderInput struct {
+	DoneOn           *period.Date `json:"done_on,omitempty" swaggertype:"string" format:"date"`
+	ScheduledAt      *time.Time   `json:"scheduled_at,omitempty"`
+	Place            string       `json:"place"`
+	Observations     string       `json:"observations"`
+	KeysReturnedOn   *period.Date `json:"keys_returned_on,omitempty" swaggertype:"string" format:"date"`
+	TenantNewAddress string       `json:"tenant_new_address,omitempty"`
 }
 
 // ItemInput is the body of PUT /inventories/{id}/items/{itemId}: the item as
@@ -243,6 +255,10 @@ type capture struct {
 	facts  lease.InventoryFacts
 	// evidence is the SHA-256 of each signature's evidence document.
 	evidence map[uuid.UUID]string
+	// entry is the issued entry an exit compares with (nil for an entry).
+	entry *capture
+	// completions are the decided completion lines of that entry.
+	completions []Completion
 }
 
 func (s Service) load(ctx context.Context, sc db.Scope, id uuid.UUID, lock bool) (capture, error) {
@@ -281,8 +297,59 @@ func (s Service) load(ctx context.Context, sc db.Scope, id uuid.UUID, lock bool)
 			}
 		}
 	}
-	c.facts, err = s.Lease.InventoryFactsInTx(ctx, sc, h.LeaseID)
+	if c.facts, err = s.Lease.InventoryFactsInTx(ctx, sc, h.LeaseID); err != nil {
+		return capture{}, err
+	}
+	if h.EntryInventoryID != nil {
+		e, err := loadParts(ctx, s.Repo, *h.EntryInventoryID)
+		if err != nil {
+			return capture{}, err
+		}
+		e.facts = c.facts
+		c.entry = &e
+		if c.completions, err = completions(ctx, s.Repo, *h.EntryInventoryID); err != nil {
+			return capture{}, err
+		}
+	}
+	return c, nil
+}
+
+// loadParts reads an inventory's header, items, keys and meters: what an
+// exit needs of its entry.
+func loadParts(ctx context.Context, repo Repository, id uuid.UUID) (capture, error) {
+	h, ok, err := repo.Capture(ctx, id, false)
+	if err != nil {
+		return capture{}, err
+	}
+	if !ok {
+		return capture{}, invariant.ErrNotFound
+	}
+	c := capture{head: h}
+	if c.items, err = repo.Items(ctx, id); err != nil {
+		return capture{}, err
+	}
+	if c.keys, err = repo.Keys(ctx, id); err != nil {
+		return capture{}, err
+	}
+	c.meters, err = repo.Meters(ctx, id)
 	return c, err
+}
+
+// completions are the lines of an entry's decided completion requests.
+func completions(ctx context.Context, repo Repository, entry uuid.UUID) ([]Completion, error) {
+	rows, err := repo.DecidedCompletions(ctx, entry)
+	if err != nil {
+		return nil, err
+	}
+	var out []Completion
+	for _, r := range rows {
+		var lines []Completion
+		if err := json.Unmarshal(r.Lines, &lines); err != nil {
+			return nil, fmt.Errorf("inventory: completion %s: %w", r.ID, err)
+		}
+		out = append(out, lines...)
+	}
+	return out, nil
 }
 
 // captured refuses an inventory that is not captured in Tenure (an upload).
@@ -313,6 +380,9 @@ func (c capture) engine() Inventory {
 	inv := Inventory{ID: c.head.ID.String(), Kind: Kind(c.head.Kind), Furnished: c.facts.Kind == lease.KindFurnished,
 		DoneOn: dateOf(c.head.DoneOn), KeysReturnedOn: dateOf(c.head.KeysReturnedOn), TenantNewAddress: c.head.TenantNewAddress,
 		Rooms: []Room{}, Items: []Item{}, Keys: []Key{}, Meters: []Meter{}, Parties: c.parties()}
+	if c.entry != nil {
+		inv.EntryDoneOn = dateOf(c.entry.head.DoneOn)
+	}
 	photos := map[uuid.UUID]int{}
 	for _, p := range c.photos {
 		if p.ItemID != nil {
@@ -332,6 +402,12 @@ func (c capture) engine() Inventory {
 		}
 		item := Item{ID: it.ID.String(), RoomID: k, RoomLabel: it.RoomLabel, Category: Category(it.Category), Label: it.Label,
 			Quantity: it.Quantity, Comment: it.Comment, Photos: photos[it.ID], ToCheck: it.ToCheck}
+		if it.ElementID != nil {
+			item.ElementID = it.ElementID.String()
+		}
+		if it.EntryItemID != nil {
+			item.EntryItemID = it.EntryItemID.String()
+		}
 		if it.Condition != nil {
 			item.Condition = Condition(*it.Condition)
 		}
@@ -371,8 +447,10 @@ func (c capture) parties() []Party {
 func (c capture) view() CaptureView {
 	v := CaptureView{ID: c.head.ID, LeaseID: c.head.LeaseID, Kind: c.head.Kind, Mode: c.head.Mode, State: c.head.State,
 		DoneOn: dateOf(c.head.DoneOn), ScheduledAt: c.head.ScheduledAt, Place: c.head.Place, Observations: c.head.Observations,
-		DocumentID: c.head.DocumentID, Version: c.head.Version, Rooms: []CaptureRoom{}, Meters: []MeterView{}, Keys: []KeyView{},
-		Parties: c.parties(), Checks: Validate(c.engine())}
+		DocumentID: c.head.DocumentID, Version: c.head.Version, EntryInventoryID: c.head.EntryInventoryID,
+		KeysReturnedOn: dateOf(c.head.KeysReturnedOn), TenantNewAddress: c.head.TenantNewAddress,
+		Rooms: []CaptureRoom{}, Meters: []MeterView{}, Keys: []KeyView{},
+		Parties: c.parties(), Checks: c.checks()}
 	byItem, byMeter := map[uuid.UUID][]uuid.UUID{}, map[uuid.UUID][]uuid.UUID{}
 	for _, p := range c.photos {
 		switch {
@@ -380,6 +458,12 @@ func (c capture) view() CaptureView {
 			byItem[*p.ItemID] = append(byItem[*p.ItemID], p.ID)
 		case p.MeterID != nil:
 			byMeter[*p.MeterID] = append(byMeter[*p.MeterID], p.ID)
+		}
+	}
+	entryState := map[string]*State{}
+	if cmp, err := c.comparison(); err == nil {
+		for _, r := range cmp.Items {
+			entryState[r.ExitItemID] = r.Entry
 		}
 	}
 	index := map[string]int{}
@@ -395,7 +479,9 @@ func (c capture) view() CaptureView {
 			index[k] = i
 			v.Rooms = append(v.Rooms, CaptureRoom{RoomID: it.RoomID, Label: it.RoomLabel, Kind: kind, Items: []ItemView{}})
 		}
-		v.Rooms[i].Items = append(v.Rooms[i].Items, itemView(it, byItem[it.ID]))
+		iv := itemView(it, byItem[it.ID])
+		iv.Entry = entryState[it.ID.String()]
+		v.Rooms[i].Items = append(v.Rooms[i].Items, iv)
 	}
 	for _, m := range c.meters {
 		ph := byMeter[m.ID]
@@ -464,6 +550,12 @@ func (s Service) SaveHeader(ctx context.Context, p *auth.Principal, requestID st
 	if tooLong(in.Observations, maxObservation) {
 		f.Add("observations", fmt.Sprintf("Au plus %d caractères.", maxObservation))
 	}
+	if in.KeysReturnedOn != nil && s.today().Before(*in.KeysReturnedOn) {
+		f.Add("keys_returned_on", "La remise des clés ne peut pas être dans le futur.")
+	}
+	if tooLong(in.TenantNewAddress, maxPlace) {
+		f.Add("tenant_new_address", fmt.Sprintf("Au plus %d caractères.", maxPlace))
+	}
 	if err := f.Err(); err != nil {
 		return CaptureView{}, err
 	}
@@ -490,6 +582,15 @@ func (s Service) SaveHeader(ctx context.Context, p *auth.Principal, requestID st
 			t := in.DoneOn.Time()
 			h.DoneOn = &t
 		}
+		if h.Kind == "exit" {
+			h.TenantNewAddress, h.KeysReturnedOn = strings.TrimSpace(in.TenantNewAddress), nil
+			if in.KeysReturnedOn != nil {
+				t := in.KeysReturnedOn.Time()
+				h.KeysReturnedOn = &t
+			}
+		} else if in.KeysReturnedOn != nil || in.TenantNewAddress != "" {
+			return invariant.Fields{{Field: "keys_returned_on", Message: "La remise des clés et la nouvelle adresse sont celles d’un état des lieux de sortie."}}
+		}
 		if err := s.touch(ctx, &h, p.Sub); err != nil {
 			return err
 		}
@@ -511,7 +612,8 @@ func utcPtr(t *time.Time) *time.Time {
 // header is the audited part of an inventory header.
 func header(h captureRow) map[string]any {
 	return map[string]any{"state": h.State, "done_on": dateOf(h.DoneOn), "scheduled_at": h.ScheduledAt, "place": h.Place,
-		"observations": h.Observations, "document_id": h.DocumentID, "version": h.Version}
+		"observations": h.Observations, "keys_returned_on": dateOf(h.KeysReturnedOn), "tenant_new_address": h.TenantNewAddress,
+		"document_id": h.DocumentID, "version": h.Version}
 }
 
 // touch saves h at its version + 1 and moves it there.
@@ -879,7 +981,7 @@ func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID st
 			h.DoneOn = &t
 		}
 		c.head = h
-		checks := Validate(c.engine())
+		checks := c.checks()
 		blocked := s.blocked(in.Action, h, checks)
 		if in.DryRun {
 			dry = &TransitionResult{Action: in.Action, Allowed: c.head.State == move[0] && blocked == nil, Checks: checks}
@@ -911,7 +1013,7 @@ func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID st
 			if err != nil {
 				return err
 			}
-			c.head.DocumentID, c.head.TemplateVersion = &doc, "inventory/"+EntryTemplate
+			c.head.DocumentID, c.head.TemplateVersion = &doc, "inventory/"+DocumentTemplate
 		}
 		c.head.State = move[1]
 		if err := s.touch(ctx, &c.head, p.Sub); err != nil {
@@ -1019,4 +1121,104 @@ func (d Drafter) DraftEntryInTx(ctx context.Context, r lease.DraftRequest) (int,
 			Quantity: it.Quantity, Version: 1, CreatedAt: r.At, CreatedBy: r.Actor, UpdatedAt: r.At, UpdatedBy: r.Actor})
 	}
 	return len(rows), d.Repo.InsertItems(ctx, rows)
+}
+
+// CodeItemToCheck is an exit item pre-filled from the entry and not yet
+// confirmed on site: the exit is completed once each has been looked at
+// (Q-113), so an unchecked entry condition is never carried over unseen.
+const CodeItemToCheck = "exit-item-to-check"
+
+// checks are the engine's checks, plus, for an exit, one per item still to
+// check, its header mentions moved to the complete stage.
+func (c capture) checks() Checks {
+	out := Validate(c.engine())
+	if c.head.Kind != "exit" {
+		return out
+	}
+	// The exit's own mentions are in its header, which no longer changes once
+	// completed: they block completing, not only issuing (Q-113).
+	for i, x := range out.Blocking {
+		switch x.Code {
+		case CodeNewAddressMissing, CodeKeysReturnMissing, CodeEntryDateMissing:
+			out.Blocking[i].Stage = StageComplete
+		}
+	}
+	for _, it := range c.items {
+		if it.ToCheck {
+			out.Blocking = append(out.Blocking, Check{Code: CodeItemToCheck, Stage: StageComplete, Room: it.RoomLabel, Item: it.Label})
+		}
+	}
+	return out
+}
+
+// DraftExitInTx implements lease.Drafter: the exit starts from the issued
+// entry (Prefill), each item with the entry's condition corrected by the
+// accepted completion lines, linked to its entry item and marked to check;
+// the keys as handed over, the meters without a reading (Q-113). An entry
+// recorded from its PDF has no items: the exit is then drafted from the
+// layouts, as an entry is, with nothing linked.
+func (d Drafter) DraftExitInTx(ctx context.Context, r lease.DraftRequest) (int, error) {
+	if r.EntryInventoryID == nil {
+		return 0, invariant.New(lease.TypeExitWithoutEntry, "")
+	}
+	entry, err := loadParts(ctx, d.Repo, *r.EntryInventoryID)
+	if err != nil {
+		return 0, err
+	}
+	if len(entry.items) == 0 {
+		return d.DraftEntryInTx(ctx, r)
+	}
+	cs, err := completions(ctx, d.Repo, *r.EntryInventoryID)
+	if err != nil {
+		return 0, err
+	}
+	src := entry.engine()
+	src.Kind = Entry
+	next := Prefill(r.InventoryID.String(), src, cs)
+	rows := map[string]itemRow{}
+	for _, it := range entry.items {
+		rows[it.ID.String()] = it
+	}
+	items := make([]itemRow, 0, len(next.Items))
+	for i, it := range next.Items {
+		e := rows[it.EntryItemID]
+		entryID := e.ID
+		row := itemRow{ID: d.NewID(), OwnerID: r.OwnerID, InventoryID: r.InventoryID, RoomID: e.RoomID, ElementID: e.ElementID,
+			RoomLabel: e.RoomLabel, RoomKind: e.RoomKind, Position: i + 1, Category: string(it.Category), Label: it.Label,
+			Quantity: it.Quantity, Comment: it.Comment, ToCheck: true, EntryItemID: &entryID, Version: 1,
+			CreatedAt: r.At, CreatedBy: r.Actor, UpdatedAt: r.At, UpdatedBy: r.Actor}
+		if it.Condition != "" {
+			v := string(it.Condition)
+			row.Condition = &v
+		}
+		if it.Works != "" {
+			v := string(it.Works)
+			row.Works = &v
+		}
+		items = append(items, row)
+	}
+	if err := d.Repo.InsertItems(ctx, items); err != nil {
+		return 0, err
+	}
+	var keys []keyRow
+	for i, k := range next.Keys {
+		keys = append(keys, keyRow{ID: d.NewID(), OwnerID: r.OwnerID, InventoryID: r.InventoryID, Kind: k.Kind, Destination: k.Destination,
+			Quantity: k.Quantity, Comment: k.Comment, CreatedAt: r.At.Add(time.Duration(i) * time.Microsecond), CreatedBy: r.Actor})
+	}
+	if len(keys) > 0 {
+		if err := d.Repo.ReplaceKeys(ctx, r.InventoryID, keys); err != nil {
+			return 0, err
+		}
+	}
+	var meters []meterRow
+	for i, m := range next.Meters {
+		meters = append(meters, meterRow{ID: d.NewID(), OwnerID: r.OwnerID, InventoryID: r.InventoryID, Kind: m.Kind, MeterNumber: m.MeterNumber,
+			Unit: m.Unit, CreatedAt: r.At.Add(time.Duration(i) * time.Microsecond), CreatedBy: r.Actor})
+	}
+	if len(meters) > 0 {
+		if err := d.Repo.ReplaceMeters(ctx, r.InventoryID, meters, map[uuid.UUID]bool{}); err != nil {
+			return 0, err
+		}
+	}
+	return len(items), nil
 }

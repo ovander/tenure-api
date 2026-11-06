@@ -50,7 +50,7 @@ func TestDraftToSign(t *testing.T) {
 	d := entryData(c, nil)
 	d.Draft, d.CompletionDays, d.HeatingMonths = true, 7, 1
 	d.Signers = []EntrySigner{{Party: "Bailleur", Name: "Bailleur A", Anchor: "{{s1|signature|180|60}}"}, {Party: "Locataire", Name: "Léa Martin"}}
-	html, _, err := document.Renderer{}.Render(document.ClassInventory, EntryTemplate, d, document.Footer{Number: "Projet", SnapshotHash: "x"})
+	html, _, err := document.Renderer{}.Render(document.ClassInventory, DocumentTemplate, d, document.Footer{Number: "Projet", SnapshotHash: "x"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestDraftToSign(t *testing.T) {
 	d = entryData(c, nil)
 	d.Number, d.IssuedOn, d.CompletionDays, d.HeatingMonths = "EE-X-2026-0001", period.NewDate(2026, 3, 2), 7, 1
 	d.Signatures[0].Evidence = strings.Repeat("c", 64)
-	html, _, _ = document.Renderer{}.Render(document.ClassInventory, EntryTemplate, d, document.Footer{Number: d.Number, SnapshotHash: "x"})
+	html, _, _ = document.Renderer{}.Render(document.ClassInventory, DocumentTemplate, d, document.Footer{Number: d.Number, SnapshotHash: "x"})
 	if s = string(html); strings.Contains(s, "Projet soumis") || !strings.Contains(s, strings.Repeat("c", 64)) {
 		t.Error("the issued document")
 	}
