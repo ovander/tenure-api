@@ -211,7 +211,7 @@ func (s Service) renderDraft(ctx context.Context, c capture, anchors map[string]
 		}
 		data.Signers = append(data.Signers, sg)
 	}
-	html, footer, err := s.Issuer.Renderer.Render(document.ClassInventory, EntryTemplate, data,
+	html, footer, err := s.Issuer.Renderer.Render(document.ClassInventory, DocumentTemplate, data,
 		document.Footer{Number: "Projet", SnapshotHash: "à signer"})
 	if err != nil {
 		return nil, err
@@ -377,7 +377,7 @@ func (s Service) issueIfSigned(ctx context.Context, sc db.Scope, p *auth.Princip
 	if err != nil {
 		return err
 	}
-	fresh.head.DocumentID, fresh.head.TemplateVersion, fresh.head.State = &doc, "inventory/"+EntryTemplate, StateIssued
+	fresh.head.DocumentID, fresh.head.TemplateVersion, fresh.head.State = &doc, "inventory/"+DocumentTemplate, StateIssued
 	if err := s.touch(ctx, &fresh.head, p.Sub); err != nil {
 		return err
 	}

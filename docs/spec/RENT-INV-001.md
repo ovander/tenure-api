@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-06 | 0.10 | Slice 8 implemented (#105): exit pre-filled from the issued entry, refused without one, each item to check before completing; `keys_returned_on` and the new address block completing; comparison route; template v3 with the `ES` series; slice 7 still to do (Q-113) |
 | 2026-11-05 | 0.9 | Slice 6 implemented (#102): preview to sign, wet-signed scan and Yousign request (pull, no webhook), one party per co-tenant, signed then issued at the last signature, EE template v2 with each signature's evidence, reopen refused once signed; INV-OD-03 decided (Q-112) |
 | 2026-11-05 | 0.8 | Slice 5 implemented (#99): creation with `mode amicable`, room kind copied to each item, edits per state, transitions with `dry_run`, `issue` from `signed` (signatures in slice 6), `EE` series counted apart, completion windows printed from `legal_params` (Q-111) |
 | 2026-11-05 | 0.7 | Slice 4 implemented (#97): photo limits, orientation applied, `taken_at` left empty, retention from upload until lease end is known, co-owner views and accountant refused, CSP origin taken from the store (Q-110) |

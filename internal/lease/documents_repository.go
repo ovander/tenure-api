@@ -38,10 +38,12 @@ type inventoryRow struct {
 	Mode       string     `gorm:"column:mode"`
 	State      string     `gorm:"column:state"`
 	DocumentID *uuid.UUID `gorm:"column:document_id"`
-	CreatedAt  time.Time  `gorm:"column:created_at"`
-	CreatedBy  string     `gorm:"column:created_by"`
-	UpdatedAt  *time.Time `gorm:"column:updated_at"`
-	UpdatedBy  *string    `gorm:"column:updated_by"`
+	// EntryInventoryID is the entry an exit compares with.
+	EntryInventoryID *uuid.UUID `gorm:"column:entry_inventory_id"`
+	CreatedAt        time.Time  `gorm:"column:created_at"`
+	CreatedBy        string     `gorm:"column:created_by"`
+	UpdatedAt        *time.Time `gorm:"column:updated_at"`
+	UpdatedBy        *string    `gorm:"column:updated_by"`
 }
 
 func (inventoryRow) TableName() string { return "inventories" }

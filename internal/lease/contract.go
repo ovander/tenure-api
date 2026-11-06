@@ -694,26 +694,32 @@ func itemsGiven(raw json.RawMessage) bool {
 // entry inventory, inside the lease's transaction.
 type DraftRequest struct {
 	InventoryID uuid.UUID
-	OwnerID     uuid.UUID
-	AssetIDs    []uuid.UUID
-	Furnished   bool
-	Actor       string
-	At          time.Time
+	// EntryInventoryID is the issued entry an exit starts from (nil for an
+	// entry).
+	EntryInventoryID *uuid.UUID
+	OwnerID          uuid.UUID
+	AssetIDs         []uuid.UUID
+	Furnished        bool
+	Actor            string
+	At               time.Time
 }
 
 // Drafter drafts the items of a captured inventory from the asset layouts
 // (internal/inventory): lease never imports it, the wiring passes it in.
 type Drafter interface {
 	DraftEntryInTx(ctx context.Context, r DraftRequest) (items int, err error)
+	// DraftExitInTx pre-fills an exit from its issued entry (RENT-INV-001 §5).
+	DraftExitInTx(ctx context.Context, r DraftRequest) (items int, err error)
 }
 
 // CreateInventory records the entry or exit inventory of a lease, once:
 //   - upload: from its uploaded document, recorded issued and never changed;
 //     the entry on a draft or active lease, the exit on a lease under notice
 //     or ended (Q-70);
-//   - amicable: an entry to capture in Tenure, created as a draft whose items
-//     come from the layouts of the lease's assets (RENT-INV-001 §5, Q-111);
-//     the exit capture comes with inventory slice 8.
+//   - amicable: an inventory to capture in Tenure, created as a draft: an
+//     entry from the layouts of the lease's assets (RENT-INV-001 §5, Q-111),
+//     an exit pre-filled from the lease's issued entry (Q-113), refused
+//     without one (inventory/exit-without-entry).
 func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, requestID string, leaseID uuid.UUID, in InventoryInput) (InventoryView, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
@@ -734,9 +740,6 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 			f.Add("done_on", "La date de l’état des lieux est dans le futur.")
 		}
 	case "amicable":
-		if in.Kind == "exit" {
-			f.Add("kind", "Seul l’état des lieux d’entrée se saisit pour l’instant dans Tenure ; déposez le PDF signé de la sortie.")
-		}
 		if !in.DoneOn.IsZero() {
 			f.Add("done_on", "La date d’un état des lieux saisi est celle de sa réalisation : ne la donnez pas à la création.")
 		}
@@ -781,6 +784,21 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 			row.DoneOn, row.DocumentID, row.State = &done, &doc, "issued"
 		} else {
 			row.State, row.UpdatedAt, row.UpdatedBy = "draft", &now, &p.Sub
+			if in.Kind == "exit" {
+				invs, err := s.Repo.Inventories(ctx, leaseID)
+				if err != nil {
+					return err
+				}
+				for _, i := range invs {
+					if i.Kind == "entry" && i.State == "issued" {
+						id := i.ID
+						row.EntryInventoryID = &id
+					}
+				}
+				if row.EntryInventoryID == nil {
+					return invariant.New(TypeExitWithoutEntry, "")
+				}
+			}
 		}
 		if err := s.Repo.InsertInventory(ctx, row); err != nil {
 			if db.IsUniqueViolation(err) {
@@ -792,8 +810,13 @@ func (s Service) CreateInventory(ctx context.Context, p *auth.Principal, request
 		var after any = out
 		if in.Mode == "amicable" {
 			v := view(st)
-			n, err := s.Drafts.DraftEntryInTx(ctx, DraftRequest{InventoryID: row.ID, OwnerID: sc.OwnerID, AssetIDs: v.AssetIDs,
-				Furnished: v.Kind == KindFurnished, Actor: p.Sub, At: now})
+			req := DraftRequest{InventoryID: row.ID, EntryInventoryID: row.EntryInventoryID, OwnerID: sc.OwnerID, AssetIDs: v.AssetIDs,
+				Furnished: v.Kind == KindFurnished, Actor: p.Sub, At: now}
+			draft := s.Drafts.DraftEntryInTx
+			if in.Kind == "exit" {
+				draft = s.Drafts.DraftExitInTx
+			}
+			n, err := draft(ctx, req)
 			if err != nil {
 				return err
 			}

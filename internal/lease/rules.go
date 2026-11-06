@@ -43,6 +43,7 @@ const (
 	TypeInventoryDocument     = "inventory/document-invalid"
 	TypeInventoryState        = "inventory/not-allowed-in-state"
 	TypeInventoryItemsRetired = "inventory/items-field-retired"
+	TypeExitWithoutEntry      = "inventory/exit-without-entry"
 	// Warnings (RENT-SPEC-008, Q-26).
 	WarnBoxDeposit    = "lease/box-deposit-high"
 	WarnSuretyExpired = "guarantee/surety-expired"
@@ -75,6 +76,7 @@ func init() {
 		TypeInventoryExists:       problem.M(409, "Cet état des lieux est déjà enregistré.", "This inventory is already recorded."),
 		TypeInventoryDocument:     problem.M(422, "L’état des lieux doit être un document déposé, de classe inventory, de ce bail.", "The inventory must be an uploaded document of class inventory for this lease."),
 		TypeInventoryState:        problem.M(409, "Cet état des lieux n’est pas possible dans l’état actuel du bail.", "This inventory is not possible in the lease's current state."),
+		TypeExitWithoutEntry:      problem.M(409, "L’état des lieux de sortie part de celui d’entrée : il faut d’abord un état des lieux d’entrée émis.", "The exit inventory starts from the entry: an issued entry inventory is needed first."),
 		TypeInventoryItemsRetired: problem.M(422, "Les éléments ne se déclarent plus en JSON libre : ils se saisissent dans l’état des lieux.", "Items are no longer free JSON: they are captured in the inventory."),
 		WarnBoxDeposit:            problem.M(200, "Le dépôt de garantie du box dépasse deux mois de loyer.", "The box deposit exceeds two months of rent."),
 		WarnSuretyExpired:         problem.M(200, "Une caution est expirée ou révoquée.", "A surety has expired or been revoked."),

@@ -26,6 +26,7 @@ type captureRow struct {
 	Observations     string     `gorm:"column:observations"`
 	TenantNewAddress string     `gorm:"column:tenant_new_address"`
 	KeysReturnedOn   *time.Time `gorm:"column:keys_returned_on"`
+	EntryInventoryID *uuid.UUID `gorm:"column:entry_inventory_id"`
 	DocumentID       *uuid.UUID `gorm:"column:document_id"`
 	TemplateVersion  string     `gorm:"column:template_version"`
 	Version          int        `gorm:"column:version"`
@@ -134,6 +135,7 @@ func (Repository) SaveHeader(ctx context.Context, r captureRow, version int) err
 	}
 	res := t.Model(&captureRow{}).Where("id = ? AND version = ?", r.ID, version).Updates(map[string]any{
 		"state": r.State, "done_on": r.DoneOn, "scheduled_at": r.ScheduledAt, "place": r.Place, "observations": r.Observations,
+		"tenant_new_address": r.TenantNewAddress, "keys_returned_on": r.KeysReturnedOn,
 		"document_id": r.DocumentID, "template_version": r.TemplateVersion, "version": version + 1,
 		"updated_at": r.UpdatedAt, "updated_by": r.UpdatedBy,
 	})
@@ -397,4 +399,24 @@ func (Repository) DocumentInfo(ctx context.Context, id uuid.UUID) (docInfo, bool
 		return docInfo{}, false, err
 	}
 	return rows[0], true, nil
+}
+
+type completionRow struct {
+	ID       uuid.UUID       `gorm:"column:id"`
+	Lines    json.RawMessage `gorm:"column:lines;type:jsonb"`
+	Decision string          `gorm:"column:decision"`
+}
+
+func (completionRow) TableName() string { return "inventory_completions" }
+
+// DecidedCompletions returns the decided completion requests of an entry
+// (accepted, refused or partial), oldest first.
+func (Repository) DecidedCompletions(ctx context.Context, inventory uuid.UUID) ([]completionRow, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []completionRow
+	err = t.Where("inventory_id = ? AND decision <> 'pending'", inventory).Order("created_at, id").Find(&rows).Error
+	return rows, err
 }

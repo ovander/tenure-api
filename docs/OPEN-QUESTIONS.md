@@ -1138,3 +1138,46 @@ Provisional:
   - the signer and request statuses;
   - the download of a single signed file.
 
+**Q-113 Exit inventory captured in Tenure, slice 8 — Open (#105).** RENT-INV-001 §5 and §6 say
+the exit is pre-filled from the entry and compared with it. They do not say what an exit needs,
+what « to check » demands, or what the comparison returns before the deposit settlement.
+Provisional:
+- **Creation.** `POST /leases/{id}/inventories` with `kind: exit, mode: amicable`, on a lease
+  under notice or ended (Q-70). It needs the lease's issued entry; otherwise it is refused with
+  `inventory/exit-without-entry` (409). `Prefill` gives the items:
+  - each entry item, its condition, works, quantity and comment corrected by the decided
+    completion lines, linked by `entry_item_id`, marked to check;
+  - the keys as handed over;
+  - the meters with their kind, number and unit, without a reading.
+
+  An entry recorded from its PDF has no items: the exit is then drafted from the layouts, as an
+  entry is, with nothing linked, and every item compares as new. An uploaded exit still needs no
+  entry (phase 1 path).
+- **Header.** An exit also records `keys_returned_on`, which cannot be in the future, and the
+  tenant's new address. An entry refuses both. The deposit's clock reads
+  `keys_returned_on` (slice 9).
+- **Complete.** An exit completes only once every pre-filled item has been looked at
+  (`exit-item-to-check`: saving an item clears its mark), so an entry condition is never carried
+  over unseen. The new address, the return of the keys and the entry's date also block
+  completing: they are header mentions, and the header no longer changes once completed.
+- **Comparison.** `GET /inventories/{id}/comparison`, for an exit with its entry, is `Compare`:
+  - per exit item: same, better, worse, missing or new, with the entry and exit states and the
+    steps down the scale;
+  - per key line: entry and exit counts and a result;
+  - `flagged`: the worse and missing results, for the owner to qualify before the settlement
+    (slice 9).
+
+  It reads at any state, issued included. Any other inventory answers
+  `inventory/comparison-unavailable`. The capture view gives each exit item its entry state too,
+  so the exit screen shows it under the item.
+- **Document.** Template `inventory/v3` renders the entry and the exit. The exit document, in
+  series `ES`, adds:
+  - the tenant's new domicile;
+  - the entry's date and the day the keys were returned;
+  - an « à l'entrée » column per item;
+  - « clés restituées ».
+
+  It omits the completion window. Signing is as for the entry (Q-112).
+- **Completions.** Slice 7 is not built yet: the exit reads decided completion lines from
+  `inventory_completions`, none of which can be recorded yet.
+

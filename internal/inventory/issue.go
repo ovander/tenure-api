@@ -18,9 +18,10 @@ import (
 	"github.com/ovander/tenure-api/internal/period"
 )
 
-// EntryTemplate is the version of templates/inventory the entry inventory
-// (EE) renders with; a template change adds a version (tenure-api#84).
-const EntryTemplate = "v2"
+// DocumentTemplate is the version of templates/inventory the entry (EE) and exit
+// (ES) inventories render with; a template change adds a version
+// (tenure-api#84).
+const DocumentTemplate = "v3"
 
 // thumbSide is the long side of a photo thumbnail embedded in the PDF; the
 // full photo stays in the archive, listed by hash in the annex.
@@ -39,13 +40,15 @@ var (
 
 // EntryItem is an item line of the EE document.
 type EntryItem struct {
-	Label     string
-	Condition string
-	Works     string
-	Quantity  int
-	Comment   string
-	Photos    []int
-	Thumbs    []template.URL
+	// EntryCondition is the item's condition at entry, for an exit.
+	EntryCondition string
+	Label          string
+	Condition      string
+	Works          string
+	Quantity       int
+	Comment        string
+	Photos         []int
+	Thumbs         []template.URL
 }
 
 // EntryRoom is a room of the EE document.
@@ -109,6 +112,12 @@ type EntryData struct {
 	// with its signers.
 	Draft   bool
 	Signers []EntrySigner
+	// An exit (ES) also names its entry's date, the return of the keys and
+	// the tenant's new address (décret 2016-382).
+	Exit             bool
+	EntryDoneOn      period.Date
+	KeysReturnedOn   period.Date
+	TenantNewAddress string
 }
 
 // entryData builds the document's content from a capture; thumbs holds the
@@ -119,6 +128,25 @@ func entryData(c capture, thumbs map[uuid.UUID]template.URL) EntryData {
 		Signatures: []EntrySignature{}, Photos: []EntryPhoto{}}
 	if c.head.DoneOn != nil {
 		d.DoneOn = period.FromTime(*c.head.DoneOn)
+	}
+	entryOf := map[string]string{}
+	if c.head.Kind == "exit" {
+		d.Exit, d.TenantNewAddress = true, c.head.TenantNewAddress
+		if c.head.KeysReturnedOn != nil {
+			d.KeysReturnedOn = period.FromTime(*c.head.KeysReturnedOn)
+		}
+		if c.entry != nil {
+			if c.entry.head.DoneOn != nil {
+				d.EntryDoneOn = period.FromTime(*c.entry.head.DoneOn)
+			}
+			if cmp, err := c.comparison(); err == nil {
+				for _, r := range cmp.Items {
+					if r.Entry != nil {
+						entryOf[r.ExitItemID] = conditionFR[r.Entry.Condition]
+					}
+				}
+			}
+		}
 	}
 	for _, a := range c.facts.Assets {
 		d.Premises = append(d.Premises, a.Label)
@@ -157,7 +185,7 @@ func entryData(c capture, thumbs map[uuid.UUID]template.URL) EntryData {
 			index[k] = i
 			d.Rooms = append(d.Rooms, EntryRoom{Label: it.RoomLabel})
 		}
-		line := EntryItem{Label: it.Label, Quantity: it.Quantity, Comment: it.Comment, Photos: byItem[it.ID]}
+		line := EntryItem{Label: it.Label, Quantity: it.Quantity, Comment: it.Comment, Photos: byItem[it.ID], EntryCondition: entryOf[it.ID.String()]}
 		if it.Condition != nil {
 			line.Condition = conditionFR[Condition(*it.Condition)]
 		}
@@ -223,8 +251,12 @@ func (s Service) issueEntry(ctx context.Context, c capture) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 	lid := c.head.LeaseID
+	series := document.SeriesEntry
+	if c.head.Kind == "exit" {
+		series = document.SeriesExit
+	}
 	iss, err := s.Issuer.Issue(ctx, document.Request{Class: document.ClassInventory, Template: document.ClassInventory,
-		TemplateVersion: EntryTemplate, Series: document.SeriesEntry, AssetID: c.facts.Principal, LeaseID: &lid, Snapshot: snapshot,
+		TemplateVersion: DocumentTemplate, Series: series, AssetID: c.facts.Principal, LeaseID: &lid, Snapshot: snapshot,
 		Data: func(number string, issued period.Date) any {
 			data.Number, data.IssuedOn = number, issued
 			return data
