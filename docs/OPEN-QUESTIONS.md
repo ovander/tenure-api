@@ -1178,6 +1178,52 @@ Provisional:
   - « clés restituées ».
 
   It omits the completion window. Signing is as for the entry (Q-112).
-- **Completions.** Slice 7 is not built yet: the exit reads decided completion lines from
-  `inventory_completions`, none of which can be recorded yet.
+- **Completions.** The exit reads the decided completion lines of `inventory_completions`
+  (slice 7, Q-114).
 
+**Q-114 Entry completions and the EC document, slice 7 — Open (#107).** RENT-INV-001 §5 step 5
+and loi 89-462 art. 3-2 let the tenant ask, within ten days, to complete the entry, and, for the
+heating, within the first month of the heating season. They do not say how Tenure records the
+request, how the windows are counted, nor how the owner learns of a request. Provisional:
+- **Windows.** `inventory.CompletionWindows`, a pure function golden-tested on the legal
+  fixtures, counts both windows from the entry's `done_on`, both ends included:
+  - the ten-day window ends `done_on + inventory.completion_window_days`; a day before the
+    entry is outside it;
+  - the heating window runs from the first day of the next `heating_season.start_month` for
+    `inventory.heating_window_months`. It exists only when the entry was done outside the
+    season (RENT-INV-001 §5 step 4). An entry done in season has the ten-day window only.
+
+  The season is one parameter for every asset. Making it editable per asset (INV-OD-07) is left
+  for later: the parameter is the default.
+- **Request.** `POST /inventories/{id}/completions` records the request as the owner received
+  it, on an issued entry captured in Tenure. An upload has no items to complete; the request is
+  refused with `inventory/completion-unavailable`. The request holds:
+  - the reason (`ten_day`, `heating`);
+  - the day it was made, not in the future and within its window, otherwise
+    `inventory/completion-window-closed`;
+  - optionally the tenant's letter, uploaded through POST /documents (class inventory, this
+    lease);
+  - one line per entry item, once each, with the condition, works or a comment asked for. A
+    heating request covers heating items only.
+
+  The tenant files it themselves only with the portal (phase 4).
+- **Decision.** `PUT /completions/{id}` (If-Match) accepts or refuses every line. The request
+  becomes `accepted`, `refused` or `partial`, on `decided_on` (today when omitted, not before
+  the request). The `EC` document (template `inventory_completion/v1`, French) is issued in
+  the same transaction. It cites the EE number and the window, gives each line's entry state,
+  the state asked for and the decision, and says the issued entry is not modified. It is not
+  signed: it records the owner's decision.
+- **Immutability.** Once decided, a request no longer changes, and none is ever deleted. A
+  trigger enforces this (migration 000015). The accepted lines are the entry's state wherever
+  the entry is read against an exit: the exit pre-fill (when the exit is created) and the
+  comparison (always).
+- **Owner reminder.** RENT-INV-001 §7 has `billing.reminders` e-mail the owner 7 days before
+  each window ends. Owners have no e-mail address in Tenure (only tenants do), so this reminder
+  is not sent. Instead:
+  - a pending request is a lease warning, `inventory/completion-pending`, which the home lists
+    as a to-do;
+  - `GET /inventories/{id}/completions` gives the window end dates and which windows are open
+    today, for the inventories tab.
+
+  The e-mail waits for an owner contact address.
+- **Roles.** The co-owner reads; the accountant gets 403, as for every inventory route.

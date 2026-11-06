@@ -40,7 +40,7 @@ type TemplateView struct {
 
 // templateClass is the class a template renders, when it differs from its
 // name.
-var templateClass = map[string]Class{"deposit_receipt": ClassDeposit}
+var templateClass = map[string]Class{"deposit_receipt": ClassDeposit, "inventory_completion": ClassInventory}
 
 // TemplateUsage is how many of the scope's documents a template version
 // rendered, and when the first and the last were issued.

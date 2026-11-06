@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Complément à l’état des lieux d’entrée {{.Number}}</title>{{template "style"}}
+<style>
+  tr { break-inside: avoid; }
+  td.decision { white-space: nowrap; width: 24mm; font-weight: bold; }
+</style></head>
+<body>
+<h1>Complément à l’état des lieux d’entrée</h1>
+<p class="meta">N° {{.Number}} · émis le {{date .IssuedOn}}{{if .EntryNumber}} · complète l’état des lieux d’entrée n° {{.EntryNumber}}{{end}} du {{date .EntryDoneOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Locaux</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>{{if .Heating}}Le locataire a demandé le {{date .RequestedOn}}, pendant le premier mois de la période de chauffe, que l’état des lieux d’entrée soit complété par l’état des éléments de chauffage{{else}}Le locataire a demandé le {{date .RequestedOn}}, dans le délai de dix jours suivant l’établissement de l’état des lieux d’entrée, que celui-ci soit complété{{end}} (article 3-2 de la loi n° 89-462 du 6 juillet 1989). Le délai courait jusqu’au {{date .WindowEndsOn}} inclus.</p>
+<p>Le bailleur a statué le {{date .DecidedOn}} : la demande est <strong>{{.Decision}}</strong>.</p>
+<table><tr><th>Pièce · élément</th><th>À l’entrée</th><th>Demandé</th><th>Décision</th></tr>
+{{range .Lines}}<tr><td>{{.Room}} · {{.Label}}</td><td>{{.Entry}}{{if .EntryComment}}<br>{{.EntryComment}}{{end}}</td><td>{{.Requested}}{{if .RequestedComment}}<br>{{.RequestedComment}}{{end}}</td><td class="decision">{{if .Accepted}}Acceptée{{else}}Refusée{{end}}</td></tr>
+{{end}}</table>
+<p>L’état des lieux d’entrée émis n’est pas modifié. Les lignes acceptées le complètent : elles valent état à l’entrée de l’élément concerné, notamment pour la comparaison avec l’état des lieux de sortie. Les lignes refusées laissent l’état d’entrée inchangé.</p>
+</body></html>

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -305,6 +306,15 @@ func (s Service) warnings(f contractFacts) ([]*invariant.Error, error) {
 	return Warnings(f.lease, guaranteeFacts(f.guarantees), to, f.today, f.ps)
 }
 
+// completionWarning flags the completion requests waiting for a decision.
+func (s Service) completionWarning(ctx context.Context, id uuid.UUID) ([]*invariant.Error, error) {
+	n, err := s.Repo.PendingCompletions(ctx, id)
+	if err != nil || n == 0 {
+		return nil, err
+	}
+	return []*invariant.Error{invariant.New(WarnCompletionPending, strconv.FormatInt(n, 10)+" pending")}, nil
+}
+
 func blockers(errs []*invariant.Error) []Blocker {
 	out := []Blocker{}
 	for _, e := range errs {
@@ -339,6 +349,11 @@ func (s Service) Blockers(ctx context.Context, p *auth.Principal, requestID stri
 		if err != nil {
 			return err
 		}
+		pending, err := s.completionWarning(ctx, id)
+		if err != nil {
+			return err
+		}
+		warn = append(warn, pending...)
 		out = BlockersView{Generation: blockers(gen), Activation: blockers(act), Warnings: blockers(warn)}
 		return nil
 	})

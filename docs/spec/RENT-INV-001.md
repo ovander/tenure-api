@@ -181,17 +181,17 @@ Phase 2 adds a package `internal/inventory`. It imports `portfolio`, `lease`, `d
 | `POST /inventories/{id}/transitions` | schedule, start, complete, reopen, sign, issue; `dry_run` returns the blocking checks |
 | `POST /inventories/{id}/signatures` | Start the e-signature request or attach a wet-signed scan |
 | `GET /inventories/{id}/comparison` | Exit only: per-item results of section 6 |
-| `POST /inventories/{id}/completions`, `PUT /completions/{id}` | 10-day and heating requests, decision per line; distinct from lease amendments `POST /leases/{id}/amendments` |
+| `GET/POST /inventories/{id}/completions`, `PUT /completions/{id}` | Windows and requests; 10-day and heating requests, decision per line issuing `EC`; distinct from lease amendments `POST /leases/{id}/amendments` (Q-114) |
 | `GET/POST /vetuste-grids`, `PUT /leases/{id}` with `vetuste_grid_id` | Grids and their attachment to a lease |
 | `GET/POST /leases/{id}/deposit-deductions`, `POST /leases/{id}/deposit-settlement?dry_run=` | Deductions and the `RD` statement (RENT-SPEC-008) |
 
-**Problem types**: `inventory/issued-immutable`, `inventory/exit-without-entry`, `inventory/mandatory-mention-missing` (with the missing list), `inventory/signature-missing`, `inventory/completion-window-closed`, `inventory/deduction-unjustified`, `inventory/items-field-retired`. Activation keeps the existing `lease/entry-inventory-missing`.
+**Problem types**: `inventory/issued-immutable`, `inventory/exit-without-entry`, `inventory/mandatory-mention-missing` (with the missing list), `inventory/signature-missing`, `inventory/completion-window-closed`, `inventory/completion-unavailable`, `inventory/completion-decided`, `inventory/deduction-unjustified`, `inventory/items-field-retired`. Activation keeps the existing `lease/entry-inventory-missing`.
 
 **Documents**: new prefixes `EE` (entry), `ES` (exit), `EC` (entry completion) and `RD` (deposit restitution statement), added to `document/types.go` beside `DG` (deposit receipt), numbered `<prefix>-<asset>-<YYYY>-<seq>` like the others. The template `templates/inventory/v1` declares its version constant in the inventory module, as the template test of [ovander/tenure-api#84](https://github.com/ovander/tenure-api/pull/84) requires. It is always in French and renders to PDF/A-2b via gotenberg. Each item shows a photo thumbnail embedded in the PDF at render time; the full-size photos stay in the archive, listed by hash in an annex. Class `inventory` keeps its RENT-SPEC-005 retention clock (lease end).
 
 **Audit**: every write above emits `audit.Record` in the same transaction. Actions: `inventory.create`, `.item.update`, `.photo.add` (both hashes), `.transition`, `.signature.add`, `.completion.decide`, `deposit.deduction.create`, `deposit.settle`. All mutating routes are added to `testdata/audited_routes.txt`.
 
-**Jobs**: no new cron job. The existing `billing.reminders` also sends the owner a reminder 7 days before each window end and deposit deadline, read from the inventory and settlement rows. Once RENT-SPEC-012 exists, the same dates are written as obligations-calendar items; until then they show on the inventories tab and the home to-dos.
+**Jobs**: no new cron job. The existing `billing.reminders` also sends the owner a reminder 7 days before each window end and deposit deadline, read from the inventory and settlement rows, once owners have an e-mail address in Tenure; until then a pending completion request is a lease warning (`inventory/completion-pending`) and the window end dates are served by `GET /inventories/{id}/completions` (Q-114). Once RENT-SPEC-012 exists, the same dates are written as obligations-calendar items; until then they show on the inventories tab and the home to-dos.
 
 **legal\_params keys** (dated, as RENT-BE-001 section 7): `inventory.completion_window_days` = 10; `inventory.heating_window_months` = 1; `heating_season.start_month` = 10 and `.end_month` = 5 (INV-OD-07); `deposit.return_months.conforming` = 1, `.with_deductions` = 2; `deposit.collective_holdback_bp` = 2000; `deposit.holdback_balance_months_after_approval` = 1; `deposit.late_penalty_bp_of_rent` = 1000.
 
@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-06 | 0.11 | Slice 7 implemented (#107): completion windows as a pure function, request on an issued entry within its window, decision per line issuing `EC` (template `inventory_completion/v1`), request frozen once decided; the owner reminder waits for an owner e-mail, a pending request is a lease warning (Q-114) |
 | 2026-11-06 | 0.10 | Slice 8 implemented (#105): exit pre-filled from the issued entry, refused without one, each item to check before completing; `keys_returned_on` and the new address block completing; comparison route; template v3 with the `ES` series; slice 7 still to do (Q-113) |
 | 2026-11-05 | 0.9 | Slice 6 implemented (#102): preview to sign, wet-signed scan and Yousign request (pull, no webhook), one party per co-tenant, signed then issued at the last signature, EE template v2 with each signature's evidence, reopen refused once signed; INV-OD-03 decided (Q-112) |
 | 2026-11-05 | 0.8 | Slice 5 implemented (#99): creation with `mode amicable`, room kind copied to each item, edits per state, transitions with `dry_run`, `issue` from `signed` (signatures in slice 6), `EE` series counted apart, completion windows printed from `legal_params` (Q-111) |

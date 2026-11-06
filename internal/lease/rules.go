@@ -47,6 +47,9 @@ const (
 	// Warnings (RENT-SPEC-008, Q-26).
 	WarnBoxDeposit    = "lease/box-deposit-high"
 	WarnSuretyExpired = "guarantee/surety-expired"
+	// WarnCompletionPending is a tenant's completion request on the entry
+	// inventory still to decide (RENT-INV-001 slice 7, Q-114).
+	WarnCompletionPending = "inventory/completion-pending"
 )
 
 func init() {
@@ -80,6 +83,7 @@ func init() {
 		TypeInventoryItemsRetired: problem.M(422, "Les éléments ne se déclarent plus en JSON libre : ils se saisissent dans l’état des lieux.", "Items are no longer free JSON: they are captured in the inventory."),
 		WarnBoxDeposit:            problem.M(200, "Le dépôt de garantie du box dépasse deux mois de loyer.", "The box deposit exceeds two months of rent."),
 		WarnSuretyExpired:         problem.M(200, "Une caution est expirée ou révoquée.", "A surety has expired or been revoked."),
+		WarnCompletionPending:     problem.M(200, "Une demande de complément de l’état des lieux d’entrée attend votre décision.", "A request to complete the entry inventory waits for your decision."),
 	})
 }
 

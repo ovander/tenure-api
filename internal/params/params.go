@@ -24,6 +24,8 @@ const (
 	KeyDeficitCarryForward    = "deficit_carryforward_years"
 	KeyCompletionWindowDays   = "inventory.completion_window_days"
 	KeyHeatingWindowMonths    = "inventory.heating_window_months"
+	KeyHeatingSeasonStart     = "heating_season.start_month"
+	KeyHeatingSeasonEnd       = "heating_season.end_month"
 	KeyDepositMaxUnfurnished  = "deposit_max_months.unfurnished"
 	KeyDepositMaxFurnished    = "deposit_max_months.furnished"
 	KeyDepositMaxMobility     = "deposit_max_months.mobility"
