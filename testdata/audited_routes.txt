@@ -33,6 +33,8 @@ POST /inventories/{id}/signatures +
 POST /inventories/{id}/signatures/refresh +
 POST /inventories/{id}/signatures/cancel
 POST /inventories/{id}/photos
+POST /inventories/{id}/completions
+PUT /completions/{id} +
 POST /documents
 POST /documents/export +
 POST /leases/{id}/revision +

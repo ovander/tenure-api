@@ -25,6 +25,16 @@ func pd(s string) *period.Date { v := d(s); return &v }
 // (testdata/params), so no figure is written here.
 func rules(t *testing.T) params.DepositReturn {
 	t.Helper()
+	r, err := fixtures(t).DepositReturn(d("2026-01-01"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+// fixtures is the parameter set of the legal fixtures (testdata/params).
+func fixtures(t *testing.T) params.Set {
+	t.Helper()
 	files, err := filepath.Glob(filepath.Join("..", "..", "testdata", "params", "*.json"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no parameter fixtures: %v", err)
@@ -45,11 +55,7 @@ func rules(t *testing.T) params.DepositReturn {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.DepositReturn(d("2026-01-01"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return r
+	return s
 }
 
 func TestConditionScale(t *testing.T) {

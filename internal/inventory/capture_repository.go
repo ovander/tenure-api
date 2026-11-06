@@ -385,6 +385,8 @@ type docInfo struct {
 	LeaseID *uuid.UUID `gorm:"column:lease_id"`
 	Source  string     `gorm:"column:source"`
 	SHA256  string     `gorm:"column:sha256"`
+	// ObjectKey ends with a generated document's number (<number>.pdf).
+	ObjectKey string `gorm:"column:object_key"`
 }
 
 // DocumentInfo returns one archived document of the scope.
@@ -394,7 +396,7 @@ func (Repository) DocumentInfo(ctx context.Context, id uuid.UUID) (docInfo, bool
 		return docInfo{}, false, err
 	}
 	var rows []docInfo
-	err = t.Table("documents").Select("id, class, lease_id, source, sha256").Where("id = ?", id).Limit(1).Find(&rows).Error
+	err = t.Table("documents").Select("id, class, lease_id, source, sha256, object_key").Where("id = ?", id).Limit(1).Find(&rows).Error
 	if err != nil || len(rows) == 0 {
 		return docInfo{}, false, err
 	}
@@ -402,9 +404,21 @@ func (Repository) DocumentInfo(ctx context.Context, id uuid.UUID) (docInfo, bool
 }
 
 type completionRow struct {
-	ID       uuid.UUID       `gorm:"column:id"`
-	Lines    json.RawMessage `gorm:"column:lines;type:jsonb"`
-	Decision string          `gorm:"column:decision"`
+	ID                uuid.UUID       `gorm:"column:id;primaryKey"`
+	OwnerID           uuid.UUID       `gorm:"column:owner_id"`
+	InventoryID       uuid.UUID       `gorm:"column:inventory_id"`
+	Reason            string          `gorm:"column:reason"`
+	RequestedOn       time.Time       `gorm:"column:requested_on;type:date"`
+	RequestDocumentID *uuid.UUID      `gorm:"column:request_document_id"`
+	Lines             json.RawMessage `gorm:"column:lines;type:jsonb"`
+	Decision          string          `gorm:"column:decision"`
+	DecidedOn         *time.Time      `gorm:"column:decided_on;type:date"`
+	DocumentID        *uuid.UUID      `gorm:"column:document_id"`
+	Version           int             `gorm:"column:version"`
+	CreatedAt         time.Time       `gorm:"column:created_at"`
+	CreatedBy         string          `gorm:"column:created_by"`
+	UpdatedAt         time.Time       `gorm:"column:updated_at"`
+	UpdatedBy         string          `gorm:"column:updated_by"`
 }
 
 func (completionRow) TableName() string { return "inventory_completions" }
@@ -419,4 +433,61 @@ func (Repository) DecidedCompletions(ctx context.Context, inventory uuid.UUID) (
 	var rows []completionRow
 	err = t.Where("inventory_id = ? AND decision <> 'pending'", inventory).Order("created_at, id").Find(&rows).Error
 	return rows, err
+}
+
+// Completions returns every completion request of an entry, oldest first.
+func (Repository) Completions(ctx context.Context, inventory uuid.UUID) ([]completionRow, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []completionRow
+	err = t.Where("inventory_id = ?", inventory).Order("created_at, id").Find(&rows).Error
+	return rows, err
+}
+
+// Completion returns one completion request, locked for update when lock.
+func (Repository) Completion(ctx context.Context, id uuid.UUID, lock bool) (completionRow, bool, error) {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return completionRow{}, false, err
+	}
+	q := t.Where("id = ?", id).Limit(1)
+	if lock {
+		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
+	}
+	var rows []completionRow
+	if err := q.Find(&rows).Error; err != nil || len(rows) == 0 {
+		return completionRow{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+// InsertCompletion records a completion request.
+func (Repository) InsertCompletion(ctx context.Context, r completionRow) error {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&r).Error
+}
+
+// DecideCompletion writes a decision at version+1; ErrStale when someone
+// saved first.
+func (Repository) DecideCompletion(ctx context.Context, r completionRow, version int) error {
+	t, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&completionRow{}).Where("id = ? AND version = ?", r.ID, version).Updates(map[string]any{
+		"lines": r.Lines, "decision": r.Decision, "decided_on": r.DecidedOn, "document_id": r.DocumentID, "version": version + 1,
+		"updated_at": r.UpdatedAt, "updated_by": r.UpdatedBy,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
 }

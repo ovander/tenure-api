@@ -1,0 +1,125 @@
+{
+  "case": "completion-windows",
+  "description": "The tenant's windows to complete an issued entry (loi 89-462 art. 3-2): ten days from the entry's date, last day included; the first month of the next heating season when the entry was done outside it (INV-OD-07, October to May), none when done in season. The parameters are the legal fixtures of testdata/params.",
+  "steps": [
+    {
+      "name": "summer entry: ten days, then the first month of the coming season",
+      "windows": {
+        "done_on": "2026-06-15",
+        "requests": [
+          {
+            "reason": "ten_day",
+            "on": "2026-06-14"
+          },
+          {
+            "reason": "ten_day",
+            "on": "2026-06-25"
+          },
+          {
+            "reason": "ten_day",
+            "on": "2026-06-26"
+          },
+          {
+            "reason": "heating",
+            "on": "2026-09-30"
+          },
+          {
+            "reason": "heating",
+            "on": "2026-10-01"
+          },
+          {
+            "reason": "heating",
+            "on": "2026-10-31"
+          },
+          {
+            "reason": "heating",
+            "on": "2026-11-01"
+          }
+        ]
+      },
+      "expected": {
+        "windows": {
+          "ten_day_ends_on": "2026-06-25",
+          "heating_starts_on": "2026-10-01",
+          "heating_ends_on": "2026-10-31"
+        },
+        "open": [
+          false,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "name": "the last day before the season",
+      "windows": {
+        "done_on": "2026-09-30",
+        "requests": [
+          {
+            "reason": "heating",
+            "on": "2026-10-05"
+          }
+        ]
+      },
+      "expected": {
+        "windows": {
+          "ten_day_ends_on": "2026-10-10",
+          "heating_starts_on": "2026-10-01",
+          "heating_ends_on": "2026-10-31"
+        },
+        "open": [
+          true
+        ]
+      }
+    },
+    {
+      "name": "winter entry across the new year: no heating window",
+      "windows": {
+        "done_on": "2026-01-31",
+        "requests": [
+          {
+            "reason": "ten_day",
+            "on": "2026-02-10"
+          },
+          {
+            "reason": "heating",
+            "on": "2026-02-01"
+          }
+        ]
+      },
+      "expected": {
+        "windows": {
+          "ten_day_ends_on": "2026-02-10"
+        },
+        "open": [
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "name": "the season's last month",
+      "windows": {
+        "done_on": "2026-05-31",
+        "requests": [
+          {
+            "reason": "heating",
+            "on": "2026-06-05"
+          }
+        ]
+      },
+      "expected": {
+        "windows": {
+          "ten_day_ends_on": "2026-06-10"
+        },
+        "open": [
+          false
+        ]
+      }
+    }
+  ]
+}

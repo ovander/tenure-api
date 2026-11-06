@@ -129,6 +129,19 @@ func (Repository) Inventories(ctx context.Context, leaseID uuid.UUID) ([]invento
 	return rows, err
 }
 
+// PendingCompletions counts the completion requests of the lease's entry
+// inventories that wait for the owner's decision (RENT-INV-001 slice 7).
+func (Repository) PendingCompletions(ctx context.Context, leaseID uuid.UUID) (int64, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var n int64
+	err = t.Table("inventory_completions c").Joins("JOIN inventories i ON i.id = c.inventory_id").
+		Where("i.lease_id = ? AND c.decision = 'pending'", leaseID).Count(&n).Error
+	return n, err
+}
+
 // InsertInventory records an inventory.
 func (Repository) InsertInventory(ctx context.Context, i inventoryRow) error {
 	t, err := tx(ctx)

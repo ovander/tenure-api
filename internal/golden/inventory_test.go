@@ -40,6 +40,7 @@ type inventoryStep struct {
 	Compare    *compareStep    `json:"compare,omitempty"`
 	Deduct     *deductStep     `json:"deduct,omitempty"`
 	Settlement *settlementStep `json:"settlement,omitempty"`
+	Windows    *windowsStep    `json:"windows,omitempty"`
 	Expected   json.RawMessage `json:"expected"`
 }
 
@@ -97,6 +98,23 @@ type settlementStep struct {
 	PaidOn             period.Date               `json:"paid_on"`
 	AccountsApprovedOn *period.Date              `json:"accounts_approved_on,omitempty"`
 	Settle             inventory.SettlementInput `json:"settle"`
+}
+
+// windowsStep computes the completion windows of an entry done on DoneOn
+// and says, for each request date, whether its reason is within them.
+type windowsStep struct {
+	DoneOn   period.Date      `json:"done_on"`
+	Requests []windowsRequest `json:"requests,omitempty"`
+}
+
+type windowsRequest struct {
+	Reason string      `json:"reason"`
+	On     period.Date `json:"on"`
+}
+
+type windowsResult struct {
+	Windows inventory.Windows `json:"windows"`
+	Open    []bool            `json:"open"`
 }
 
 type settlementResult struct {
@@ -362,6 +380,17 @@ func (st *inventoryState) run(s *inventoryStep) (any, error) {
 			}
 		}
 		return inventory.Deduct(s.Deduct.Input, g)
+	case s.Windows != nil:
+		r, err := inventory.WindowRulesAt(st.ps, s.Windows.DoneOn)
+		if err != nil {
+			return nil, err
+		}
+		w := inventory.CompletionWindows(s.Windows.DoneOn, r)
+		out := windowsResult{Windows: w, Open: []bool{}}
+		for _, q := range s.Windows.Requests {
+			out.Open = append(out.Open, w.Open(q.Reason, s.Windows.DoneOn, q.On))
+		}
+		return out, nil
 	case s.Settlement != nil:
 		ss := s.Settlement
 		r, err := st.ps.DepositReturn(ss.KeysReturnedOn)
