@@ -57,7 +57,7 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME}"
           ./scripts/build.sh "$v"
-          test "$(./dist/tenure-$v-linux-amd64 version | cut -d' ' -f1)" = "$v"
+          test "$(./dist/tenure-$v-linux-amd64 version | head -n1 | cut -d' ' -f1)" = "$v"
 
       - name: SBOM (CycloneDX)
         run: |
