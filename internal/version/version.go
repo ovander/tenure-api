@@ -92,7 +92,8 @@ func lastMigration() string {
 	return n
 }
 
-// Lines prints the build one fact per line, for tenure version.
+// Lines prints the build for tenure version: the version, commit and build
+// time on the first line, then one fact per line.
 func (v View) Lines() []string {
 	or := func(s, d string) string {
 		if s == "" {
@@ -107,8 +108,10 @@ func (v View) Lines() []string {
 			stamp += ", local changes"
 		}
 	}
+	// The first line is "<version> <commit> <build time>", as before #113:
+	// the release workflow reads its first field as the version.
 	return []string{
-		"tenure " + v.API.Version,
+		strings.TrimSpace(v.API.Version + " " + v.API.Commit + " " + v.API.BuildTime),
 		"commit      " + or(v.API.Commit, "unknown"),
 		"built       " + or(v.API.BuildTime, "unknown"),
 		"build       " + stamp,

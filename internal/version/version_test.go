@@ -27,12 +27,21 @@ func TestLines(t *testing.T) {
 	v := View{API: API{Version: "v1.2.3", Commit: "abc", BuildTime: "2026-11-07T00:00:00Z", Stamped: true, GoVersion: "go1.27.3", Platform: "linux/amd64", Schema: "000016"},
 		Web: Web{Release: "v0.20.0", SHA256: "ff"}}
 	s := strings.Join(v.Lines(), "\n")
-	for _, want := range []string{"tenure v1.2.3", "abc", "release build", "go1.27.3 linux/amd64", "000016", "v0.20.0 ff", "backendkit  unknown"} {
+	// .github/workflows/release.yml checks that the first field is the
+	// version: `tenure version | cut -d' ' -f1`.
+	if l := v.Lines(); strings.Fields(l[0])[0] != "v1.2.3" || l[0] != "v1.2.3 abc 2026-11-07T00:00:00Z" {
+		t.Errorf("first line %q", l[0])
+	}
+	for _, want := range []string{"abc", "release build", "go1.27.3 linux/amd64", "000016", "v0.20.0 ff", "backendkit  unknown"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("lines lack %q:\n%s", want, s)
 		}
 	}
 	v.API.Stamped, v.API.Modified, v.Web = false, true, Web{}
+	v.API.Version, v.API.Commit, v.API.BuildTime = "dev", "", ""
+	if l := v.Lines(); l[0] != "dev" {
+		t.Errorf("unstamped first line %q", l[0])
+	}
 	s = strings.Join(v.Lines(), "\n")
 	if !strings.Contains(s, "unstamped build (go run or go build), local changes") || !strings.Contains(s, "none pinned") {
 		t.Errorf("unstamped:\n%s", s)
