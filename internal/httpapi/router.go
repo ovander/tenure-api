@@ -39,6 +39,7 @@ import (
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
 	"github.com/ovander/tenure-api/internal/tax"
+	"github.com/ovander/tenure-api/internal/version"
 )
 
 //go:embed openapi/swagger.json
@@ -109,6 +110,7 @@ func Routes(d Deps) []Route {
 	h := func(f http.HandlerFunc) http.HandlerFunc { return f }
 	return []Route{
 		{"GET", "/me", GuardAuthenticated, false, h(d.Portfolio.GetMe)},
+		{"GET", "/version", GuardAuthenticated, false, h(version.Handler)},
 		{"PUT", "/me", GuardAuthenticated, false, h(d.Portfolio.PutMe)},
 		{"GET", "/me/export", GuardAuthenticated, true, h(d.Portfolio.ExportMe)},
 		{"GET", "/grants", GuardScopeOwnerW, false, h(d.Portfolio.ListGrants)},
