@@ -1,0 +1,197 @@
+{
+  "case": "portfolio",
+  "description": "One asset with a running lease and one under notice; a DPE expired on the date its report states (earlier than its legal validity) and an ERP whose legal validity ends within the range; the IRL anniversary on the start day in the revision month, a year after the start; tacit renewal of the term; the insurance anniversary; the ten-day completion window of a recent entry; a deposit deadline passed without its RD, overdue, and one settled, left out. The parameters are the legal fixtures of testdata/params.",
+  "today": "2026-11-07",
+  "from": "2026-11-07",
+  "to": "2027-02-05",
+  "facts": {
+    "leases": [
+      {
+        "id": "l1",
+        "asset_ids": [
+          "a1"
+        ],
+        "kind": "unfurnished",
+        "state": "active",
+        "start_on": "2026-01-15",
+        "term_months": 36,
+        "revision_month": 1,
+        "irl_ref_quarter": "2025-Q3"
+      },
+      {
+        "id": "l2",
+        "asset_ids": [
+          "a2"
+        ],
+        "kind": "furnished",
+        "state": "active",
+        "start_on": "2025-12-01",
+        "term_months": 12,
+        "revision_month": 12,
+        "irl_ref_quarter": "2025-Q2"
+      },
+      {
+        "id": "l3",
+        "asset_ids": [
+          "a3"
+        ],
+        "kind": "unfurnished",
+        "state": "notice",
+        "start_on": "2024-02-01",
+        "end_on": "2026-12-31",
+        "term_months": 36
+      },
+      {
+        "id": "l4",
+        "asset_ids": [
+          "a4"
+        ],
+        "kind": "mobility",
+        "state": "active",
+        "start_on": "2026-03-10",
+        "term_months": 6
+      },
+      {
+        "id": "l5",
+        "asset_ids": [
+          "a5"
+        ],
+        "kind": "unfurnished",
+        "state": "ended",
+        "start_on": "2023-01-01",
+        "end_on": "2026-08-31",
+        "term_months": 36
+      },
+      {
+        "id": "l6",
+        "asset_ids": [
+          "a6"
+        ],
+        "kind": "unfurnished",
+        "state": "ended",
+        "start_on": "2022-01-01",
+        "end_on": "2026-10-15",
+        "term_months": 36
+      }
+    ],
+    "diagnostics": [
+      {
+        "asset_id": "a1",
+        "kind": "dpe",
+        "done_on": "2021-10-01",
+        "valid_until": "2026-10-01"
+      },
+      {
+        "asset_id": "a1",
+        "kind": "erp",
+        "done_on": "2026-06-21"
+      },
+      {
+        "asset_id": "a2",
+        "kind": "electricity",
+        "done_on": "2025-05-02"
+      },
+      {
+        "asset_id": "a2",
+        "kind": "lead"
+      }
+    ],
+    "entries": [
+      {
+        "lease_id": "l2",
+        "done_on": "2026-11-02"
+      },
+      {
+        "lease_id": "l1",
+        "done_on": "2026-01-15"
+      }
+    ],
+    "exits": [
+      {
+        "lease_id": "l5",
+        "keys_returned_on": "2026-08-31",
+        "deductions": 1,
+        "settled": false
+      },
+      {
+        "lease_id": "l6",
+        "keys_returned_on": "2026-10-15",
+        "deductions": 0,
+        "settled": true
+      }
+    ]
+  },
+  "expected": [
+    {
+      "on": "2026-10-01",
+      "kind": "diagnostic_expiry",
+      "status": "overdue",
+      "asset_id": "a1",
+      "ref": "dpe"
+    },
+    {
+      "on": "2026-10-31",
+      "kind": "deposit_deadline",
+      "status": "overdue",
+      "asset_id": "a5",
+      "lease_id": "l5"
+    },
+    {
+      "on": "2026-11-12",
+      "kind": "completion_window",
+      "status": "upcoming",
+      "asset_id": "a2",
+      "lease_id": "l2",
+      "ref": "ten_day"
+    },
+    {
+      "on": "2026-11-30",
+      "kind": "term_end",
+      "status": "upcoming",
+      "asset_id": "a2",
+      "lease_id": "l2"
+    },
+    {
+      "on": "2026-12-01",
+      "kind": "insurance_certificate",
+      "status": "upcoming",
+      "asset_id": "a2",
+      "lease_id": "l2"
+    },
+    {
+      "on": "2026-12-01",
+      "kind": "irl_revision",
+      "status": "upcoming",
+      "asset_id": "a2",
+      "lease_id": "l2"
+    },
+    {
+      "on": "2026-12-20",
+      "kind": "diagnostic_expiry",
+      "status": "upcoming",
+      "asset_id": "a1",
+      "ref": "erp"
+    },
+    {
+      "on": "2026-12-31",
+      "kind": "notice_end",
+      "status": "upcoming",
+      "asset_id": "a3",
+      "lease_id": "l3"
+    },
+    {
+      "on": "2027-01-15",
+      "kind": "insurance_certificate",
+      "status": "upcoming",
+      "asset_id": "a1",
+      "lease_id": "l1"
+    },
+    {
+      "on": "2027-01-15",
+      "kind": "irl_revision",
+      "status": "upcoming",
+      "asset_id": "a1",
+      "lease_id": "l1"
+    }
+  ]
+}

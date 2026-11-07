@@ -299,6 +299,7 @@ One calendar lists every dated obligation of owner, tenant and asset, raises rem
 - Sources: tenant insurance certificate (yearly), diagnostics validity (DPE 10 y, electricity and gas 6 y, lead, ERP 6 months), boiler maintenance, IRL revision date, regularisation due, notice deadlines, copropriété AG, taxe foncière payment, loan instalments.
 - Each item: due date, responsible party, reminder rule, link to the document that clears it.
 - Rendered as a per-asset timeline and a cross-portfolio « next 90 days » list; e-mail digest weekly.
+- Built so far (tenure-api #115, Q-116): the computed base, `GET /calendar`, from diagnostics, leases, inventories and deposits; items entered by hand, reminder rules and the digest come later.
 
 ## RENT-SPEC-013 — Bank reconciliation (phase 2)
 

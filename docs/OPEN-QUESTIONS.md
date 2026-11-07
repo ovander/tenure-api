@@ -1282,3 +1282,37 @@ Provisional:
 - **Roles.** `GET /leases/{id}/deposit` is read by the co-owner; the accountant gets 403 and
   reads the RD documents.
 
+**Q-116 Obligations calendar, computed base — Open (#115).** RENT-SPEC-012 lists the sources,
+items, reminders and digest of the calendar. RENT-INV-001 slice 10 puts the completion windows
+and deposit deadlines in it. Provisional, for a first version that only reads what Tenure
+already holds:
+- **Computed, not stored.** `calendar.Build(facts, from, to, today, params)` is a pure function
+  with table tests and golden files. It derives each item when it is read. There is no table,
+  no item entered by hand and no item marked done: an item goes away when its source changes
+  (a new diagnostic, an issued RD, a revised lease).
+- **Items.**
+  - `diagnostic_expiry`: the latest diagnostic of each kind per asset. Its end is
+    `lease.Expiry`, the same rule as the contract blockers: the earlier of the date the
+    report states and the legal validity in `legal_params`.
+  - `irl_revision`: the next anniversary as billing reckons it (`billing.DueRevision`), for
+    an active lease.
+  - `notice_end`: the end of a notice.
+  - `term_end`: the end of the current term, renewed tacitly, except a mobility lease.
+  - `insurance_certificate`: the lease's anniversary, a yearly reminder to ask the tenant for
+    the home insurance certificate (loi 89-462 art. 7 g).
+  - `completion_window`: the ten-day and heating windows of an issued entry captured in
+    Tenure, while the lease runs.
+  - `deposit_deadline`: the restitution deadline from the issued exit's keys date, until the
+    first RD is issued.
+- **Range and status.** From `from` to `to`, which default to today and today + 90 days, with
+  three years at most. Past items that still call for action are always listed as `overdue`:
+  an expired diagnostic, a passed deposit deadline. The other past dates are dropped.
+- **Who reads.** The owner and the co-owner. The accountant gets 403, since the calendar
+  carries inventory and deposit dates.
+- **Not built yet** (RENT-SPEC-012, later):
+  - items entered by hand: boiler, copropriété AG, taxe foncière, loans;
+  - a reminder rule per item;
+  - the weekly e-mail digest, which needs an owner e-mail address in Tenure (Q-114);
+  - the regularisation due date;
+  - the per-asset season for the heating window (INV-OD-07).
+

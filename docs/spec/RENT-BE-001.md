@@ -4,7 +4,7 @@ Nov 1, 2026 · @Olivier
 
 ## 1. Scope and module layout
 
-One Go binary, `tenure`, serves the API and runs the scheduler; it is cut into eight modules that depend downward only, so billing never imports tax and nothing imports the HTTP layer.
+One Go binary, `tenure`, serves the API and runs the scheduler; it is cut into nine modules that depend downward only, so billing never imports tax and nothing imports the HTTP layer.
 
 | Module | Package | Owns | Depends on |
 | --- | --- | --- | --- |
@@ -16,6 +16,7 @@ One Go binary, `tenure`, serves the API and runs the scheduler; it is cut into e
 | tax | `internal/tax` | Annual summary, regime routing, 2044 lines (RENT-SPEC-004) | payment, charge, document, params |
 | document | `internal/document` | Numbering, PDF rendering, archive metadata, object store client (RENT-SPEC-005) | params |
 | inventory | `internal/inventory` | Asset layouts, captured inventories, photos, deposit engine (RENT-INV-001) | portfolio, lease, document, params |
+| calendar | `internal/calendar` | The obligations calendar's computed base, read only (RENT-SPEC-012, Q-116) | portfolio, lease, inventory, params |
 | params | `internal/params` | Legal parameters with effective dates, IRL index cache | — |
 
 Cross-cutting packages: `internal/auth` (backendkit, roles, RLS context), internal/audit (audit events, hash chain, heads), `internal/jobs` (scheduler, job log), `internal/notify` (e-mail), `internal/httpapi` (Chi routers, handlers, swag annotations). Phase 2 to 4 modules (onboarding, calendar, maintenance, portal, capture) are added as new packages under the same rule.
@@ -80,6 +81,7 @@ REST under `/api/v1`, JSON, documented by swag annotations on each handler and s
 | payment | `GET/POST /payments`, `GET/PUT /payments/{id}`, `POST /payments/{id}/matches`, `POST /payments/import` (CSV/OFX, phase 2) | Matching rules in service layer (Q-60); amount and date frozen once receipted (Q-64) |
 | tax | `GET /tax/summaries`, `POST /tax/summaries` (year, regime), `GET /tax/summaries/{id}`, `GET /tax/summaries/{id}/lines.csv` | Regime optional: both computed (draft), one issued; POST and lines.csv are step\_up (Q-90) |
 | inventory | `GET/PUT /assets/{id}/layout` (If-Match on the layout version), `POST /assets/{id}/layout/seed`, `GET /inventory-templates` | The asset layout of RENT-INV-001 §4: seeded once from a template, then edited as a whole with its ids kept; not for an accountant (Q-109). `POST /inventories/{id}/photos` (quarantine, ClamAV, metadata stripped, archived) and `GET /inventories/{id}/photos/{photoId}/content` (signed link, audited), not for an accountant (Q-110). `GET/PUT /inventories/{id}`, `POST /inventories/{id}/items`, `PUT /inventories/{id}/items/{itemId}`, `PUT /inventories/{id}/meters`, `PUT /inventories/{id}/keys` and `POST /inventories/{id}/transitions` (schedule, start, complete, reopen, issue into `EE`; `dry_run`) capture an entry (Q-111). `GET /inventories/{id}/preview` (the PDF to sign), `GET/POST /inventories/{id}/signatures`, `POST …/signatures/refresh` and `…/cancel` sign it, by hand or through Yousign, and issue `EE` at the last signature (Q-112). An exit is created from the issued entry and `GET /inventories/{id}/comparison` compares them; the exit issues `ES` (Q-113). `GET/POST /inventories/{id}/completions` and `PUT /completions/{id}` record a tenant's completion request on an issued entry and the owner's decision, issuing `EC` (Q-114). `GET/POST /vetuste-grids`, `PUT /vetuste-grids/{id}`, `PUT /leases/{id}/vetuste-grid`, `GET /leases/{id}/deposit`, `GET/POST /leases/{id}/deposit-deductions`, `DELETE /deposit-deductions/{id}` and `POST /leases/{id}/deposit-settlement` settle the deposit into `RD` statements (class `restitution`, Q-115) |
+| calendar | `GET /calendar` (`from`, `to`, `asset_id`) | The obligations calendar's computed base: diagnostics' validity, IRL revisions, ends of notice and term, the yearly insurance certificate, completion windows, deposit deadline; overdue items always listed; not for an accountant (Q-116) |
 | document | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/content` (signed URL), `POST /documents` (multipart upload with class and links, file last; scanned, sniffed, 25 MB, Q-67), `POST /documents/export` (year or asset ZIP, async, step\_up), `GET /documents/exports/{id}` (state, then a signed link), `GET /templates` (read only) | Content never streamed through the API for large files: short-lived signed URL; `GET /documents` filters by asset, year, class and number; an accountant's export holds financial classes only (Q-91); `/templates` lists the embedded templates by version with their SHA-256 and how many of the scope's documents each rendered (Q-106) |
 | params | `GET /params`, `GET /params/irl`, `PUT /params/{key}` (admin), `PUT /params/irl/{quarter}` (admin, manual override of a missing quarter, Q-53) | Effective-dated values |
 | jobs | `GET /jobs/runs`, `POST /jobs/{name}/trigger` (admin or owner for own scope) | — |
@@ -255,6 +257,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-07 | 2.19 | Module `calendar` and `GET /calendar`: the obligations calendar computed from diagnostics, leases, inventories and deposits (RENT-SPEC-012 base, RENT-INV-001 slice 10, Q-116) |
 | 2026-11-06 | 2.18 | Deposit settlement: wear grids, deductions, `RD` statements with the holdback release, migration 000016 (class `restitution`, `deposit_settlements`), `assets.collective_building` in the asset API, billing's arrears handed to the inventory module (RENT-INV-001 slice 9, Q-115) |
 | 2026-11-06 | 2.17 | Entry completions: windows, request and decision routes, `EC` series with template `inventory_completion/v1`, migration 000015, lease warning `inventory/completion-pending` (RENT-INV-001 slice 7, Q-114) |
 | 2026-11-06 | 2.16 | Exit inventory pre-filled from the entry, comparison route, `ES` series, template `inventory/v3` (RENT-INV-001 slice 8, Q-113) |
