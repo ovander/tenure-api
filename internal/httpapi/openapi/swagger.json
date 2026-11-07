@@ -9600,6 +9600,10 @@
                 "lease_id": {
                     "type": "string"
                 },
+                "number": {
+                    "description": "Number is a generated document's number (AL-…, EE-…, RD-…), read from\nits archive key; empty for an upload.",
+                    "type": "string"
+                },
                 "original_name": {
                     "type": "string"
                 },

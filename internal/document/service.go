@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -224,7 +226,10 @@ type View struct {
 	SHA256          string     `json:"sha256"`
 	SizeBytes       int64      `json:"size_bytes"`
 	TemplateVersion string     `json:"template_version"`
-	IssuedAt        *time.Time `json:"issued_at"`
+	// Number is a generated document's number (AL-…, EE-…, RD-…), read from
+	// its archive key; empty for an upload.
+	Number   string     `json:"number,omitempty"`
+	IssuedAt *time.Time `json:"issued_at"`
 	// RetainUntil is unset while the retention clock has not started (a
 	// lease document before the lease ends, Q-68): never eligible for deletion.
 	RetainUntil     *period.Date `json:"retain_until" swaggertype:"string" format:"date"`
@@ -237,12 +242,22 @@ type View struct {
 func view(d documentRow) View {
 	v := View{ID: d.ID, Class: Class(d.Class), AssetID: d.AssetID, LeaseID: d.LeaseID, Period: d.Period, SHA256: d.SHA256,
 		SizeBytes: d.SizeBytes, TemplateVersion: d.TemplateVersion, IssuedAt: d.IssuedAt, Source: d.Source,
-		ContentType: contentTypeOf(d), OriginalName: d.OriginalName, SignsDocumentID: d.SignsDocumentID}
+		ContentType: contentTypeOf(d), OriginalName: d.OriginalName, SignsDocumentID: d.SignsDocumentID, Number: numberOf(d)}
 	if d.RetainUntil != nil {
 		r := period.FromTime(*d.RetainUntil)
 		v.RetainUntil = &r
 	}
 	return v
+}
+
+// numberOf is a numbered document's number: the base name of the archive key
+// <owner>/<class>/<YYYY>/<number>.pdf that Issue writes (ObjectKey). An
+// upload, or a file attached without a template (a tax CSV), has none.
+func numberOf(d documentRow) string {
+	if d.Source != SourceGenerated || d.TemplateVersion == "" || !strings.HasSuffix(d.ObjectKey, ".pdf") {
+		return ""
+	}
+	return strings.TrimSuffix(path.Base(d.ObjectKey), ".pdf")
 }
 
 // Link is a short-lived download link.
