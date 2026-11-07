@@ -276,6 +276,7 @@ Every item below is a proposal awaiting Olivier's decision; none is applied to t
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-11-07 | 0.13 | Slice 10 implemented on the computed base of the obligations calendar (#115): the completion windows and the deposit restitution deadline are calendar items; the rest of RENT-SPEC-012 comes later (Q-116) |
 | 2026-11-06 | 0.12 | Slice 9 implemented (#110): wear grids and their annex to a lease, deductions only on a flagged item or a missing key with a quote or invoice, the first `RD` statement (arrears from billing, holdback, late penalty) and the release of the holdback; deductions frozen once settled; class `restitution` (Q-115) |
 | 2026-11-06 | 0.11 | Slice 7 implemented (#107): completion windows as a pure function, request on an issued entry within its window, decision per line issuing `EC` (template `inventory_completion/v1`), request frozen once decided; the owner reminder waits for an owner e-mail, a pending request is a lease warning (Q-114) |
 | 2026-11-06 | 0.10 | Slice 8 implemented (#105): exit pre-filled from the issued entry, refused without one, each item to check before completing; `keys_returned_on` and the new address block completing; comparison route; template v3 with the `ES` series; slice 7 still to do (Q-113) |

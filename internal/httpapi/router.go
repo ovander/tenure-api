@@ -28,6 +28,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/bff"
 	"github.com/ovander/tenure-api/internal/billing"
+	"github.com/ovander/tenure-api/internal/calendar"
 	"github.com/ovander/tenure-api/internal/charge"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/inventory"
@@ -58,6 +59,7 @@ type Deps struct {
 	Charges        charge.Handler
 	Tax            tax.Handler
 	Inventory      inventory.Handler
+	Calendar       calendar.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -136,6 +138,7 @@ func Routes(d Deps) []Route {
 		{"GET", "/inventories/{id}/completions", GuardScopeOwnerW, false, h(d.Inventory.GetCompletions)},
 		{"POST", "/inventories/{id}/completions", GuardScopeOwnerW, false, h(d.Inventory.PostCompletion)},
 		{"PUT", "/completions/{id}", GuardScopeOwnerW, false, h(d.Inventory.PutCompletion)},
+		{"GET", "/calendar", GuardScopeOwnerW, false, h(d.Calendar.Get)},
 		{"GET", "/vetuste-grids", GuardScopeOwnerW, false, h(d.Inventory.GetGrids)},
 		{"POST", "/vetuste-grids", GuardScopeOwnerW, false, h(d.Inventory.PostGrid)},
 		{"PUT", "/vetuste-grids/{id}", GuardScopeOwnerW, false, h(d.Inventory.PutGrid)},
