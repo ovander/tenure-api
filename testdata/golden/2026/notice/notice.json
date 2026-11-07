@@ -1,0 +1,380 @@
+{
+  "case": "notice",
+  "description": "Tenant notices: three months on an unfurnished lease, ending the day before the same day three months on, or on the last day of a month too short for that day; one month for a listed ground, for a lease in a zone tendue whatever the tenant writes, and for a furnished or mobility lease; a zone tendue ground on an asset not flagged so is kept with a warning; an unknown ground is refused; a box is not under loi 89-462. Owner notices: received at the latest the day before the term's end plus one day minus six months (three for a furnished lease); one day later is too late; a letter prepared too late aims at the next term; a sale needs its price; a protected tenant needs a rehousing offer and the question is required; a mobility lease cannot be ended by the owner. The parameters are the legal fixtures of testdata/params.",
+  "steps": [
+    {
+      "name": "tenant_standard",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {},
+      "received_on": "2026-03-15",
+      "today": "2026-03-15"
+    },
+    {
+      "name": "tenant_month_end_clamped",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {},
+      "received_on": "2026-11-30",
+      "today": "2026-11-30"
+    },
+    {
+      "name": "tenant_job_loss_reduced",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "job_loss"
+      },
+      "received_on": "2026-01-31",
+      "today": "2026-01-31"
+    },
+    {
+      "name": "tenant_tense_zone_flagged_no_ground",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": true
+      },
+      "ground": {},
+      "received_on": "2026-05-10",
+      "today": "2026-05-10"
+    },
+    {
+      "name": "tenant_tense_zone_ground_not_flagged",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "tense_zone"
+      },
+      "received_on": "2026-05-10",
+      "today": "2026-05-10"
+    },
+    {
+      "name": "tenant_unknown_ground",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "moving_abroad"
+      },
+      "received_on": "2026-05-10",
+      "today": "2026-05-10"
+    },
+    {
+      "name": "tenant_furnished",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "furnished",
+        "StartOn": "2025-10-01",
+        "TermMonths": 12,
+        "TenseZone": false
+      },
+      "ground": {},
+      "received_on": "2026-08-20",
+      "today": "2026-08-20"
+    },
+    {
+      "name": "tenant_mobility",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "mobility",
+        "StartOn": "2026-06-01",
+        "TermMonths": 6,
+        "TenseZone": false
+      },
+      "ground": {},
+      "received_on": "2026-09-01",
+      "today": "2026-09-01"
+    },
+    {
+      "name": "tenant_box_by_hand",
+      "given_by": "tenant",
+      "facts": {
+        "Kind": "box",
+        "StartOn": "2025-01-01",
+        "TermMonths": 12,
+        "TenseZone": false
+      },
+      "ground": {},
+      "received_on": "2026-09-01",
+      "today": "2026-09-01"
+    },
+    {
+      "name": "owner_repossession_in_time",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "repossession",
+        "beneficiary": {
+          "name": "Claire Exemple",
+          "relationship": "descendant",
+          "address": "3 rue Fictive, 69007 Lyon"
+        },
+        "protected_tenant": "no"
+      },
+      "received_on": "2026-06-30",
+      "today": "2026-06-30"
+    },
+    {
+      "name": "owner_repossession_too_late",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "repossession",
+        "beneficiary": {
+          "name": "Claire Exemple",
+          "relationship": "descendant",
+          "address": "3 rue Fictive, 69007 Lyon"
+        },
+        "protected_tenant": "no"
+      },
+      "received_on": "2026-07-01",
+      "today": "2026-07-01"
+    },
+    {
+      "name": "owner_letter_prepared_late_moves_to_next_term",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "repossession",
+        "beneficiary": {
+          "name": "Claire Exemple",
+          "relationship": "descendant",
+          "address": "3 rue Fictive, 69007 Lyon"
+        },
+        "protected_tenant": "no"
+      },
+      "received_on": "",
+      "today": "2026-08-15"
+    },
+    {
+      "name": "owner_sale_needs_price",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "sale",
+        "protected_tenant": "no"
+      },
+      "received_on": "2026-05-01",
+      "today": "2026-05-01"
+    },
+    {
+      "name": "owner_sale",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "sale",
+        "price_cents": 28500000,
+        "conditions": "Paiement comptant à la signature de l’acte",
+        "protected_tenant": "rehousing_offered"
+      },
+      "received_on": "2026-05-01",
+      "today": "2026-05-01"
+    },
+    {
+      "name": "owner_protected_tenant",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "legitimate",
+        "grounds": "Impayés répétés",
+        "protected_tenant": "yes"
+      },
+      "received_on": "2026-05-01",
+      "today": "2026-05-01"
+    },
+    {
+      "name": "owner_protected_unanswered",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "unfurnished",
+        "StartOn": "2024-01-01",
+        "TermMonths": 36,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "legitimate",
+        "grounds": "Impayés répétés"
+      },
+      "received_on": "2026-05-01",
+      "today": "2026-05-01"
+    },
+    {
+      "name": "owner_furnished_three_months",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "furnished",
+        "StartOn": "2025-10-01",
+        "TermMonths": 12,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "legitimate",
+        "grounds": "Troubles de voisinage constatés",
+        "protected_tenant": "no"
+      },
+      "received_on": "2026-06-30",
+      "today": "2026-06-30"
+    },
+    {
+      "name": "owner_mobility_refused",
+      "given_by": "owner",
+      "facts": {
+        "Kind": "mobility",
+        "StartOn": "2026-06-01",
+        "TermMonths": 6,
+        "TenseZone": false
+      },
+      "ground": {
+        "reason": "legitimate",
+        "grounds": "x",
+        "protected_tenant": "no"
+      },
+      "received_on": "2026-07-01",
+      "today": "2026-07-01"
+    }
+  ],
+  "expected": {
+    "owner_furnished_three_months": {
+      "months": 3,
+      "end_on": "2026-09-30",
+      "latest_receipt_on": "2026-06-30",
+      "warnings": []
+    },
+    "owner_letter_prepared_late_moves_to_next_term": {
+      "months": 6,
+      "end_on": "2029-12-31",
+      "latest_receipt_on": "2029-06-30",
+      "warnings": []
+    },
+    "owner_mobility_refused": {
+      "refused": "lease/notice-not-allowed"
+    },
+    "owner_protected_tenant": {
+      "refused": "lease/notice-protected-tenant"
+    },
+    "owner_protected_unanswered": {
+      "refused": "lease/notice-invalid"
+    },
+    "owner_repossession_in_time": {
+      "months": 6,
+      "end_on": "2026-12-31",
+      "latest_receipt_on": "2026-06-30",
+      "warnings": []
+    },
+    "owner_repossession_too_late": {
+      "refused": "lease/notice-too-late"
+    },
+    "owner_sale": {
+      "months": 6,
+      "end_on": "2026-12-31",
+      "latest_receipt_on": "2026-06-30",
+      "warnings": []
+    },
+    "owner_sale_needs_price": {
+      "refused": "lease/notice-invalid"
+    },
+    "tenant_box_by_hand": {
+      "refused": "lease/notice-not-allowed"
+    },
+    "tenant_furnished": {
+      "months": 1,
+      "end_on": "2026-09-19",
+      "warnings": []
+    },
+    "tenant_job_loss_reduced": {
+      "months": 1,
+      "end_on": "2026-02-28",
+      "reduced": true,
+      "warnings": []
+    },
+    "tenant_mobility": {
+      "months": 1,
+      "end_on": "2026-09-30",
+      "warnings": []
+    },
+    "tenant_month_end_clamped": {
+      "months": 3,
+      "end_on": "2027-02-28",
+      "warnings": []
+    },
+    "tenant_standard": {
+      "months": 3,
+      "end_on": "2026-06-14",
+      "warnings": []
+    },
+    "tenant_tense_zone_flagged_no_ground": {
+      "months": 1,
+      "end_on": "2026-06-09",
+      "reduced": true,
+      "warnings": []
+    },
+    "tenant_tense_zone_ground_not_flagged": {
+      "months": 1,
+      "end_on": "2026-06-09",
+      "reduced": true,
+      "warnings": [
+        "tense_zone_not_flagged"
+      ]
+    },
+    "tenant_unknown_ground": {
+      "refused": "lease/notice-invalid"
+    }
+  }
+}

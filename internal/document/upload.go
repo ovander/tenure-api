@@ -57,7 +57,7 @@ func init() {
 // inventories, deposit settlements, supporting documents). Generated billing
 // and tax classes are produced only by Tenure.
 var uploadable = map[Class]bool{ClassContract: true, ClassAmendment: true, ClassDeposit: true, ClassSurety: true,
-	ClassInventory: true, ClassSupporting: true, ClassOther: true}
+	ClassInventory: true, ClassNotice: true, ClassSupporting: true, ClassOther: true}
 
 // Uploadable reports whether an owner may upload documents of class c.
 func Uploadable(c Class) bool { return uploadable[c] }

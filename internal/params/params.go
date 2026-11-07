@@ -48,6 +48,10 @@ const (
 	KeyDepositCollectiveHoldback   = "deposit.collective_holdback_bp"
 	KeyDepositHoldbackBalance      = "deposit.holdback_balance_months_after_approval"
 	KeyDepositLatePenalty          = "deposit.late_penalty_bp_of_rent"
+	// Lease end (RENT-SPEC-010), seeded by migration 000017.
+	KeyNoticeTenant  = "notice_months.tenant"
+	KeyNoticeOwner   = "notice_months.owner"
+	KeyNoticeReasons = "notice.reasons"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -389,3 +393,46 @@ func (s Set) Form2044LineMap(taxYear int) (LineMap, error) {
 // TaxYearEnd is the date the parameters of income year taxYear are read at:
 // 31 December of that year.
 func TaxYearEnd(taxYear int) period.Date { return period.NewDate(taxYear, 12, 31) }
+
+// NoticeMonths are the notice periods, in months, by lease kind (loi 89-462
+// art. 15 and 25-8; the mobility lease art. 25-12): the tenant's for an
+// unfurnished lease, its reduced period, and the furnished and mobility
+// ones; the owner's lead time before the term for an unfurnished and a
+// furnished lease.
+type NoticeMonths struct {
+	Unfurnished int `json:"unfurnished"`
+	Reduced     int `json:"reduced"`
+	Furnished   int `json:"furnished"`
+	Mobility    int `json:"mobility"`
+}
+
+// NoticeReasons are the legal grounds a notice names (loi 89-462 art. 15):
+// those that reduce a tenant's notice on an unfurnished lease, the owner's
+// grounds, and who may be the beneficiary of a repossession.
+type NoticeReasons struct {
+	TenantReduced             []string `json:"tenant_reduced"`
+	Owner                     []string `json:"owner"`
+	RepossessionBeneficiaries []string `json:"repossession_beneficiaries"`
+}
+
+// NoticeRules are the rules of a notice in force on a date.
+type NoticeRules struct {
+	Tenant  NoticeMonths
+	Owner   NoticeMonths
+	Reasons NoticeReasons
+}
+
+// Notice returns the notice rules in force on asOf.
+func (s Set) Notice(asOf period.Date) (NoticeRules, error) {
+	var r NoticeRules
+	if err := s.Decode(KeyNoticeTenant, asOf, &r.Tenant); err != nil {
+		return NoticeRules{}, err
+	}
+	if err := s.Decode(KeyNoticeOwner, asOf, &r.Owner); err != nil {
+		return NoticeRules{}, err
+	}
+	if err := s.Decode(KeyNoticeReasons, asOf, &r.Reasons); err != nil {
+		return NoticeRules{}, err
+	}
+	return r, nil
+}

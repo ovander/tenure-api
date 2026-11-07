@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Congé {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Congé{{if eq .Ground.Reason "sale"}} pour vente{{else if eq .Ground.Reason "repossession"}} pour reprise{{else}} pour motif légitime et sérieux{{end}}</h1>
+<p class="meta">N° {{.Number}} · établi le {{date .IssuedOn}}{{if .ContractNumber}} · contrat n° {{.ContractNumber}}{{end}} · bail ayant pris effet le {{date .StartOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>Par la présente, le bailleur vous donne congé du logement ci-dessus pour le terme du bail, soit le <strong>{{date .EndOn}}</strong>, en application de l’article {{if .Furnished}}25-8{{else}}15{{end}} de la loi n° 89-462 du 6 juillet 1989. Ce congé doit vous parvenir au moins {{.Months}} mois avant ce terme, au plus tard le {{date .LatestReceiptOn}}.</p>
+{{with .Ground}}
+{{if eq .Reason "sale"}}
+<p>Le bailleur entend vendre le logement. Le présent congé vaut offre de vente à votre profit, au prix de <strong>{{euros .PriceCents}}</strong>{{if .Conditions}}, aux conditions suivantes : {{.Conditions}}{{end}}. Cette offre est valable pendant les deux premiers mois du délai de préavis.</p>
+{{else if eq .Reason "repossession"}}
+<p>Le bailleur entend reprendre le logement pour l’habiter à titre de résidence principale : <strong>{{.Beneficiary.Name}}</strong>, {{$.Relationship}}, demeurant {{.Beneficiary.Address}}. Le bailleur justifie du caractère réel et sérieux de sa décision de reprise.</p>
+{{else}}
+<p>Le bailleur donne congé pour le motif légitime et sérieux suivant : {{.Grounds}}</p>
+{{end}}
+{{if eq .Protected "rehousing_offered"}}<p>Le bailleur vous propose un logement correspondant à vos besoins et à vos possibilités, dans les limites géographiques prévues à l’article 13 bis de la loi n° 48-1360 du 1er septembre 1948.</p>{{end}}
+{{end}}
+{{if ne .Ground.Reason "legitimate"}}<p class="label">Pièces jointes</p>
+<p>{{if eq .Ground.Reason "sale"}}Texte des cinq premiers alinéas du II de l’article 15 de la loi n° 89-462 du 6 juillet 1989.<br>{{end}}Notice d’information relative aux obligations du bailleur et aux voies de recours et d’indemnisation du locataire (arrêté du 13 décembre 2017).</p>{{end}}
+<p>Le bailleur ________________________</p>
+</body></html>
