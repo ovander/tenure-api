@@ -22,6 +22,8 @@ PUT /guarantees/{id}
 POST /guarantees/{id}/document
 POST /leases/{id}/contract
 POST /leases/{id}/amendments
+POST /leases/{id}/notice
+POST /leases/{id}/notice/letter
 POST /leases/{id}/inventories
 PUT /inventories/{id}
 POST /inventories/{id}/items

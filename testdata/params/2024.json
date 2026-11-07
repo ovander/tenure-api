@@ -112,6 +112,62 @@
       "value": 5,
       "source": "RENT-INV-001 INV-OD-07 (règle produit) : la loi ne fixe pas la période de chauffe ; mai par défaut, modifiable par bien",
       "source_url": ""
+    },
+    {
+      "key": "notice_months.tenant",
+      "effective_from": "2024-01-01",
+      "value": {
+        "unfurnished": 3,
+        "reduced": 1,
+        "furnished": 1,
+        "mobility": 1
+      },
+      "source": "Loi 89-462 art. 15 I (préavis du locataire : trois mois, un mois dans les cas listés), art. 25-8 (meublé : un mois) et art. 25-12 (bail mobilité : un mois) ; à vérifier sur Légifrance avant la barrière de la phase 2",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "notice_months.owner",
+      "effective_from": "2024-01-01",
+      "value": {
+        "unfurnished": 6,
+        "furnished": 3
+      },
+      "source": "Loi 89-462 art. 15 I (congé du bailleur au moins six mois avant le terme) et art. 25-8 (meublé : trois mois) ; à vérifier sur Légifrance avant la barrière de la phase 2",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "notice.reasons",
+      "effective_from": "2024-01-01",
+      "value": {
+        "tenant_reduced": [
+          "tense_zone",
+          "first_job",
+          "job_transfer",
+          "job_loss",
+          "new_job_after_loss",
+          "health",
+          "rsa",
+          "aah",
+          "social_housing"
+        ],
+        "owner": [
+          "sale",
+          "repossession",
+          "legitimate"
+        ],
+        "repossession_beneficiaries": [
+          "owner",
+          "spouse",
+          "pacs_partner",
+          "concubin",
+          "ascendant",
+          "descendant",
+          "spouse_ascendant",
+          "spouse_descendant"
+        ]
+      },
+      "source": "Loi 89-462 art. 15 I : préavis réduit (zone tendue, premier emploi, mutation, perte d’emploi, nouvel emploi après une perte d’emploi, état de santé, RSA, AAH, logement social) ; congé du bailleur pour reprise, vente ou motif légitime et sérieux ; bénéficiaires d’une reprise ; à vérifier sur Légifrance avant la barrière de la phase 2",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     }
   ]
 }

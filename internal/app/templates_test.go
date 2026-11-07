@@ -29,7 +29,7 @@ func TestModulesRenderTheCurrentTemplate(t *testing.T) {
 		}
 	}
 	used := map[string]string{
-		"contract": lease.ContractTemplate, "amendment": lease.AmendmentTemplate, "deposit_receipt": lease.DepositReceiptTemplate,
+		"contract": lease.ContractTemplate, "amendment": lease.AmendmentTemplate, "notice": lease.NoticeTemplate, "deposit_receipt": lease.DepositReceiptTemplate,
 		"surety": lease.SuretyTemplate, "rent_call": billing.RentCallTemplate, "revision_notice": billing.RevisionTemplate,
 		"cancellation": billing.CancellationTemplate, "receipt": billing.ReceiptTemplate, "regularisation": charge.RegularisationTemplate,
 		"tax_summary": tax.SummaryTemplate, "inventory": inventory.DocumentTemplate,

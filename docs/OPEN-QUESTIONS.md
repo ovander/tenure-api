@@ -1337,3 +1337,60 @@ candidate to deposit settlement », and a gate is passed on real data. Provision
 - **Dates.** The rehearsal runs on today in Europe/Paris, so the ten-day window is open and the
   restitution deadline is ahead. It does not wait out a real notice period.
 
+
+**Q-118 Lease notices, part 12a — Open (#127).** RENT-SPEC-010 asks for the tenant's notice
+computed from its reception, and for the owner's notice with its lead time, wording, attachments
+and registered-letter tracking. The legal rules were written from secondary sources: Légifrance
+and service-public.fr could not be reached from the session. They are dated `legal_params`
+entries whose source says « à vérifier sur Légifrance », and checking them is a prerequisite of
+the phase 2 gate. Provisional reading:
+
+- **Tenant.**
+  - The period runs from the day the notice is received. An unfurnished lease has 3 months. A
+    furnished or mobility lease has 1 month.
+  - An unfurnished lease has 1 month for a listed ground (`notice.reasons.tenant_reduced`), or
+    whenever the asset is flagged in a zone tendue, even if the tenant names no ground. This is
+    the reading that never overstates the tenant's debt.
+  - A zone tendue ground on an asset not flagged so is accepted with a warning.
+  - Tenure records the ground the tenant states, without checking the proof.
+- **End date.** The lease ends on the day before the same day of the month the period later:
+  received 15 March, 1 month, it ends 14 April. When that day does not exist in the end month,
+  the lease ends on that month's last day (31 January, 1 month: 28 February). This is the
+  shorter of the two common readings; the other ends on the same day. The rent call of the last
+  month is prorated to that day, as billing already does from `end_on`.
+- **Owner.**
+  - Notice only for the end of a term, on an unfurnished lease (6 months before it) or a
+    furnished one (3 months). A mobility lease cannot be ended by the owner.
+  - The notice must be received at the latest on the term's last day plus one day, less the lead
+    time, less one day: received by 30 June for a term ending 31 December. This is the stricter
+    reading.
+  - Later than that, the notice is refused (`lease/notice-too-late`). A letter prepared too late
+    aims at the next term, renewed tacitly for the same duration.
+- **Grounds.**
+  - A sale needs its price; its conditions are optional.
+  - A repossession needs its beneficiary: a name, an address and a relationship from
+    `notice.reasons.repossession_beneficiaries`.
+  - A legitimate ground needs its statement.
+  - The owner must answer whether the tenant is protected (over 65 with resources under the
+    ceiling, art. 15 III). « yes » is refused unless the answer is « rehousing_offered ». Tenure
+    does not compute the age or the resources.
+- **Letter.**
+  - The CG letter, class `notice`, is generated before it is sent. It states the ground, the
+    term and the last day of receipt.
+  - For a sale or a repossession, it lists the attachments the owner must add: the notice of
+    information of the arrêté of 13 December 2017, and for a sale the first five paragraphs of
+    art. 15 II. Tenure does not reproduce these texts.
+  - Tenure does not post the letter. The owner records the delivery (registered letter, bailiff,
+    hand delivery), its reference, the sending date and the reception date.
+- **Record.** One notice per lease, immutable, which moves the lease to `notice`.
+  - The owner's notice takes its ground from the letter it names, so the recorded ground is the
+    one the tenant received.
+  - The tenant's letter can be uploaded as class `notice` and linked.
+  - The accountant cannot read a notice, because it names a beneficiary.
+  - The former notice transition with a typed end date stays, for a box lease (not under loi
+    89-462) and for compatibility.
+- **Not built yet.**
+  - A notice withdrawn or contested.
+  - The tenant leaving early with a replacement tenant.
+  - Tacit renewal and renewal with re-evaluation (art. 17-2), and vacancy: part 12c.
+  - The notice screen: part 12b.
