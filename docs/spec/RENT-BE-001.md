@@ -185,7 +185,7 @@ Validation happens once, in the service layer, and every refusal names a busines
 - Metrics (Prometheus endpoint, internal network only): request latency per route, job duration and status, documents generated, PDF render time, e-mail delivery outcomes, unmatched payments count.
 - Alerts: job `failed` or `partial`, archive.verify mismatch, PDF engine down, disk or bucket quota at 80 %.
 - Health: `/healthz` (process, with the version only), `/readyz` (database, bucket, Socrate JWKS reachable).
-- Build: `GET /api/v1/version`, for any signed-in user, gives the API's version, commit, build time, whether it is a release build (stamped by `scripts/build.sh`), the Go toolchain, the platform, backendkit, the last embedded migration and the tenure-web release pinned in `web/VERSION`. `tenure version` prints the same facts. An unstamped build falls back to Go's VCS stamp (#113).
+- Build: `GET /api/v1/version`, for any signed-in user, gives the API's version, commit, build time, whether it is a release build (stamped by `scripts/build.sh`), the Go toolchain, the platform, backendkit, the last embedded migration and the tenure-web release pinned in `web/VERSION`. `tenure version` prints the same facts, its first line `<version> <commit> <build time>` as the release workflow reads it (#118). An unstamped build falls back to Go's VCS stamp (#113).
 
 ## 8b. Audit trail and security controls (RENT-SPEC-022)
 
@@ -258,6 +258,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-01 | 1.3 | Slice 2 (Q-35 to Q-44): `PUT /me`, platform audit chain, `tenure_rls` role, `version` on every mutable table |
 | 2026-11-01 | 1.4 | Slice 3 (Q-45 to Q-59): billing\_documents generations, document\_counters, document\_deliveries, object\_version, archive\_retention\_years, cancel and reissue, IRL manual override, e-mail without link |
 | 2026-11-01 | 1.5 | Slice 4 (Q-60 to Q-66): matching rules, partial receipts, billing\_reminders, cancel after payment, payment edits |
+| 2026-11-07 | 2.21 | `tenure version` starts again with `<version> <commit> <build time>`, which the release workflow checks; release v0.1.21 failed on it (#118) |
 | 2026-11-07 | 2.20 | Module `calendar` and `GET /calendar`: the obligations calendar computed from diagnostics, leases, inventories and deposits (RENT-SPEC-012 base, RENT-INV-001 slice 10, Q-116) |
 | 2026-11-07 | 2.19 | `GET /api/v1/version` and a fuller `tenure version`: build, toolchain, schema and pinned web bundle (#113) |
 | 2026-11-06 | 2.18 | Deposit settlement: wear grids, deductions, `RD` statements with the holdback release, migration 000016 (class `restitution`, `deposit_settlements`), `assets.collective_building` in the asset API, billing's arrears handed to the inventory module (RENT-INV-001 slice 9, Q-115) |
