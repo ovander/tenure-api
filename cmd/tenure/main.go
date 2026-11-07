@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,7 +28,6 @@ import (
 
 	"github.com/google/uuid"
 	bffkit "github.com/ovander/backendkit/bff"
-	"github.com/ovander/backendkit/buildinfo"
 	"github.com/ovander/backendkit/socrate"
 	"github.com/sirupsen/logrus"
 
@@ -42,6 +42,7 @@ import (
 	"github.com/ovander/tenure-api/internal/migrate"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/version"
 	"github.com/ovander/tenure-api/web"
 )
 
@@ -66,7 +67,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, out io.
 	}
 	switch args[0] {
 	case "version":
-		_, err := fmt.Fprintf(out, "%s %s %s\n", buildinfo.Version, buildinfo.GitCommit, buildinfo.BuildTime)
+		_, err := fmt.Fprintln(out, strings.Join(version.Get().Lines(), "\n"))
 		return err
 	case "migrate":
 		return migrateCmd(ctx, args[1:], getenv, out)
@@ -223,7 +224,9 @@ func serve(ctx context.Context, getenv func(string) string) error {
 	errc := make(chan error, 2)
 	go func() { errc <- runner.Start(ctx) }()
 	go func() {
-		slog.Info("listening", "addr", cfg.HTTPAddr, "version", buildinfo.Version)
+		v := version.Get()
+		slog.Info("listening", "addr", cfg.HTTPAddr, "version", v.API.Version, "commit", v.API.Commit, "stamped", v.API.Stamped,
+			"go", v.API.GoVersion, "schema", v.API.Schema, "web", v.Web.Release)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errc <- err
 		}
