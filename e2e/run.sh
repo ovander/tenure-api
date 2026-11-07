@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs the phase 1 flows of RENT-FE-001 §4 in a browser against a real tenure
+# Runs the phase 1 flows of RENT-FE-001 §4 and the inventory lifecycle of
+# RENT-INV-001 (slice 11, e2e/flows/phase2.spec.ts) in a browser against a real tenure
 # (RENT-FE-001 §7, tenure-web slice 7b). Around tenure, this script starts:
 #   - the services of docker-compose.dev.yml (PostgreSQL 17, the S3 archive,
 #     gotenberg, ClamAV) under their own compose project, with fresh volumes;

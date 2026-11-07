@@ -1316,3 +1316,24 @@ already holds:
   - the regularisation due date;
   - the per-asset season for the heating window (INV-OD-07).
 
+**Q-117 Phase 2 gate, inventory part — Open (#124).** RENT-INV-001 §9 slice 11 asks for « one real
+lease run from entry to deposit settlement in the tool ». The roadmap's phase 2 gate runs « from
+candidate to deposit settlement », and a gate is passed on real data. Provisional reading:
+
+- **Two halves.** `e2e/flows/phase2.spec.ts` rehearses the run in a browser against a real tenure
+  on every CI run: layout, entry captured and signed by hand (EE), activation, a ten-day
+  completion (EC), notice, exit from the entry with the keys' date and new address (ES), the
+  comparison, a wear grid, a deduction with its quote, the RD statement, and the four numbers in
+  the archive. `docs/gates/phase-2-inventory.md` is the procedure and sign-off record for the
+  real lease. Only the owner signs it off.
+- **Scope.** That record covers the inventory and deposit part. Candidate onboarding
+  (RENT-SPEC-009), arrears recovery (011) and bank reconciliation (013) are not built, so phase 2
+  is not passed by it.
+- **Legal checks first.** The points RENT-INV-001 lists as not checked against Légifrance are a
+  prerequisite of the real run, checked or recorded as accepted.
+- **What the rehearsal found** (each fixed in its own PR): a late checks refresh on S15b that
+  overwrote a newer keys save (tenure-web#55); S13 showing no document number (tenure-web#57);
+  `document.View` carrying no number (#122).
+- **Dates.** The rehearsal runs on today in Europe/Paris, so the ten-day window is open and the
+  restitution deadline is ahead. It does not wait out a real notice period.
+
