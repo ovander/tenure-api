@@ -109,10 +109,19 @@ func TestArchive(t *testing.T) {
 	year := today().Year
 
 	t.Run("browse by number", func(t *testing.T) {
-		var list struct{ Total int }
+		var list struct {
+			Total int
+			Items []struct {
+				Number string `json:"number"`
+			}
+		}
 		call(t, "GET", "/documents?number="+calls.Items[0].Number, req{tok: tok}).json(t, &list)
 		if list.Total != 1 {
 			t.Errorf("by number: %d", list.Total)
+		}
+		// The view carries the number the search found it by (#122).
+		if len(list.Items) != 1 || list.Items[0].Number != calls.Items[0].Number {
+			t.Errorf("number in the view: %+v, want %s", list.Items, calls.Items[0].Number)
 		}
 		call(t, "GET", "/documents?number="+ct.Number, req{tok: tok}).json(t, &list)
 		if list.Total != 1 {
