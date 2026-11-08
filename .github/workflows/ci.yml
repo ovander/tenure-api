@@ -90,7 +90,7 @@ jobs:
       # of docker-compose.dev.yml, the test fakes of e2e/fakes (Socrate, SMTP,
       # INSEE). TENURE_WEB_TOKEN reads the bundle's release, as in release.yml.
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: e2e/.nvmrc
           cache: npm
