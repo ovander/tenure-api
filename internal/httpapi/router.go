@@ -173,6 +173,8 @@ func Routes(d Deps) []Route {
 		{"GET", "/leases/{id}/documents", GuardScopeOwnerW, false, h(d.Lease.ListLeaseDocuments)},
 		{"POST", "/leases/{id}/amendments", GuardScopeOwnerW, false, h(d.Lease.Amend)},
 		{"GET", "/leases/{id}/notice", GuardScopeOwnerW, false, h(d.Lease.Notice)},
+		{"GET", "/leases/{id}/terms", GuardScopeOwnerW, false, h(d.Lease.Terms)},
+		{"GET", "/assets/{id}/vacancies", GuardScopeOwnerW, false, h(d.Lease.Vacancies)},
 		{"POST", "/leases/{id}/notice", GuardScopeOwnerW, false, h(d.Lease.GiveNotice)},
 		{"POST", "/leases/{id}/notice/letter", GuardScopeOwnerW, false, h(d.Lease.NoticeLetter)},
 		{"GET", "/leases/{id}/inventories", GuardScopeOwnerW, false, h(d.Lease.ListInventories)},

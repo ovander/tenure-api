@@ -1394,3 +1394,38 @@ the phase 2 gate. Provisional reading:
   - The tenant leaving early with a replacement tenant.
   - Tacit renewal and renewal with re-evaluation (art. 17-2), and vacancy: part 12c.
   - The notice screen: part 12b.
+
+**Q-119 Lease terms and vacancy, part 12c — Open (#130).** RENT-SPEC-010 asks for tacit renewal
+« as dated events on the lease », and for vacancy « with its charges flagged non-recoverable and
+the asset's vacancy days feeding reporting ». Provisional reading:
+
+- **Computed, not stored.** Like the calendar (Q-116), `lease.Terms` and `lease.Vacancies` are
+  pure functions read on demand. Nothing is entered by hand, and nothing is stored that could
+  drift from the lease's start, term and end.
+- **Terms.**
+  - A term lasts `term_months`. The next term starts the day after the previous one ends, the
+    same day of the month, clamped to a short month. The first term is « initial », each later
+    one « tacit ».
+  - An unfurnished lease (art. 10) and a furnished one (art. 25-7) renew tacitly for the same
+    duration.
+  - A mobility lease (art. 25-12) does not renew. Neither does a furnished lease to a student of
+    the `lease_term_months.furnished_student` term, recognised by its term: tenure does not know
+    whether the parties agreed to renew it.
+  - A box is not under loi 89-462: its contract governs it, and tenure lists its first term only.
+  - The list runs to the current term, or to the term in which the lease's end (`end_on`, set by
+    a notice) falls; that term is cut short (`ended_early`). The next renewal is given while the
+    lease renews and has no end.
+  - A lease that does not renew and runs past its term with no end is flagged `beyond_term`, for
+    the owner to record how it goes on.
+- **Vacancy.**
+  - A vacancy is a period of an asset with no lease other than a draft. It runs from the asset's
+    acquisition (`acquired_on`), or else from its first lease's start, to today; the last one stays
+    open while it lasts.
+  - Overlapping leases count once. The vacant days are counted per calendar year, for reporting
+    (RENT-SPEC-016, phase 3).
+- **Charges.** `charge.Allocate` already shares the recoverable charges pro rata temporis over
+  the leases covering the exercise and leaves the vacancy's share with the owner (Q-15). No charge
+  is flagged by hand.
+- **Not built yet.** The renewal with rent re-evaluation (loi 89-462 art. 17-2: proposal, rent
+  references, phased increase, zone tendue rules) is part 12d, once its rules are checked against
+  Légifrance.
