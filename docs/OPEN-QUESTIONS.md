@@ -1429,3 +1429,47 @@ the asset's vacancy days feeding reporting ». Provisional reading:
 - **Not built yet.** The renewal with rent re-evaluation (loi 89-462 art. 17-2: proposal, rent
   references, phased increase, zone tendue rules) is part 12d, once its rules are checked against
   Légifrance.
+
+**Q-120 Rent re-evaluation at renewal, part 12d — Open (#133).** RENT-SPEC-010 asks for the
+« renewal with rent re-evaluation (under-valued rent procedure) » as a dated event on the lease.
+The rules below are written from secondary sources: they are « à vérifier sur Légifrance avant la
+barrière de la phase 2 ». Provisional reading (loi 89-462 art. 17-2):
+
+- **Which leases.** Only an active unfurnished lease with no end set. A furnished lease has no
+  such procedure. A lease under rent control (`rent_control.zone_ceiling`) is refused for now
+  (`lease/reevaluation-controlled-zone`): its own rules (art. 17-2 II, the reference rent raised)
+  come later.
+- **The proposal.**
+  - The owner proposes a new rent above the current one, with references of comparable
+    dwellings nearby: `renewal.reevaluation.min_references`, or
+    `min_references_large_agglomeration` when the owner declares the home is in an
+    agglomeration of more than a million inhabitants (tenure does not know the list of
+    agglomerations).
+  - The tenant must receive the proposal at the latest `lead_months` before the term. A letter
+    prepared too late aims at the next renewal, like the owner's notice (Q-118). A reception
+    recorded after that day is refused.
+  - The PR letter (`PR-<asset>-<YYYY>-<seq>`) states the current and proposed rents, the
+    references and their mean, the cap of a zone tendue and the schedule. It says the text of
+    art. 17-2 is attached: the owner attaches it. A letter not yet received is replaced by a new
+    one; once received it is final.
+- **Zone tendue.** On an asset flagged so, the increase is at most `tense_zone_cap_bp` of the gap
+  between the references' mean (rounded down) and the current rent. The yearly decree also allows
+  a share of the cost of works; that is not built, which never overstates the rent. References
+  whose mean does not exceed the current rent are refused.
+- **Schedule.**
+  - The increase applies in `steps_short` yearly steps (thirds), or in `steps_long` (sixths) when
+    the term is at least `long_term_months` or the increase exceeds `increase_threshold_bp` of the
+    current rent.
+  - Each step starts on an anniversary of the renewal. Each step's rent is the current rent plus
+    the cumulated share rounded down to the cent, so the last step reaches the proposed rent
+    exactly.
+- **Answer.** The owner records the reception (date, delivery, reference), then the tenant's
+  agreement or refusal on a day. A refusal, or no answer, leaves the rent as it is: the
+  commission départementale de conciliation, then the judge, are not tracked yet. If no one
+  refers, the lease renews at the former rent.
+- **Steps applied.**
+  - On an accepted proposal, `POST …/steps` adds to the lease's rent the share of each step whose
+    day has come. The share is added on top of the rent as it stands, so an IRL revision since
+    the letter is kept: the increase applies « sans préjudice » of the yearly revision.
+  - The owner triggers it; no job applies it yet.
+  - Each step is recorded on the proposal (`steps_applied`) and audited (`lease.renewal_steps`).
