@@ -76,3 +76,21 @@ func (Repository) UploadOnLease(ctx context.Context, leaseID, documentID uuid.UU
 	err = t.Table("documents").Where("id = ? AND lease_id = ? AND source = 'upload'", documentID, leaseID).Count(&n).Error
 	return n > 0, err
 }
+
+type occupancyRow struct {
+	StartOn time.Time  `gorm:"column:start_on"`
+	EndOn   *time.Time `gorm:"column:end_on"`
+}
+
+// Occupancies returns the start and end of every lease of an asset that is
+// not a draft.
+func (Repository) Occupancies(ctx context.Context, asset uuid.UUID) ([]occupancyRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []occupancyRow
+	err = t.Table("leases l").Select("l.start_on, l.end_on").Joins("JOIN lease_assets la ON la.lease_id = l.id").
+		Where("la.asset_id = ? AND l.state <> 'draft'", asset).Order("l.start_on, l.id").Find(&rows).Error
+	return rows, err
+}

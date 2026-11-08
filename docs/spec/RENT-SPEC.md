@@ -282,7 +282,7 @@ Notice, renewal and vacancy are explicit lease events with their legal deadlines
 - Owner notice (congé pour vente, reprise, motif légitime): 6 month lead time (3 furnished), mandatory wording and attachments generated, registered-letter tracking.
 - Tacit renewal and renewal with rent re-evaluation (under-valued rent procedure) as dated events on the lease.
 - Vacancy: period between leases, with its charges flagged non-recoverable and the asset’s vacancy days feeding reporting (RENT-SPEC-016).
-- Built so far (tenure-api #127, Q-118): the tenant’s notice computed from its reception, and the owner’s notice with its CG letter and lead time; renewal, re-evaluation and vacancy come later.
+- Built so far (tenure-api #127, Q-118; #130, Q-119): the tenant’s notice computed from its reception, and the owner’s notice with its CG letter and lead time; the lease’s terms with tacit renewal and an asset’s vacancy, computed; the renewal with re-evaluation comes later.
 
 ## RENT-SPEC-011 — Arrears recovery (phase 2)
 

@@ -1,0 +1,114 @@
+{
+  "case": "asset",
+  "description": "One asset over three leases: an unfurnished lease of three years from 2019, renewed tacitly once and ended by a notice in its second term; a furnished student lease of nine months that does not renew; a furnished lease of one year still running, renewed tacitly twice. The vacancy runs from the acquisition to the first lease, between the leases, and counts its days by calendar year. The student term is the fixture's furnished_student term.",
+  "today": "2026-11-08",
+  "leases": [
+    {
+      "name": "unfurnished_ended_by_notice",
+      "kind": "unfurnished",
+      "start_on": "2019-03-01",
+      "term_months": 36,
+      "end_on": "2023-06-14"
+    },
+    {
+      "name": "furnished_student",
+      "kind": "furnished",
+      "start_on": "2023-09-01",
+      "term_months": 9,
+      "end_on": "2024-05-31"
+    },
+    {
+      "name": "furnished_running",
+      "kind": "furnished",
+      "start_on": "2024-09-01",
+      "term_months": 12
+    }
+  ],
+  "student_term_months": 9,
+  "acquired_on": "2019-01-10",
+  "expected": {
+    "furnished_running": {
+      "terms": [
+        {
+          "n": 1,
+          "start_on": "2024-09-01",
+          "end_on": "2025-08-31",
+          "renewal": "initial",
+          "status": "past"
+        },
+        {
+          "n": 2,
+          "start_on": "2025-09-01",
+          "end_on": "2026-08-31",
+          "renewal": "tacit",
+          "status": "past"
+        },
+        {
+          "n": 3,
+          "start_on": "2026-09-01",
+          "end_on": "2027-08-31",
+          "renewal": "tacit",
+          "status": "current"
+        }
+      ],
+      "renews": true,
+      "next_renewal_on": "2027-09-01"
+    },
+    "furnished_student": {
+      "terms": [
+        {
+          "n": 1,
+          "start_on": "2023-09-01",
+          "end_on": "2024-05-31",
+          "renewal": "initial",
+          "status": "past"
+        }
+      ],
+      "renews": false
+    },
+    "unfurnished_ended_by_notice": {
+      "terms": [
+        {
+          "n": 1,
+          "start_on": "2019-03-01",
+          "end_on": "2022-02-28",
+          "renewal": "initial",
+          "status": "past"
+        },
+        {
+          "n": 2,
+          "start_on": "2022-03-01",
+          "end_on": "2023-06-14",
+          "renewal": "tacit",
+          "status": "past",
+          "ended_early": true
+        }
+      ],
+      "renews": true
+    },
+    "vacancy": {
+      "days_by_year": {
+        "2019": 50,
+        "2023": 78,
+        "2024": 92
+      },
+      "periods": [
+        {
+          "from_on": "2019-01-10",
+          "to_on": "2019-02-28",
+          "days": 50
+        },
+        {
+          "from_on": "2023-06-15",
+          "to_on": "2023-08-31",
+          "days": 78
+        },
+        {
+          "from_on": "2024-06-01",
+          "to_on": "2024-08-31",
+          "days": 92
+        }
+      ]
+    }
+  }
+}

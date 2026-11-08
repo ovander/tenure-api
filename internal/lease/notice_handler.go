@@ -94,3 +94,53 @@ func (h Handler) NoticeLetter(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, v)
 }
+
+// Terms godoc
+//
+//	@Summary		A lease's terms, renewed tacitly
+//	@Description	The first term, then each renewed tacitly for the same duration (loi 89-462 art. 10, 25-7), each past, current or upcoming; the term the lease's end cuts short; the next renewal; beyond_term when a lease that does not renew runs past its term (RENT-SPEC-010, Q-119).
+//	@Tags			lease
+//	@Produce		json
+//	@Param			id				path		string	true	"lease id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	TermsView
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/leases/{id}/terms [get]
+func (h Handler) Terms(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.Terms(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// Vacancies godoc
+//
+//	@Summary		An asset's vacancy
+//	@Description	The periods the asset had no lease, from its acquisition (or else its first lease) to today, the last open while it lasts, and the vacant days of each calendar year (RENT-SPEC-010, Q-119). A draft lease occupies nothing.
+//	@Tags			lease
+//	@Produce		json
+//	@Param			id				path		string	true	"asset id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	VacancyView
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/assets/{id}/vacancies [get]
+func (h Handler) Vacancies(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.Vacancies(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
