@@ -52,6 +52,9 @@ const (
 	KeyNoticeTenant  = "notice_months.tenant"
 	KeyNoticeOwner   = "notice_months.owner"
 	KeyNoticeReasons = "notice.reasons"
+	// Renewal with rent re-evaluation (loi 89-462 art. 17-2), seeded by
+	// migration 000018.
+	KeyReevaluation = "renewal.reevaluation"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -435,4 +438,27 @@ func (s Set) Notice(asOf period.Date) (NoticeRules, error) {
 		return NoticeRules{}, err
 	}
 	return r, nil
+}
+
+// Reevaluation are the rules of a rent re-evaluation at renewal (loi 89-462
+// art. 17-2, Q-120): the proposal's lead time before the term, the rent
+// references it needs (more in a large agglomeration), the yearly steps of
+// the increase (thirds, sixths for a six-year lease or an increase above the
+// threshold), and the zone tendue cap on the increase.
+type Reevaluation struct {
+	LeadMonths                      int   `json:"lead_months"`
+	MinReferences                   int   `json:"min_references"`
+	MinReferencesLargeAgglomeration int   `json:"min_references_large_agglomeration"`
+	StepsShort                      int   `json:"steps_short"`
+	StepsLong                       int   `json:"steps_long"`
+	LongTermMonths                  int   `json:"long_term_months"`
+	IncreaseThresholdBP             int64 `json:"increase_threshold_bp"`
+	TenseZoneCapBP                  int64 `json:"tense_zone_cap_bp"`
+}
+
+// Reevaluation returns the re-evaluation rules in force on asOf.
+func (s Set) Reevaluation(asOf period.Date) (Reevaluation, error) {
+	var r Reevaluation
+	err := s.Decode(KeyReevaluation, asOf, &r)
+	return r, err
 }
