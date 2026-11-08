@@ -28,7 +28,7 @@ func init() {
 		TypeReevaluationInvalid:    problem.M(422, "La proposition de nouveau loyer est incomplète.", "The proposed new rent is incomplete."),
 		TypeReevaluationNotAllowed: problem.M(422, "Ce bail ne permet pas de réévaluer le loyer à son renouvellement.", "This lease does not allow a rent re-evaluation at renewal."),
 		TypeReevaluationTooLate:    problem.M(422, "La proposition arrive trop tard pour ce renouvellement.", "The proposal arrives too late for this renewal."),
-		TypeReevaluationAboveCap:   problem.M(422, "Le loyer proposé dépasse la hausse permise en zone tendue.", "The proposed rent exceeds the increase allowed in a zone tendue."),
+		TypeReevaluationAboveCap:   problem.M(422, "Le loyer proposé dépasse la hausse autorisée en zone tendue.", "The proposed rent exceeds the increase allowed in a zone tendue."),
 		TypeReevaluationControlled: problem.M(422, "La réévaluation d’un loyer encadré n’est pas encore prise en charge.", "Re-evaluating a controlled rent is not supported yet."),
 		TypeReevaluationExists:     problem.M(409, "Une proposition de nouveau loyer a déjà été remise pour ce renouvellement.", "A proposed new rent was already delivered for this renewal."),
 		TypeReevaluationState:      problem.M(409, "Cette proposition n’en est pas à cette étape.", "This proposal is not at this step."),
