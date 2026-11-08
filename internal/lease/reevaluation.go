@@ -71,7 +71,7 @@ type ReevaluationTerms struct {
 	// RenewalOn is the first day of the renewed term.
 	RenewalOn period.Date `json:"renewal_on" swaggertype:"string" format:"date"`
 	// LatestReceiptOn is the last day the tenant may receive the proposal.
-	LatestReceiptOn period.Date `json:"latest_receipt_on" swaggertype:"string" format:"date"`
+	LatestReceiptOn  period.Date `json:"latest_receipt_on" swaggertype:"string" format:"date"`
 	CurrentRentCents money.Cents `json:"current_rent_cents"`
 	IncreaseCents    money.Cents `json:"increase_cents"`
 	// IncreaseBP is the increase over the current rent, in basis points,
