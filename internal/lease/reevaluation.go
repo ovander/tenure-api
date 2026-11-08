@@ -18,7 +18,9 @@ const (
 	TypeReevaluationTooLate    = "lease/reevaluation-too-late"
 	TypeReevaluationAboveCap   = "lease/reevaluation-above-cap"
 	TypeReevaluationControlled = "lease/reevaluation-controlled-zone"
-	TypeReevaluationDecided    = "lease/reevaluation-decided"
+	TypeReevaluationExists     = "lease/reevaluation-exists"
+	TypeReevaluationState      = "lease/reevaluation-state"
+	TypeReevaluationNoStepDue  = "lease/reevaluation-no-step-due"
 )
 
 func init() {
@@ -28,7 +30,9 @@ func init() {
 		TypeReevaluationTooLate:    problem.M(422, "La proposition arrive trop tard pour ce renouvellement.", "The proposal arrives too late for this renewal."),
 		TypeReevaluationAboveCap:   problem.M(422, "Le loyer proposé dépasse la hausse permise en zone tendue.", "The proposed rent exceeds the increase allowed in a zone tendue."),
 		TypeReevaluationControlled: problem.M(422, "La réévaluation d’un loyer encadré n’est pas encore prise en charge.", "Re-evaluating a controlled rent is not supported yet."),
-		TypeReevaluationDecided:    problem.M(409, "Cette proposition a déjà reçu une réponse.", "This proposal already has an answer."),
+		TypeReevaluationExists:     problem.M(409, "Une proposition de nouveau loyer a déjà été remise pour ce renouvellement.", "A proposed new rent was already delivered for this renewal."),
+		TypeReevaluationState:      problem.M(409, "Cette proposition n’en est pas à cette étape.", "This proposal is not at this step."),
+		TypeReevaluationNoStepDue:  problem.M(422, "Aucun palier de hausse n’est échu.", "No step of the increase is due."),
 	})
 }
 
