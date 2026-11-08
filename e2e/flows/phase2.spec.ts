@@ -191,13 +191,17 @@ test('the inventory lifecycle: a ten-day completion request decided into EC', as
 
 test('the inventory lifecycle: notice, the exit captured from the entry, signed and issued, then compared', async ({ page }) => {
   const violations = await watchCSP(page)
-  // The tenant gives notice, ending today.
+  // The tenant gives notice today for a job transfer: one month, computed by tenure (Q-118).
   await page.goto(leaseUrl)
   await page.getByTestId('action-notice').click()
-  await page.locator('#notice_end').fill(fr(iso))
-  await page.locator('#notice_end').press('Tab')
-  await confirm(page)
+  await page.locator('#notice_reason').click()
+  await page.getByRole('option', { name: 'Mutation professionnelle', exact: true }).click()
+  await page.getByTestId('notice-compute').click()
+  await expect(page.getByTestId('notice-terms')).toContainText('(préavis de 1 mois)')
+  await page.getByTestId('save-notice').click()
+  await expect(page.getByTestId('notice-dialog')).toBeHidden()
   await expect(page.getByTestId('lease-state')).toHaveText('congé donné')
+  await expect(page.getByTestId('notice-given-by')).toHaveText('le locataire')
 
   // The exit, pre-filled from the entry: every item checked as at entry,
   // except the living room floor, now worse.
