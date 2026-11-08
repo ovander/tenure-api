@@ -79,7 +79,7 @@ func (g Guarantor) label(k GuaranteeKind) string {
 type DocumentView struct {
 	ID           uuid.UUID  `json:"id"`
 	LeaseID      uuid.UUID  `json:"lease_id"`
-	Kind         string     `json:"kind" enums:"contract,amendment,deposit_receipt,surety_act,owner_notice"`
+	Kind         string     `json:"kind" enums:"contract,amendment,deposit_receipt,surety_act,owner_notice,renewal_proposal"`
 	Number       string     `json:"number" example:"CT-0190A1B2-2026-0001"`
 	LeaseVersion int        `json:"lease_version"`
 	GuaranteeID  *uuid.UUID `json:"guarantee_id"`

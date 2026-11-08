@@ -24,6 +24,10 @@ POST /leases/{id}/contract
 POST /leases/{id}/amendments
 POST /leases/{id}/notice
 POST /leases/{id}/notice/letter
+POST /leases/{id}/renewal/letter
+POST /leases/{id}/renewals/{rid}/reception
+POST /leases/{id}/renewals/{rid}/answer
+POST /leases/{id}/renewals/{rid}/steps
 POST /leases/{id}/inventories
 PUT /inventories/{id}
 POST /inventories/{id}/items

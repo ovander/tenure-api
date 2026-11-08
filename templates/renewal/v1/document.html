@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Proposition de nouveau loyer {{.Number}}</title>{{template "style"}}</head>
+<body>
+<h1>Proposition de nouveau loyer au renouvellement du bail</h1>
+<p class="meta">N° {{.Number}} · établie le {{date .IssuedOn}}{{if .ContractNumber}} · contrat n° {{.ContractNumber}}{{end}} · bail ayant pris effet le {{date .StartOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  <div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+<p>En application de l’article 17-2 de la loi n° 89-462 du 6 juillet 1989, le bailleur estime le loyer actuel, de <strong>{{euros .Terms.CurrentRentCents}}</strong> hors charges par mois, manifestement sous-évalué et vous propose, pour le renouvellement du bail prenant effet le <strong>{{date .Terms.RenewalOn}}</strong>, un nouveau loyer de <strong>{{euros .ProposedRentCents}}</strong> hors charges par mois. Cette proposition doit vous parvenir au moins {{.LeadMonths}} mois avant le terme du bail, au plus tard le {{date .Terms.LatestReceiptOn}}.</p>
+<p>Le nouveau loyer est fixé par référence aux loyers habituellement constatés dans le voisinage pendant les trois dernières années pour des logements comparables, dont voici {{len .References}} références (moyenne : {{euros .Terms.ReferencesMeanCents}}) :</p>
+<table><thead><tr><th>Logement</th><th>Description</th><th>Loyer mensuel</th></tr></thead><tbody>
+{{range .References}}<tr><td>{{.Address}}</td><td>{{.Description}}</td><td>{{euros .RentCents}}</td></tr>
+{{end}}</tbody></table>
+{{if .Terms.CapCents}}<p>Le logement étant situé en zone d’encadrement de l’évolution des loyers, la hausse ne peut excéder la moitié de l’écart entre la moyenne des références et le loyer actuel, soit un loyer d’au plus {{euros (deref .Terms.CapCents)}}.</p>{{end}}
+<p>La hausse, de {{euros .Terms.IncreaseCents}}, s’appliquera en {{len .Terms.Steps}} paliers annuels égaux, sans préjudice de la révision annuelle prévue au contrat :</p>
+<table><thead><tr><th>À compter du</th><th>Loyer mensuel hors révision</th></tr></thead><tbody>
+{{range .Terms.Steps}}<tr><td>{{date .From}}</td><td>{{euros .RentCents}}</td></tr>
+{{end}}</tbody></table>
+<p>À défaut d’accord, ou sans réponse de votre part quatre mois avant le terme du bail, l’une ou l’autre partie peut saisir la commission départementale de conciliation ; à défaut d’accord constaté par la commission, le juge peut être saisi avant le terme du bail. À défaut de saisine, le bail est reconduit aux conditions antérieures du loyer, éventuellement révisé.</p>
+<p class="label">Reproduction de l’article 17-2 de la loi n° 89-462 du 6 juillet 1989</p>
+<p>Le texte de l’article 17-2 est joint à la présente proposition.</p>
+<p>Le bailleur ________________________</p>
+</body></html>
