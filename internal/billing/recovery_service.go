@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
@@ -58,6 +59,27 @@ type RecoveryResult struct {
 	RecoveryView
 	Sureties []lease.Surety `json:"sureties"`
 	Insured  bool           `json:"insured"`
+	// Plan is the lease's latest payment plan and where it stands.
+	Plan *PlanState `json:"plan,omitempty"`
+}
+
+func (st recoveryState) result() RecoveryResult {
+	out := RecoveryResult{RecoveryView: st.view, Sureties: st.parties.Sureties, Insured: st.parties.Insured, Plan: st.plan}
+	if out.Sureties == nil {
+		out.Sureties = []lease.Surety{}
+	}
+	return out
+}
+
+func planOf(r planRow) Plan {
+	p := Plan{ID: r.ID, AgreedOn: period.FromTime(r.AgreedOn), DebtCents: money.Cents(r.DebtCents), DocumentID: r.DocumentID, Calls: []uuid.UUID{}, Instalments: []Instalment{}, Version: r.Version}
+	_ = json.Unmarshal(r.Calls, &p.Calls)
+	_ = json.Unmarshal(r.Instalments, &p.Instalments)
+	if r.CancelledOn != nil {
+		d := period.FromTime(*r.CancelledOn)
+		p.CancelledOn = &d
+	}
+	return p
 }
 
 func stepOf(r recoveryRow) RecoveryStep {
@@ -79,6 +101,8 @@ type recoveryState struct {
 	r       params.Recovery
 	today   period.Date
 	view    RecoveryView
+	plan    *PlanState
+	planRow *planRow
 }
 
 // recovery reads a lease's recovery inside the caller's scoped transaction.
@@ -115,7 +139,21 @@ func (s Service) recovery(ctx context.Context, leaseID uuid.UUID) (recoveryState
 	for _, g := range st.parties.Sureties {
 		f.Sureties = append(f.Sureties, g.GuaranteeID)
 	}
-	st.view, err = Recovery(Arrears(leaseID, calls, st.today, int(days)), steps, f, st.today, st.r)
+	arr := Arrears(leaseID, calls, st.today, int(days))
+	plans, err := s.Repo.Plans(ctx, leaseID)
+	if err != nil {
+		return st, err
+	}
+	if len(plans) > 0 {
+		pr, err := st.ps.RecoveryPlan(st.today)
+		if err != nil {
+			return st, err
+		}
+		ps := PlanStatus(planOf(plans[0]), arr, st.today, pr)
+		st.plan, st.planRow = &ps, &plans[0]
+		f.PlanRespected = ps.Status == PlanRespected
+	}
+	st.view, err = Recovery(arr, steps, f, st.today, st.r)
 	return st, err
 }
 
@@ -134,10 +172,7 @@ func (s Service) RecoveryFor(ctx context.Context, p *auth.Principal, requestID s
 		if err != nil {
 			return err
 		}
-		out = RecoveryResult{RecoveryView: st.view, Sureties: st.parties.Sureties, Insured: st.parties.Insured}
-		if out.Sureties == nil {
-			out.Sureties = []lease.Surety{}
-		}
+		out = st.result()
 		return nil
 	})
 	return out, err
@@ -319,11 +354,128 @@ func (s Service) RecordRecoveryStep(ctx context.Context, p *auth.Principal, requ
 		if err != nil {
 			return err
 		}
-		out = RecoveryResult{RecoveryView: after.view, Sureties: after.parties.Sureties, Insured: after.parties.Insured}
-		if out.Sureties == nil {
-			out.Sureties = []lease.Surety{}
-		}
+		out = after.result()
 		return audit.Record(ctx, "billing.recovery_step", audit.Entity{Type: "lease", ID: leaseID.String()}, nil, stepOf(row))
+	})
+	return out, err
+}
+
+// PlanInput is the body of POST /leases/{id}/recovery/plans: the day the
+// plan was agreed, its instalments and the signed agreement if uploaded.
+type PlanInput struct {
+	AgreedOn    period.Date  `json:"agreed_on" swaggertype:"string" format:"date"`
+	Instalments []Instalment `json:"instalments"`
+	DocumentID  *uuid.UUID   `json:"document_id,omitempty"`
+	DryRun      bool         `json:"dry_run"`
+}
+
+// CancelPlanInput is the body of POST /leases/{id}/recovery/plans/{pid}/cancel.
+type CancelPlanInput struct {
+	CancelledOn period.Date `json:"cancelled_on" swaggertype:"string" format:"date"`
+	Version     int         `json:"version"`
+}
+
+// RecordPlan records a payment plan of a lease's overdue rent (RENT-SPEC-011,
+// Q-122): it covers every call overdue on the day and their whole debt; while
+// respected it suspends the recovery. A lease has one plan in force at a
+// time: a new one needs the latest completed, broken or cancelled. A dry run
+// only checks it.
+func (s Service) RecordPlan(ctx context.Context, p *auth.Principal, requestID string, leaseID uuid.UUID, in PlanInput) (RecoveryResult, error) {
+	sc, err := ownerScope(p, requestID)
+	if err != nil {
+		return RecoveryResult{}, err
+	}
+	var out RecoveryResult
+	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
+		st, err := s.recovery(ctx, leaseID)
+		if err != nil {
+			return err
+		}
+		if st.plan != nil && st.plan.Status == PlanRespected {
+			return invariant.New(TypePlanExists, st.plan.ID.String())
+		}
+		pr, err := st.ps.RecoveryPlan(st.today)
+		if err != nil {
+			return err
+		}
+		plan, err := NewPlan(st.view.Arrears, in.AgreedOn, st.today, in.Instalments, pr)
+		if err != nil {
+			return err
+		}
+		if in.DocumentID != nil {
+			series, ok, err := s.Repo.RecoveryDocument(ctx, leaseID, *in.DocumentID)
+			if err != nil {
+				return err
+			}
+			if !ok || series != "upload" {
+				return invariant.New(TypeRecoveryLetterKind, in.DocumentID.String())
+			}
+		}
+		if in.DryRun {
+			ps := PlanStatus(plan, st.view.Arrears, st.today, pr)
+			st.plan = &ps
+			out = st.result()
+			return nil
+		}
+		calls, err := json.Marshal(plan.Calls)
+		if err != nil {
+			return err
+		}
+		inst, err := json.Marshal(plan.Instalments)
+		if err != nil {
+			return err
+		}
+		now := s.now()
+		row := planRow{ID: s.NewID(), OwnerID: sc.OwnerID, LeaseID: leaseID, AgreedOn: plan.AgreedOn.Time(), DebtCents: int64(plan.DebtCents),
+			Calls: calls, Instalments: inst, DocumentID: in.DocumentID, CreatedAt: now, CreatedBy: p.Sub, UpdatedAt: now, UpdatedBy: p.Sub, Version: 1}
+		if err := s.Repo.InsertPlan(ctx, row); err != nil {
+			return err
+		}
+		after, err := s.recovery(ctx, leaseID)
+		if err != nil {
+			return err
+		}
+		out = after.result()
+		return audit.Record(ctx, "billing.payment_plan", audit.Entity{Type: "lease", ID: leaseID.String()}, nil, out.Plan)
+	})
+	return out, err
+}
+
+// CancelPlan cancels a lease's latest payment plan on a day, which ends its
+// suspension of the recovery. A completed or cancelled plan is refused.
+func (s Service) CancelPlan(ctx context.Context, p *auth.Principal, requestID string, leaseID, planID uuid.UUID, in CancelPlanInput) (RecoveryResult, error) {
+	sc, err := ownerScope(p, requestID)
+	if err != nil {
+		return RecoveryResult{}, err
+	}
+	var out RecoveryResult
+	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
+		st, err := s.recovery(ctx, leaseID)
+		if err != nil {
+			return err
+		}
+		if st.plan == nil || st.plan.ID != planID {
+			return invariant.ErrNotFound
+		}
+		if st.plan.Status == PlanCompleted || st.plan.Status == PlanCancelled {
+			return invariant.New(TypePlanClosed, planID.String())
+		}
+		if in.CancelledOn.IsZero() || in.CancelledOn.After(st.today) || in.CancelledOn.Before(st.plan.AgreedOn) {
+			return invariant.New(TypePlanInvalid, "cancelled_on")
+		}
+		if st.planRow.Version != in.Version {
+			return invariant.ErrStale
+		}
+		before := st.plan
+		if err := s.Repo.CancelPlan(ctx, planID, in.Version, in.CancelledOn.Time(), s.now(), p.Sub); err != nil {
+			return err
+		}
+		after, err := s.recovery(ctx, leaseID)
+		if err != nil {
+			return err
+		}
+		out = after.result()
+		return audit.Record(ctx, "billing.payment_plan_cancel", audit.Entity{Type: "lease", ID: leaseID.String()}, before, out.Plan)
 	})
 	return out, err
 }

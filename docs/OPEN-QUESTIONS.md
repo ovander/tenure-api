@@ -1511,3 +1511,33 @@ Provisional reading:
   - the prefect's notice before an eviction hearing;
   - late penalties: none are computed.
 
+**Q-122 Payment plans, part 13b — Open (#142).** RENT-SPEC-011 asks for « agreed instalments
+recorded and matched; the plan suspends escalation while respected ». Provisional reading:
+
+- **What a plan covers.**
+  - A plan agreed on a day covers every rent call overdue on that day and their whole debt.
+  - The instalments must add up to that debt, on strictly increasing days from the agreement
+    on, at most `recovery.plan.max_instalments` of them.
+  - The signed agreement can be attached as an uploaded document of class recovery.
+- **How payments are matched.** Payments keep matching rent calls, as today (Q-60). The plan
+  does not take payments of its own: what the covered calls received since is the debt less
+  what they still owe. The plan is checked against that.
+- **Status, computed on read, never stored:**
+  - *completed* once the covered calls are paid;
+  - *broken* (instalment_late) when the payments fall short of the instalments past their day
+    plus `grace_days`;
+  - *broken* (current_rent_unpaid) when a call the plan does not cover is overdue past the same
+    grace;
+  - *respected* otherwise;
+  - *cancelled* once the owner cancels it.
+
+  A broken plan can recover if the tenant catches up. This is the conservative reading: tenure
+  never declares a debt beyond the calls.
+- **Effect on the recovery.** While a plan is respected, the recovery calls for no step
+  (`suspended`). Broken or cancelled, the escalation resumes from the episode as before.
+- **One plan in force.** A new plan is refused while the latest one is respected.
+- **Not built yet:**
+  - a plan set by the judge (art. 24 V, up to three years), which an owner records like any
+    other for now;
+  - the plan as a letter of its own.
+

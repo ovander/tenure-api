@@ -1,6 +1,6 @@
 {
   "case": "recovery",
-  "description": "The recovery of unpaid rent (RENT-SPEC-011): an episode starts at the oldest overdue due day; the formal notice, the surety's information and the insurer's claim are due from it; the commandement follows the formal notice, then its notice to the surety and the court once the clause résolutoire's delay has run (six weeks for a term begun since the 2023 law, two months before); steps of an earlier episode do not count; nothing overdue, no episode. The parameters are the legal fixtures of testdata/params.",
+  "description": "The recovery of unpaid rent (RENT-SPEC-011): an episode starts at the oldest overdue due day; the formal notice, the surety's information and the insurer's claim are due from it; the commandement follows the formal notice, then its notice to the surety and the court once the clause résolutoire's delay has run (six weeks for a term begun since the 2023 law, two months before); steps of an earlier episode do not count; nothing overdue, no episode; a respected payment plan suspends the escalation. The parameters are the legal fixtures of testdata/params.",
   "steps": [
     {
       "name": "first_unpaid_nothing_done",
@@ -36,7 +36,8 @@
           "00000000-0000-7000-8000-0000000000aa"
         ],
         "Insured": true,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-05-10"
     },
@@ -95,7 +96,8 @@
           "00000000-0000-7000-8000-0000000000aa"
         ],
         "Insured": true,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-05-10"
     },
@@ -146,7 +148,8 @@
           "00000000-0000-7000-8000-0000000000aa"
         ],
         "Insured": true,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-05-20"
     },
@@ -195,7 +198,8 @@
       "facts": {
         "Sureties": [],
         "Insured": false,
-        "TermStartOn": "2022-01-01"
+        "TermStartOn": "2022-01-01",
+        "PlanRespected": false
       },
       "today": "2026-07-20"
     },
@@ -238,7 +242,8 @@
       "facts": {
         "Sureties": [],
         "Insured": false,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-05-10"
     },
@@ -267,7 +272,8 @@
           "00000000-0000-7000-8000-0000000000aa"
         ],
         "Insured": true,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-05-10"
     },
@@ -289,9 +295,49 @@
           "00000000-0000-7000-8000-0000000000aa"
         ],
         "Insured": true,
-        "TermStartOn": "2025-01-01"
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": false
       },
       "today": "2026-06-05"
+    },
+    {
+      "name": "suspended_by_a_respected_plan",
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000003",
+          "number": "AL-00000001-2026-0003",
+          "period": "2026-03",
+          "due_on": "2026-03-05",
+          "total_cents": 80000,
+          "paid_cents": 80000
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000004",
+          "number": "AL-00000001-2026-0004",
+          "period": "2026-04",
+          "due_on": "2026-04-05",
+          "total_cents": 80000,
+          "paid_cents": 20000
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000005",
+          "number": "AL-00000001-2026-0005",
+          "period": "2026-05",
+          "due_on": "2026-05-05",
+          "total_cents": 80000,
+          "paid_cents": 0
+        }
+      ],
+      "steps": [],
+      "facts": {
+        "Sureties": [
+          "00000000-0000-7000-8000-0000000000aa"
+        ],
+        "Insured": true,
+        "TermStartOn": "2025-01-01",
+        "PlanRespected": true
+      },
+      "today": "2026-05-10"
     }
   ],
   "expected": {
@@ -639,6 +685,45 @@
         }
       ],
       "next": []
+    },
+    "suspended_by_a_respected_plan": {
+      "arrears": {
+        "lease_id": "00000000-0000-0000-0000-000000000000",
+        "items": [
+          {
+            "billing_document_id": "00000000-0000-7000-8000-000000000004",
+            "number": "AL-00000001-2026-0004",
+            "period": "2026-04",
+            "due_on": "2026-04-05",
+            "total_cents": 80000,
+            "paid_cents": 20000,
+            "outstanding_cents": 60000,
+            "overdue": true,
+            "days_late": 35,
+            "reminder_on": "2026-04-10",
+            "reminder_due": true
+          },
+          {
+            "billing_document_id": "00000000-0000-7000-8000-000000000005",
+            "number": "AL-00000001-2026-0005",
+            "period": "2026-05",
+            "due_on": "2026-05-05",
+            "total_cents": 80000,
+            "paid_cents": 0,
+            "outstanding_cents": 80000,
+            "overdue": true,
+            "days_late": 5,
+            "reminder_on": "2026-05-10",
+            "reminder_due": true
+          }
+        ],
+        "outstanding_cents": 140000,
+        "overdue_cents": 140000
+      },
+      "since": "2026-04-05",
+      "steps": [],
+      "next": [],
+      "suspended": true
     }
   }
 }

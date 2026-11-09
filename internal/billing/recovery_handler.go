@@ -94,3 +94,70 @@ func (h Handler) RecoveryStep(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, v)
 }
+
+// RecoveryPlan godoc
+//
+//	@Summary		Record a payment plan of overdue rent
+//	@Description	The plan agreed on a day covers every rent call overdue on it and their whole debt, in instalments adding up to it on increasing days; while respected (instalments paid within their grace, the current rent paid) it suspends the recovery. One plan in force per lease. dry_run only checks it.
+//	@Tags			billing
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string		true	"lease id"
+//	@Param			body			body		PlanInput	true	"plan"
+//	@Param			X-Owner-Scope	header		string		false	"owner scope"
+//	@Success		200				{object}	RecoveryResult
+//	@Failure		400,401,403,404,409,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/leases/{id}/recovery/plans [post]
+func (h Handler) RecoveryPlan(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	var in PlanInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.RecordPlan(r.Context(), caller(r), httpx.RequestID(r), id, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// CancelRecoveryPlan godoc
+//
+//	@Summary		Cancel a payment plan
+//	@Description	Cancels the lease's latest payment plan on a day, which ends its suspension of the recovery. A completed or cancelled plan is refused.
+//	@Tags			billing
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string			true	"lease id"
+//	@Param			pid				path		string			true	"plan id"
+//	@Param			body			body		CancelPlanInput	true	"cancellation"
+//	@Param			X-Owner-Scope	header		string			false	"owner scope"
+//	@Success		200				{object}	RecoveryResult
+//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/leases/{id}/recovery/plans/{pid}/cancel [post]
+func (h Handler) CancelRecoveryPlan(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	pid, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "pid"))
+	if !ok {
+		return
+	}
+	var in CancelPlanInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.CancelPlan(r.Context(), caller(r), httpx.RequestID(r), id, pid, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}

@@ -57,6 +57,8 @@ const (
 	KeyReevaluation = "renewal.reevaluation"
 	// KeyRecovery is the escalation of unpaid rent (RENT-SPEC-011, Q-121).
 	KeyRecovery = "recovery.escalation"
+	// KeyRecoveryPlan is the payment plan of unpaid rent (RENT-SPEC-011, Q-122).
+	KeyRecoveryPlan = "recovery.plan"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -487,5 +489,20 @@ type Recovery struct {
 func (s Set) Recovery(asOf period.Date) (Recovery, error) {
 	var r Recovery
 	err := s.Decode(KeyRecovery, asOf, &r)
+	return r, err
+}
+
+// RecoveryPlan is how a payment plan of unpaid rent is checked (RENT-SPEC-011,
+// Q-122): an instalment counts as late GraceDays after its due day, and a
+// plan has at most MaxInstalments instalments.
+type RecoveryPlan struct {
+	GraceDays      int `json:"grace_days"`
+	MaxInstalments int `json:"max_instalments"`
+}
+
+// RecoveryPlan returns the payment-plan rules effective on asOf.
+func (s Set) RecoveryPlan(asOf period.Date) (RecoveryPlan, error) {
+	var r RecoveryPlan
+	err := s.Decode(KeyRecoveryPlan, asOf, &r)
 	return r, err
 }

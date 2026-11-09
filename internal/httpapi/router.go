@@ -189,6 +189,8 @@ func Routes(d Deps) []Route {
 		{"GET", "/leases/{id}/recovery", GuardScopeOwnerW, false, h(d.Billing.Recovery)},
 		{"POST", "/leases/{id}/recovery/letter", GuardScopeOwnerW, false, h(d.Billing.RecoveryLetter)},
 		{"POST", "/leases/{id}/recovery/steps", GuardScopeOwnerW, false, h(d.Billing.RecoveryStep)},
+		{"POST", "/leases/{id}/recovery/plans", GuardScopeOwnerW, false, h(d.Billing.RecoveryPlan)},
+		{"POST", "/leases/{id}/recovery/plans/{pid}/cancel", GuardScopeOwnerW, false, h(d.Billing.CancelRecoveryPlan)},
 		{"GET", "/payments", GuardScopeOwnerW, false, h(d.Payments.List)},
 		{"POST", "/payments", GuardScopeOwnerW, false, h(d.Payments.Create)},
 		{"GET", "/payments/{id}", GuardScopeOwnerW, false, h(d.Payments.Get)},
