@@ -6385,6 +6385,207 @@
                 }
             }
         },
+        "/leases/{id}/recovery/plans": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The plan agreed on a day covers every rent call overdue on it and their whole debt, in instalments adding up to it on increasing days; while respected (instalments paid within their grace, the current rent paid) it suspends the recovery. One plan in force per lease. dry_run only checks it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Record a payment plan of overdue rent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "plan",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.PlanInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/billing.RecoveryResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/leases/{id}/recovery/plans/{pid}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancels the lease's latest payment plan on a day, which ends its suspension of the recovery. A completed or cancelled plan is refused.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Cancel a payment plan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "lease id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "plan id",
+                        "name": "pid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "cancellation",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.CancelPlanInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/billing.RecoveryResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/leases/{id}/recovery/steps": {
             "post": {
                 "security": [
@@ -9606,6 +9807,18 @@
                 }
             }
         },
+        "billing.CancelPlanInput": {
+            "type": "object",
+            "properties": {
+                "cancelled_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "billing.CancelResult": {
             "type": "object",
             "properties": {
@@ -9748,6 +9961,18 @@
                 }
             }
         },
+        "billing.Instalment": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "due_on": {
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
         "billing.IssuedDoc": {
             "type": "object",
             "properties": {
@@ -9866,6 +10091,97 @@
                 }
             }
         },
+        "billing.PlanInput": {
+            "type": "object",
+            "properties": {
+                "agreed_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "instalments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.Instalment"
+                    }
+                }
+            }
+        },
+        "billing.PlanState": {
+            "type": "object",
+            "properties": {
+                "agreed_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "calls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "cancelled_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "debt_cents": {
+                    "type": "integer"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "due_cents": {
+                    "description": "DueCents is the instalments past their day and grace.",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "instalments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/billing.Instalment"
+                    }
+                },
+                "next_instalment": {
+                    "description": "NextInstalment is the first instalment not yet covered by the\npayments.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/billing.Instalment"
+                        }
+                    ]
+                },
+                "paid_cents": {
+                    "description": "PaidCents is what the covered calls received since: the debt less\nwhat they still owe.",
+                    "type": "integer"
+                },
+                "reason": {
+                    "description": "Reason says why a plan is broken.",
+                    "type": "string",
+                    "enum": [
+                        "instalment_late",
+                        "current_rent_unpaid"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "respected",
+                        "broken",
+                        "completed",
+                        "cancelled"
+                    ]
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "billing.RecoveryLetter": {
             "type": "object",
             "properties": {
@@ -9926,6 +10242,14 @@
                         "$ref": "#/definitions/billing.NextStep"
                     }
                 },
+                "plan": {
+                    "description": "Plan is the lease's latest payment plan and where it stands.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/billing.PlanState"
+                        }
+                    ]
+                },
                 "resolution_on": {
                     "description": "ResolutionOn is the day the clause résolutoire may take effect, the\ndelay after the commandement de payer having run.",
                     "type": "string",
@@ -9947,6 +10271,10 @@
                     "items": {
                         "$ref": "#/definitions/lease.Surety"
                     }
+                },
+                "suspended": {
+                    "description": "Suspended says a respected payment plan suspends the escalation: no\nstep is called for while it holds.",
+                    "type": "boolean"
                 }
             }
         },

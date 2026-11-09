@@ -30,6 +30,8 @@ POST /leases/{id}/renewals/{rid}/answer
 POST /leases/{id}/renewals/{rid}/steps
 POST /leases/{id}/recovery/letter
 POST /leases/{id}/recovery/steps
+POST /leases/{id}/recovery/plans
+POST /leases/{id}/recovery/plans/{pid}/cancel
 POST /leases/{id}/inventories
 PUT /inventories/{id}
 POST /inventories/{id}/items

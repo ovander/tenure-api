@@ -58,6 +58,7 @@ type Plan struct {
 	Instalments []Instalment `json:"instalments"`
 	DocumentID  *uuid.UUID   `json:"document_id,omitempty"`
 	CancelledOn *period.Date `json:"cancelled_on,omitempty" swaggertype:"string" format:"date"`
+	Version     int          `json:"version"`
 }
 
 // PlanState is a plan and where it stands on a day.
