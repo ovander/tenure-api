@@ -316,7 +316,7 @@ func (Repository) ClockStarts(ctx context.Context) ([]ClockStart, error) {
 	err = tx.Raw(`SELECT d.id, d.object_key, d.object_version, l.end_on AS clock_from, d.issued_at
 			FROM documents d JOIN leases l ON l.id = d.lease_id
 			WHERE d.retain_until IS NULL AND d.issued_at IS NOT NULL
-				AND d.class IN ('contract', 'amendment', 'deposit', 'surety', 'inventory', 'restitution', 'notice', 'renewal')
+				AND d.class IN ('contract', 'amendment', 'deposit', 'surety', 'inventory', 'restitution', 'notice', 'renewal', 'recovery')
 				AND l.state IN ('ended', 'closed') AND l.end_on IS NOT NULL
 		UNION ALL
 		SELECT d.id, d.object_key, d.object_version, make_date(max(c.exercise_year), 12, 31) AS clock_from, d.issued_at

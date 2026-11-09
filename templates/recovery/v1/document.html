@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>{{if eq .Kind "formal_notice"}}Mise en demeure{{else}}Information de la caution{{end}} {{.Number}}</title>{{template "style"}}</head>
+<body>
+{{if eq .Kind "formal_notice"}}
+<h1>Mise en demeure de payer</h1>
+{{else}}
+<h1>Information de la caution : défaut de paiement du locataire</h1>
+{{end}}
+<p class="meta">N° {{.Number}} · établie le {{date .IssuedOn}}{{if .ContractNumber}} · contrat n° {{.ContractNumber}}{{end}} · bail ayant pris effet le {{date .StartOn}}</p>
+<div class="parties">
+  <div><p class="label">Bailleur</p><p>{{.Owner.Name}}<br>{{.Owner.Address}}</p></div>
+  {{if .Surety}}<div><p class="label">Caution</p><p>{{.Surety.Name}}<br>{{.Surety.Address}}</p></div>
+  {{else}}<div><p class="label">Locataire{{if gt (len .Tenants) 1}}s{{end}}</p><p>{{range $i, $t := .Tenants}}{{if $i}}<br>{{end}}{{$t}}{{end}}</p></div>{{end}}
+</div>
+<p class="label">Logement loué</p>
+<p>{{range $i, $a := .Premises}}{{if $i}}<br>{{end}}{{$a}}{{end}}</p>
+{{if .Surety}}
+<p>En votre qualité de caution {{range $i, $t := .Tenants}}{{if $i}}, {{end}}{{$t}}{{end}}, nous vous informons que le locataire n’a pas réglé à leur échéance les sommes suivantes, qui restent dues à ce jour :</p>
+{{else}}
+<p>Malgré nos précédentes relances, les sommes suivantes, dues au titre du bail, restent impayées à ce jour :</p>
+{{end}}
+<table><thead><tr><th>Appel de loyer</th><th>Période</th><th>Échéance</th><th class="amount">Reste dû</th></tr></thead><tbody>
+{{range .Items}}<tr><td>{{.Number}}</td><td>{{periodLabel .Period}}</td><td>{{date .DueOn}}</td><td class="amount">{{euros .OutstandingCents}}</td></tr>
+{{end}}<tr class="total"><td colspan="3">Total dû</td><td class="amount">{{euros .OutstandingCents}}</td></tr>
+</tbody></table>
+{{if .Surety}}
+<p>Cette information vous est donnée en application de l’article 2303 du code civil, dès le premier incident de paiement non régularisé. Votre engagement de caution vous oblige au paiement de ces sommes si le locataire n’y satisfait pas.</p>
+{{else}}
+<p>Nous vous mettons en demeure de régler sans délai la somme de <strong>{{euros .OutstandingCents}}</strong>. À défaut de paiement, nous serons contraints de faire délivrer un commandement de payer par commissaire de justice visant la clause résolutoire du bail, puis de saisir le juge des contentieux de la protection pour faire constater la résiliation du bail et obtenir le paiement de la dette. La caution éventuelle en sera informée.</p>
+<p>Si vous rencontrez des difficultés, vous pouvez nous proposer un plan d’apurement ou solliciter le fonds de solidarité pour le logement (FSL) de votre département et l’ADIL.</p>
+{{end}}
+<p>Le bailleur ________________________</p>
+</body></html>
