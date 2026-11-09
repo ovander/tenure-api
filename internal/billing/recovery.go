@@ -65,6 +65,9 @@ type RecoveryFacts struct {
 	// TermStartOn is the first day of the lease's current term: the
 	// clause résolutoire's delay depends on it.
 	TermStartOn period.Date
+	// PlanRespected says a payment plan is running and respected: it
+	// suspends the escalation (Q-122).
+	PlanRespected bool
 }
 
 // NextStep is a step the recovery calls for, from a day.
@@ -86,6 +89,9 @@ type RecoveryView struct {
 	// ResolutionOn is the day the clause résolutoire may take effect, the
 	// delay after the commandement de payer having run.
 	ResolutionOn *period.Date `json:"resolution_on,omitempty" swaggertype:"string" format:"date"`
+	// Suspended says a respected payment plan suspends the escalation: no
+	// step is called for while it holds.
+	Suspended bool `json:"suspended,omitempty"`
 }
 
 // Recovery says where the recovery of a lease's unpaid rent stands and which
@@ -102,6 +108,9 @@ type RecoveryView struct {
 //   - the court once the clause résolutoire's delay after the commandement
 //     has run: ResolutionWeeks for a term begun on or after
 //     ResolutionWeeksFrom, else FormerResolutionMonths.
+//
+// A respected payment plan suspends the escalation: no step is called for
+// while it holds (Q-122).
 //
 // Pure: the caller passes the day, the arrears and the steps.
 func Recovery(arr ArrearsView, steps []RecoveryStep, f RecoveryFacts, today period.Date, r params.Recovery) (RecoveryView, error) {
@@ -177,6 +186,9 @@ func Recovery(arr ArrearsView, steps []RecoveryStep, f RecoveryFacts, today peri
 		}
 	}
 	sort.SliceStable(v.Next, func(i, j int) bool { return v.Next[i].DueOn.Before(v.Next[j].DueOn) })
+	if f.PlanRespected {
+		v.Suspended, v.Next = true, []NextStep{}
+	}
 	return v, nil
 }
 
