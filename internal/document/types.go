@@ -36,6 +36,10 @@ const (
 	// ClassRenewal is the owner's proposal of a new rent at the renewal of
 	// an unfurnished lease (PR, RENT-SPEC-010, Q-120).
 	ClassRenewal Class = "renewal"
+	// ClassRecovery is a letter or deed of the recovery of unpaid rent: the
+	// formal notice (MD) and the surety's information (IC) tenure prepares,
+	// or a commissaire de justice's deed uploaded (RENT-SPEC-011, Q-121).
+	ClassRecovery Class = "recovery"
 	// ClassCancellation renders a cancelling document; it is archived and
 	// numbered in the class of the document it cancels (Q-49).
 	ClassCancellation Class = "cancellation"
@@ -50,13 +54,21 @@ var prefixes = map[Class]string{
 
 // Series of the classes that number with several prefixes (RENT-INV-001 §7):
 // an inventory is an entry (EE), an exit (ES) or an entry completion (EC).
-var series = map[Class]map[string]bool{ClassInventory: {SeriesEntry: true, SeriesExit: true, SeriesCompletion: true}}
+var series = map[Class]map[string]bool{ClassInventory: {SeriesEntry: true, SeriesExit: true, SeriesCompletion: true},
+	ClassRecovery: {SeriesFormalNotice: true, SeriesSuretyNotice: true}}
 
 // Inventory number series.
 const (
 	SeriesEntry      = "EE"
 	SeriesExit       = "ES"
 	SeriesCompletion = "EC"
+)
+
+// Recovery number series: the formal notice (mise en demeure) and the
+// information of a surety.
+const (
+	SeriesFormalNotice = "MD"
+	SeriesSuretyNotice = "IC"
 )
 
 // Sources of a document (documents.source).
@@ -68,7 +80,7 @@ const (
 // leaseBound classes keep their archive from the lease's end (RENT-SPEC-005):
 // their retain_until stays unset until the lease ends (Q-68).
 var leaseBound = map[Class]bool{ClassContract: true, ClassAmendment: true, ClassDeposit: true, ClassSurety: true,
-	ClassInventory: true, ClassRestitution: true, ClassNotice: true, ClassRenewal: true}
+	ClassInventory: true, ClassRestitution: true, ClassNotice: true, ClassRenewal: true, ClassRecovery: true}
 
 // Financial classes an accountant may download (RENT-FE-001 §5).
 var financial = map[Class]bool{ClassRentCall: true, ClassReceipt: true, ClassRegularisation: true,

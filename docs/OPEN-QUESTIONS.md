@@ -1473,3 +1473,41 @@ barrière de la phase 2 ». Provisional reading (loi 89-462 art. 17-2):
     the letter is kept: the increase applies « sans préjudice » of the yearly revision.
   - The owner triggers it; no job applies it yet.
   - Each step is recorded on the proposal (`steps_applied`) and audited (`lease.renewal_steps`).
+
+**Q-121 Recovery of unpaid rent, part 13a — Open (#140).** RENT-SPEC-011 asks for « a
+configurable escalation path with generated letters and deadlines ». The rules below come from
+secondary sources and are « à vérifier sur Légifrance avant la barrière de la phase 2 ».
+Provisional reading:
+
+- **Episode.** An episode starts on the due day of the oldest overdue rent call and lasts while
+  anything is overdue. The steps done since that day belong to it; older ones stay in the
+  history. A step needs something overdue on its day, which tenure records with it.
+- **Next steps** and their days (`recovery.escalation`):
+  - **Formal notice (mise en demeure).** It falls due `formal_notice_after_days` after the
+    episode starts, after the reminder e-mail billing.reminders already sends. The MD letter
+    lists the overdue calls and their total and announces the commandement de payer. It points
+    to a payment plan, the FSL and the ADIL.
+  - **Natural-person surety.** Each one in force (a guarantee of kind surety, not a legal
+    person, valid or held) is informed `surety_notice_after_months` after the episode starts.
+    This follows code civil art. 2303: the first incident of payment not regularised within the
+    month. The spec's « second unpaid month » reads the same way. The IC letter states the debt.
+  - **Insurer's claim (GLI or Visale).** When the lease has one, the claim falls due
+    `insurance_claim_after_days` after the episode starts. That delay is a default: the
+    policy's own deadline governs, and the owner records it as `deadline_on`.
+  - **Commandement de payer.** It falls due `commandement_after_days` after the formal notice.
+    The commissaire de justice serves it; the owner records it, with the deed uploaded if they
+    wish. Its notice to each surety follows within `surety_commandement_days` (loi 89-462
+    art. 24). Without it, the surety owes no late penalties.
+  - **Clause résolutoire.** It may take effect `resolution_weeks` after the commandement for a
+    lease whose current term began on or after `resolution_weeks_from` (loi 2023-668, which
+    applies to leases concluded or renewed after it, Cass. avis 13 June 2024). For an older term
+    the delay is `former_resolution_months`. The court step falls due the day after.
+- **Defaults are the owner's to change.** The formal notice, commandement and claim delays are
+  defaults with no legal basis. A per-owner setting comes later; until then they are
+  parameters.
+- **Not built yet:**
+  - payment plans that suspend the escalation (part 13b) and the screen (part 13c);
+  - the CCAPEX notice a commandement may require;
+  - the prefect's notice before an eviction hearing;
+  - late penalties: none are computed.
+

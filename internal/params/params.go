@@ -55,6 +55,8 @@ const (
 	// Renewal with rent re-evaluation (loi 89-462 art. 17-2), seeded by
 	// migration 000018.
 	KeyReevaluation = "renewal.reevaluation"
+	// KeyRecovery is the escalation of unpaid rent (RENT-SPEC-011, Q-121).
+	KeyRecovery = "recovery.escalation"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -460,5 +462,30 @@ type Reevaluation struct {
 func (s Set) Reevaluation(asOf period.Date) (Reevaluation, error) {
 	var r Reevaluation
 	err := s.Decode(KeyReevaluation, asOf, &r)
+	return r, err
+}
+
+// Recovery is the escalation of unpaid rent (RENT-SPEC-011, Q-121): the days
+// after the first unpaid due day for the formal notice and the insurer's
+// claim, the months for informing a natural-person surety, the days from the
+// formal notice to the commandement de payer and from it to its notice to
+// the surety, and the delay of the clause résolutoire: ResolutionWeeks for a
+// lease whose term began on or after ResolutionWeeksFrom, else
+// FormerResolutionMonths.
+type Recovery struct {
+	FormalNoticeAfterDays   int    `json:"formal_notice_after_days"`
+	CommandementAfterDays   int    `json:"commandement_after_days"`
+	InsuranceClaimAfterDays int    `json:"insurance_claim_after_days"`
+	SuretyNoticeAfterMonths int    `json:"surety_notice_after_months"`
+	SuretyCommandementDays  int    `json:"surety_commandement_days"`
+	ResolutionWeeks         int    `json:"resolution_weeks"`
+	FormerResolutionMonths  int    `json:"former_resolution_months"`
+	ResolutionWeeksFrom     string `json:"resolution_weeks_from"`
+}
+
+// Recovery returns the escalation of unpaid rent effective on asOf.
+func (s Set) Recovery(asOf period.Date) (Recovery, error) {
+	var r Recovery
+	err := s.Decode(KeyRecovery, asOf, &r)
 	return r, err
 }
