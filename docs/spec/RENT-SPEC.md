@@ -292,6 +292,7 @@ Unpaid rent follows a configurable escalation path with generated letters and de
 - Each step is a dated event with its letter PDF archived (RENT-SPEC-005) and a next-action date on the obligations calendar.
 - Payment plans: agreed instalments recorded and matched; the plan suspends escalation while respected.
 - Surety activation: the guarantor is notified from the second unpaid month, as the surety clause requires.
+- Built so far (tenure-api #140, Q-121): the escalation computed from the oldest overdue due day, with the next steps and their days (formal notice, surety informed, insurer’s claim, commandement de payer and its notice to the surety, court once the clause résolutoire’s delay has run); the MD and IC letters; each step recorded as a dated event with its letter or deed. Payment plans and the screen come next.
 
 ## RENT-SPEC-012 — Obligations calendar (phase 2)
 
