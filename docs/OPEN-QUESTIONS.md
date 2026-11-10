@@ -1541,3 +1541,39 @@ recorded and matched; the plan suspends escalation while respected ». Provision
     other for now;
   - the plan as a letter of its own.
 
+**Q-123 Bank statement import, part 14a — Open (#145).** RENT-SPEC-013 asks for « CSV or OFX
+per account ». Provisional reading:
+
+- **Accounts.** A bank account is a label and, to tell accounts apart, the last four characters
+  of its IBAN. tenure never stores a full IBAN or any bank credential; open banking is phase 4.
+- **Statements.**
+  - A statement is uploaded through POST /documents like any file: scanned, sniffed (CSV or OFX
+    by extension) and archived.
+  - It is then imported into an account. OFX version 1 (SGML, leaf tags unclosed) and 2 (XML)
+    are read from their STMTTRN elements. A CSV is read with its mapping, like the syndic
+    import (Q-77):
+    - a delimiter and a decimal point;
+    - a date column and Go layout, `02/01/2006` by default;
+    - a signed amount, or a debit and a credit column;
+    - a label and a reference.
+  - The text is UTF-8, or else Windows-1252.
+  - A row with neither a date nor an amount is skipped, as a balance or title line. Any other
+    row that cannot be read refuses the whole statement: nothing is half imported.
+- **Deduplication.**
+  - A line is keyed by the bank's own id (OFX FITID). Failing that, it is keyed by a hash of its
+    day, amount and normalised label, plus its rank among identical lines of the same
+    statement.
+  - Re-importing a statement, or one that overlaps it, adds only the new lines.
+  - Two identical lines in two different statements, without a FITID, would be taken as one.
+    This is the conservative reading: never a debt counted twice.
+- **Lines.**
+  - A credit is positive and a debit negative.
+  - A line is unmatched, matched (part 14b) or ignored. The owner can ignore an unmatched line
+    with a note, for example a transfer between their own accounts or a fee, and can reopen it.
+  - A line still unmatched `bank.reconciliation.unmatched_alert_days` after its booking day is
+    flagged `stale`, for the dashboard.
+- **Not built yet:**
+  - the matching of lines to rent calls, payments and charges (part 14b);
+  - the screen (part 14c);
+  - deleting an import made by mistake.
+
