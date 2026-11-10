@@ -1,0 +1,324 @@
+{
+  "case": "bankcharges",
+  "description": "Bank debits matched to charges (RENT-SPEC-013, Q-125): a syndic call paying every unpaid charge of one statement (asset and day) first, then any single charge of the amount, charged within the window; one charge of a statement alone; a contractor's invoice; a charge too far from the debit; no charge of the amount; a credit has none.",
+  "steps": [
+    {
+      "name": "syndic_call_whole_statement",
+      "booked_on": "2026-10-08",
+      "amount_cents": -35000,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    },
+    {
+      "name": "one_charge_of_a_statement",
+      "booked_on": "2026-10-08",
+      "amount_cents": -30000,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    },
+    {
+      "name": "contractor",
+      "booked_on": "2026-11-02",
+      "amount_cents": -12000,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    },
+    {
+      "name": "too_far",
+      "booked_on": "2026-03-20",
+      "amount_cents": -12000,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    },
+    {
+      "name": "no_amount",
+      "booked_on": "2026-10-08",
+      "amount_cents": -12345,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    },
+    {
+      "name": "a_credit",
+      "booked_on": "2026-10-08",
+      "amount_cents": 35000,
+      "charges": [
+        {
+          "id": "00000000-0000-7000-8000-000000000201",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Charges courantes T4",
+          "amount_cents": 30000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000202",
+          "asset_id": "00000000-0000-7000-8000-0000000000b1",
+          "charged_on": "2026-10-01",
+          "label": "Fonds travaux T4",
+          "amount_cents": 5000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000203",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-15",
+          "label": "Assurance PNO",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000204",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-01-15",
+          "label": "Taxe foncière 2025",
+          "amount_cents": 35000
+        },
+        {
+          "id": "00000000-0000-7000-8000-000000000205",
+          "asset_id": "00000000-0000-7000-8000-0000000000b2",
+          "charged_on": "2026-10-20",
+          "label": "Plombier",
+          "amount_cents": 12000
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "a_credit": [],
+    "contractor": [
+      {
+        "rule": "amount_date",
+        "charges": [
+          {
+            "id": "00000000-0000-7000-8000-000000000205",
+            "asset_id": "00000000-0000-7000-8000-0000000000b2",
+            "charged_on": "2026-10-20",
+            "label": "Plombier",
+            "amount_cents": 12000
+          }
+        ]
+      }
+    ],
+    "no_amount": [],
+    "one_charge_of_a_statement": [
+      {
+        "rule": "amount_date",
+        "charges": [
+          {
+            "id": "00000000-0000-7000-8000-000000000201",
+            "asset_id": "00000000-0000-7000-8000-0000000000b1",
+            "charged_on": "2026-10-01",
+            "label": "Charges courantes T4",
+            "amount_cents": 30000
+          }
+        ]
+      }
+    ],
+    "syndic_call_whole_statement": [
+      {
+        "rule": "statement",
+        "charges": [
+          {
+            "id": "00000000-0000-7000-8000-000000000201",
+            "asset_id": "00000000-0000-7000-8000-0000000000b1",
+            "charged_on": "2026-10-01",
+            "label": "Charges courantes T4",
+            "amount_cents": 30000
+          },
+          {
+            "id": "00000000-0000-7000-8000-000000000202",
+            "asset_id": "00000000-0000-7000-8000-0000000000b1",
+            "charged_on": "2026-10-01",
+            "label": "Fonds travaux T4",
+            "amount_cents": 5000
+          }
+        ]
+      },
+      {
+        "rule": "amount_date",
+        "charges": [
+          {
+            "id": "00000000-0000-7000-8000-000000000203",
+            "asset_id": "00000000-0000-7000-8000-0000000000b2",
+            "charged_on": "2026-10-15",
+            "label": "Assurance PNO",
+            "amount_cents": 35000
+          }
+        ]
+      }
+    ],
+    "too_far": []
+  }
+}
