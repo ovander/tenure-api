@@ -219,6 +219,23 @@
       },
       "source": "RENT-SPEC-013 : une ligne bancaire non rapprochée après dix jours apparaît au tableau de bord ; règle de gestion, sans base légale",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "bank.matching",
+      "effective_from": "2024-01-01",
+      "value": {
+        "window_days": 10,
+        "allowance_keywords": [
+          "CAF",
+          "APL",
+          "ALS",
+          "ALF",
+          "MSA"
+        ],
+        "min_name_length": 3
+      },
+      "source": "RENT-SPEC-013 : rapprochement des virements (montant et référence du locataire, puis montant et période ; allocations logement CAF/MSA versées au bailleur) ; règles de gestion, sans base légale",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     }
   ]
 }

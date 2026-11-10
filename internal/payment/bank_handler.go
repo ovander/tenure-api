@@ -160,3 +160,85 @@ func (h Handler) SetLineStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, v)
 }
+
+// Suggestions godoc
+//
+//	@Summary		The rent calls a bank credit may pay
+//	@Description	Strongest rule first (Q-124): the rent call's number and the amount owed; a tenant's name and the amount owed; a housing allowance (CAF, MSA) naming a tenant, for at most the amount owed; the amount owed, booked near the call's due day. A debit, or a line already matched or ignored, has none.
+//	@Tags			payment
+//	@Produce		json
+//	@Param			id				path		string	true	"bank line id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		Suggestion
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/suggestions [get]
+func (h Handler) Suggestions(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.Suggestions(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// MatchLine godoc
+//
+//	@Summary		Match a bank credit to rent
+//	@Description	Records the credit as payments of the leases it is split across (a third party may pay; one line may pay several leases), adding up to its amount; each is paid on the line's day and applied to the lease's oldest unpaid rent calls. The line becomes matched.
+//	@Tags			payment
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string			true	"bank line id"
+//	@Param			body			body		MatchLineInput	true	"allocations"
+//	@Param			X-Owner-Scope	header		string			false	"owner scope"
+//	@Success		200				{object}	MatchLineResult
+//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/match [post]
+func (h Handler) MatchLine(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	var in MatchLineInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.MatchLine(r.Context(), caller(r), httpx.RequestID(r), id, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// AutoMatch godoc
+//
+//	@Summary		Match the sure bank credits
+//	@Description	Matches, without asking, every unmatched credit with one sure suggestion (the rent call's number, the tenant's name and amount, or an allowance naming the tenant); the amount-and-period rule alone and any ambiguity stay for the owner. dry_run only lists them.
+//	@Tags			payment
+//	@Accept			json
+//	@Produce		json
+//	@Param			body			body		AutoMatchInput	true	"account, dry run"
+//	@Param			X-Owner-Scope	header		string			false	"owner scope"
+//	@Success		200				{object}	AutoMatchResult
+//	@Failure		400,401,403,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/auto [post]
+func (h Handler) AutoMatch(w http.ResponseWriter, r *http.Request) {
+	var in AutoMatchInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.AutoMatch(r.Context(), caller(r), httpx.RequestID(r), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}

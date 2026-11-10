@@ -1577,3 +1577,36 @@ per account ». Provisional reading:
   - the screen (part 14c);
   - deleting an import made by mistake.
 
+**Q-124 Matching bank credits to rent, part 14b — Open (#147).** RENT-SPEC-013 asks for credits
+« matched automatically leaving only exceptions », by « amount and tenant reference, then
+amount and period, then manual », with CAF/APL and third-party payers. Provisional reading:
+
+- **Rules**, strongest first. Each rent call is suggested once.
+  1. **reference**: the call's number (AL-…) appears in the label or reference, and the line's
+     amount is exactly what the call still owes. tenure has no other tenant reference.
+  2. **name_amount**: every word of a tenant's name with at least `min_name_length` letters
+     appears in the label, and the amount is exactly what the call owes. Accents, case and
+     hyphens are folded first. One of a lease's tenants is enough.
+  3. **allowance**: the label holds a keyword of `allowance_keywords` (CAF, APL, MSA, …) and
+     names a tenant. The amount can be less than what the call owes, because the allowance
+     pays a part of the rent; the payment is recorded with method caf.
+  4. **amount_period**: the amount is exactly what the call owes, and the line was booked
+     within `window_days` of the call's due day.
+- **Sure.** A line is matched without asking only when its first suggestion follows a rule
+  other than amount_period, and no other lease has a suggestion on the same rule. Everything
+  else stays for the owner: one tenant's name on two leases, or an amount alone. Lines are
+  matched automatically oldest first, each against the open calls the earlier lines left.
+- **Matching.**
+  - The owner splits a credit across one or more leases (a parent paying, a shared transfer),
+    and the parts add up to exactly the line's amount.
+  - Each part becomes a payment of its lease: dated the line's day, referenced by its label,
+    and naming the line in `bank_line_id`. It is applied to the lease's oldest unpaid rent
+    calls, as for a payment entered by hand (Q-60).
+  - The line becomes matched.
+  - A credit worth more than the calls owe leaves the surplus unapplied on the payment, where
+    the payments screen shows it.
+- **Not built yet:**
+  - debits matched to charges (part 14c);
+  - undoing a match (for now, edit the payment while no receipt covers it);
+  - the screen (part 14d).
+

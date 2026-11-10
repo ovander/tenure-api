@@ -179,36 +179,52 @@ func (s Service) Create(ctx context.Context, pr *auth.Principal, requestID strin
 	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		state, err := s.Repo.LeaseState(ctx, in.LeaseID)
+		p, err := s.createInTx(ctx, sc.OwnerID, pr.Sub, in, nil)
 		if err != nil {
-			if errors.Is(err, invariant.ErrNotFound) {
-				var f invariant.Fields
-				f.Add("lease_id", "Ce bail n’existe pas dans ce portefeuille.")
-				return f
-			}
 			return err
-		}
-		if state == "draft" {
-			return invariant.New(TypeLeaseDraft, in.LeaseID.String())
-		}
-		now := s.now()
-		p := paymentRow{ID: s.NewID(), OwnerID: sc.OwnerID, LeaseID: in.LeaseID, PaidOn: in.PaidOn.Time(), AmountCents: in.AmountCents,
-			Method: string(in.Method), Reference: in.Reference, Version: 1, CreatedAt: now, CreatedBy: pr.Sub, UpdatedAt: now, UpdatedBy: pr.Sub}
-		if err := s.Repo.Insert(ctx, p); err != nil {
-			return err
-		}
-		if err := audit.Record(ctx, "payment.create", audit.Entity{Type: "payment", ID: p.ID.String()}, nil, view(p, nil)); err != nil {
-			return err
-		}
-		if in.AutoMatch {
-			if _, err := s.match(ctx, pr.Sub, p, nil, MatchInput{Auto: true}, true); err != nil {
-				return err
-			}
 		}
 		_, out, err = s.get(ctx, p.ID)
 		return err
 	})
 	return out, err
+}
+
+// createInTx records a payment of a lease that is not a draft, with its
+// audit event, inside the caller's scoped transaction; bankLine names the
+// bank line it comes from, if any. AutoMatch applies it to the oldest
+// unpaid rent calls.
+func (s Service) createInTx(ctx context.Context, owner uuid.UUID, sub string, in Input, bankLine *uuid.UUID) (paymentRow, error) {
+	state, err := s.Repo.LeaseState(ctx, in.LeaseID)
+	if err != nil {
+		if errors.Is(err, invariant.ErrNotFound) {
+			var f invariant.Fields
+			f.Add("lease_id", "Ce bail n’existe pas dans ce portefeuille.")
+			return paymentRow{}, f
+		}
+		return paymentRow{}, err
+	}
+	if state == "draft" {
+		return paymentRow{}, invariant.New(TypeLeaseDraft, in.LeaseID.String())
+	}
+	now := s.now()
+	p := paymentRow{ID: s.NewID(), OwnerID: owner, LeaseID: in.LeaseID, PaidOn: in.PaidOn.Time(), AmountCents: in.AmountCents,
+		Method: string(in.Method), Reference: in.Reference, Version: 1, CreatedAt: now, CreatedBy: sub, UpdatedAt: now, UpdatedBy: sub}
+	if bankLine != nil {
+		id := bankLine.String()
+		p.BankLineID = &id
+	}
+	if err := s.Repo.Insert(ctx, p); err != nil {
+		return paymentRow{}, err
+	}
+	if err := audit.Record(ctx, "payment.create", audit.Entity{Type: "payment", ID: p.ID.String()}, nil, view(p, nil)); err != nil {
+		return paymentRow{}, err
+	}
+	if in.AutoMatch {
+		if _, err := s.match(ctx, sub, p, nil, MatchInput{Auto: true}, true); err != nil {
+			return paymentRow{}, err
+		}
+	}
+	return p, nil
 }
 
 // Update changes a payment when version matches and no receipt covers it; the
