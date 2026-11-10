@@ -81,7 +81,8 @@ func New(d Deps) (*App, error) {
 		Drafts: inventory.Drafter{NewID: newID}}
 	bs := billing.Service{DB: d.API, Lease: ls, Now: d.Now, NewID: newID, Mailer: d.Mailer, Issuer: issuer}
 	docs := document.Service{DB: d.API, Store: d.Store, Scanner: d.Scanner, Now: d.Now, NewID: newID}
-	cs := charge.Service{DB: d.API, Lease: ls, Billing: bs, Docs: docs, Issuer: issuer, Now: d.Now, NewID: newID}
+	ps := payment.Service{DB: d.API, Docs: docs, Params: params.Repository{}, Now: d.Now, NewID: newID}
+	cs := charge.Service{DB: d.API, Lease: ls, Billing: bs, Payments: ps, Docs: docs, Issuer: issuer, Now: d.Now, NewID: newID}
 	ts := tax.Service{DB: d.API, Issuer: issuer, Now: d.Now, NewID: newID}
 	reg := map[string]jobs.Job{}
 	for _, j := range []jobs.Job{
@@ -114,7 +115,7 @@ func New(d Deps) (*App, error) {
 		Documents:      document.Handler{Service: docs},
 		Charges:        charge.Handler{Service: cs},
 		Tax:            tax.Handler{Service: ts},
-		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Docs: docs, Params: params.Repository{}, Now: d.Now, NewID: newID}},
+		Payments:       payment.Handler{Service: ps},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
 		WriteBurst:     d.WriteBurst,

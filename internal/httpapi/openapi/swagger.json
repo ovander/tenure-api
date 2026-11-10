@@ -1294,6 +1294,167 @@
                 }
             }
         },
+        "/bank-lines/{id}/charge-suggestions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A whole statement (every unpaid charge of one asset and day adding up to the debit, as a syndic call), then each unpaid charge of the debit's amount, charged near its day (Q-125). A credit, or a line already matched or ignored, has none.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "The charges a bank debit may pay",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "bank line id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/charge.ChargeSuggestion"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/bank-lines/{id}/charges": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The confirmed charges the debit paid, adding up to exactly its amount and paid by no other line: each is paid on the line's day and names it, so the charges ledger is bank-backed; the line becomes matched.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charge"
+                ],
+                "summary": "Match a bank debit to charges",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "bank line id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "charges",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/charge.MatchChargesInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/charge.MatchChargesResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/bank-lines/{id}/match": {
             "post": {
                 "security": [
@@ -11215,6 +11376,24 @@
                 "CategoryUnrecoveredAtClose"
             ]
         },
+        "charge.ChargeSuggestion": {
+            "type": "object",
+            "properties": {
+                "charges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.OpenCharge"
+                    }
+                },
+                "rule": {
+                    "type": "string",
+                    "enum": [
+                        "statement",
+                        "amount_date"
+                    ]
+                }
+            }
+        },
         "charge.ImportInput": {
             "type": "object",
             "properties": {
@@ -11407,6 +11586,55 @@
                     "description": "Recoverable is the syndic's recoverable amount of the line (décret\n87-713); a line with an empty cell is recoverable for nothing.",
                     "type": "string",
                     "example": "Récupérable"
+                }
+            }
+        },
+        "charge.MatchChargesInput": {
+            "type": "object",
+            "properties": {
+                "charge_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "charge.MatchChargesResult": {
+            "type": "object",
+            "properties": {
+                "charges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.View"
+                    }
+                },
+                "line": {
+                    "$ref": "#/definitions/payment.LineView"
+                }
+            }
+        },
+        "charge.OpenCharge": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "charged_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
                 }
             }
         },

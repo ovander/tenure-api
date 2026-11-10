@@ -327,3 +327,44 @@ func (s Service) SetLineStatus(ctx context.Context, p *auth.Principal, requestID
 	})
 	return out, err
 }
+
+// LineRef is what another module reads of a bank line it matches.
+type LineRef struct {
+	ID          uuid.UUID
+	BookedOn    period.Date
+	AmountCents money.Cents
+	Label       string
+	Status      string
+	Version     int
+}
+
+// LineInTx reads a bank line, locked, inside the caller's scoped
+// transaction (internal/charge matches debits to charges).
+func (s Service) LineInTx(ctx context.Context, id uuid.UUID) (LineRef, error) {
+	r, err := s.Repo.Line(ctx, id)
+	if err != nil {
+		return LineRef{}, err
+	}
+	return LineRef{ID: r.ID, BookedOn: period.FromTime(r.BookedOn), AmountCents: money.Cents(r.AmountCents), Label: r.Label, Status: r.Status, Version: r.Version}, nil
+}
+
+// MarkMatchedInTx marks an unmatched bank line matched, inside the caller's
+// scoped transaction, when its version is the one read.
+func (s Service) MarkMatchedInTx(ctx context.Context, l LineRef, sub string) (LineView, error) {
+	if l.Status != LineUnmatched {
+		return LineView{}, invariant.New(TypeLineState, l.ID.String())
+	}
+	r, err := s.Repo.Line(ctx, l.ID)
+	if err != nil {
+		return LineView{}, err
+	}
+	if err := s.Repo.SetLineStatus(ctx, l.ID, l.Version, LineMatched, r.Note, s.now(), sub); err != nil {
+		return LineView{}, err
+	}
+	_, b, today, err := s.matchingRules(ctx)
+	if err != nil {
+		return LineView{}, err
+	}
+	r.Status, r.Version = LineMatched, r.Version+1
+	return s.lineView(r, today, b.UnmatchedAlertDays), nil
+}

@@ -204,6 +204,8 @@ func Routes(d Deps) []Route {
 		{"GET", "/bank-lines/{id}/suggestions", GuardScopeOwnerW, false, h(d.Payments.Suggestions)},
 		{"POST", "/bank-lines/{id}/match", GuardScopeOwnerW, false, h(d.Payments.MatchLine)},
 		{"POST", "/bank-lines/auto", GuardScopeOwnerW, false, h(d.Payments.AutoMatch)},
+		{"GET", "/bank-lines/{id}/charge-suggestions", GuardScopeOwnerW, false, h(d.Charges.ChargeSuggestions)},
+		{"POST", "/bank-lines/{id}/charges", GuardScopeOwnerW, false, h(d.Charges.MatchCharges)},
 		{"GET", "/charges", GuardScopeOwnerW, false, h(d.Charges.ListCharges)},
 		{"POST", "/charges", GuardScopeOwnerW, false, h(d.Charges.CreateCharge)},
 		{"POST", "/charges/import/syndic", GuardScopeOwnerW, false, h(d.Charges.ImportSyndic)},
