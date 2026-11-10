@@ -1,0 +1,616 @@
+{
+  "case": "bankmatch",
+  "description": "Matching bank credits to rent (RENT-SPEC-013, Q-124): the rent call's number in the label or the reference with the amount owed; a tenant's name, accents and hyphens folded, one of a lease's tenants enough, with the amount owed; a housing allowance naming the tenant for a part of the rent; an allowance naming nobody, the amount alone near the due day, and an ambiguous amount are never sure; nothing fits; a debit has no rent suggestion.",
+  "steps": [
+    {
+      "name": "reference_in_label",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-06",
+        "amount_cents": 80000,
+        "label": "VIR SEPA AL-0190A1B2-2026-0010",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "reference_in_reference",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-06",
+        "amount_cents": 95000,
+        "label": "VIR SEPA",
+        "reference": "AL-0190E5F6-2026-0012",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "name_and_amount_accents",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-25",
+        "amount_cents": 80000,
+        "label": "VIR MME LEA MARTIN DURAND LOYER",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "one_of_two_tenants",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-03",
+        "amount_cents": 95000,
+        "label": "VIR HUGO BERNARD",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "allowance_naming_the_tenant",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-08",
+        "amount_cents": 21234,
+        "label": "CAF DU RHONE APL M PAUL ROUX",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "allowance_without_a_name",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-08",
+        "amount_cents": 21234,
+        "label": "CAF DU RHONE APL",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "amount_and_period_ambiguous",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-07",
+        "amount_cents": 80000,
+        "label": "VIR SEPA LOYER OCTOBRE",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nothing_fits",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-07",
+        "amount_cents": 12345,
+        "label": "VIR INCONNU",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "a_debit",
+      "line": {
+        "row": 1,
+        "booked_on": "2026-10-07",
+        "amount_cents": -80000,
+        "label": "PRLV SYNDIC",
+        "key": "k"
+      },
+      "calls": [
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 80000,
+          "tenants": [
+            "Paul Roux"
+          ]
+        },
+        {
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "due_on": "2026-10-05",
+          "outstanding_cents": 95000,
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "a_debit": {
+      "suggestions": []
+    },
+    "allowance_naming_the_tenant": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "amount_cents": 21234,
+          "method": "caf",
+          "rule": "allowance",
+          "tenants": [
+            "Paul Roux"
+          ]
+        }
+      ],
+      "sure": {
+        "lease_id": "00000000-0000-7000-8000-0000000000a2",
+        "billing_document_id": "00000000-0000-7000-8000-000000000102",
+        "number": "AL-0190C3D4-2026-0011",
+        "period": "2026-10",
+        "amount_cents": 21234,
+        "method": "caf",
+        "rule": "allowance",
+        "tenants": [
+          "Paul Roux"
+        ]
+      }
+    },
+    "allowance_without_a_name": {
+      "suggestions": []
+    },
+    "amount_and_period_ambiguous": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "amount_cents": 80000,
+          "method": "transfer",
+          "rule": "amount_period",
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "amount_cents": 80000,
+          "method": "transfer",
+          "rule": "amount_period",
+          "tenants": [
+            "Paul Roux"
+          ]
+        }
+      ]
+    },
+    "name_and_amount_accents": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "amount_cents": 80000,
+          "method": "transfer",
+          "rule": "name_amount",
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        }
+      ],
+      "sure": {
+        "lease_id": "00000000-0000-7000-8000-0000000000a1",
+        "billing_document_id": "00000000-0000-7000-8000-000000000101",
+        "number": "AL-0190A1B2-2026-0010",
+        "period": "2026-10",
+        "amount_cents": 80000,
+        "method": "transfer",
+        "rule": "name_amount",
+        "tenants": [
+          "Léa Martin-Durand"
+        ]
+      }
+    },
+    "nothing_fits": {
+      "suggestions": []
+    },
+    "one_of_two_tenants": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "amount_cents": 95000,
+          "method": "transfer",
+          "rule": "name_amount",
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ],
+      "sure": {
+        "lease_id": "00000000-0000-7000-8000-0000000000a3",
+        "billing_document_id": "00000000-0000-7000-8000-000000000103",
+        "number": "AL-0190E5F6-2026-0012",
+        "period": "2026-10",
+        "amount_cents": 95000,
+        "method": "transfer",
+        "rule": "name_amount",
+        "tenants": [
+          "Inès Bernard",
+          "Hugo Bernard"
+        ]
+      }
+    },
+    "reference_in_label": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a1",
+          "billing_document_id": "00000000-0000-7000-8000-000000000101",
+          "number": "AL-0190A1B2-2026-0010",
+          "period": "2026-10",
+          "amount_cents": 80000,
+          "method": "transfer",
+          "rule": "reference",
+          "tenants": [
+            "Léa Martin-Durand"
+          ]
+        },
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a2",
+          "billing_document_id": "00000000-0000-7000-8000-000000000102",
+          "number": "AL-0190C3D4-2026-0011",
+          "period": "2026-10",
+          "amount_cents": 80000,
+          "method": "transfer",
+          "rule": "amount_period",
+          "tenants": [
+            "Paul Roux"
+          ]
+        }
+      ],
+      "sure": {
+        "lease_id": "00000000-0000-7000-8000-0000000000a1",
+        "billing_document_id": "00000000-0000-7000-8000-000000000101",
+        "number": "AL-0190A1B2-2026-0010",
+        "period": "2026-10",
+        "amount_cents": 80000,
+        "method": "transfer",
+        "rule": "reference",
+        "tenants": [
+          "Léa Martin-Durand"
+        ]
+      }
+    },
+    "reference_in_reference": {
+      "suggestions": [
+        {
+          "lease_id": "00000000-0000-7000-8000-0000000000a3",
+          "billing_document_id": "00000000-0000-7000-8000-000000000103",
+          "number": "AL-0190E5F6-2026-0012",
+          "period": "2026-10",
+          "amount_cents": 95000,
+          "method": "transfer",
+          "rule": "reference",
+          "tenants": [
+            "Inès Bernard",
+            "Hugo Bernard"
+          ]
+        }
+      ],
+      "sure": {
+        "lease_id": "00000000-0000-7000-8000-0000000000a3",
+        "billing_document_id": "00000000-0000-7000-8000-000000000103",
+        "number": "AL-0190E5F6-2026-0012",
+        "period": "2026-10",
+        "amount_cents": 95000,
+        "method": "transfer",
+        "rule": "reference",
+        "tenants": [
+          "Inès Bernard",
+          "Hugo Bernard"
+        ]
+      }
+    }
+  }
+}
