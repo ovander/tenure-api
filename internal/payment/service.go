@@ -13,7 +13,9 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -99,10 +101,12 @@ type MatchLine struct {
 
 // Service implements the payment use cases with the API role.
 type Service struct {
-	DB    *db.DB
-	Repo  Repository
-	Now   func() time.Time
-	NewID func() uuid.UUID
+	DB     *db.DB
+	Repo   Repository
+	Docs   document.Service
+	Params params.Repository
+	Now    func() time.Time
+	NewID  func() uuid.UUID
 }
 
 func (s Service) now() time.Time { return s.Now().UTC().Truncate(time.Microsecond) }

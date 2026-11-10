@@ -1,0 +1,168 @@
+{
+  "case": "bank",
+  "description": "Bank statements as French banks export them (RENT-SPEC-013, Q-123): CSV with debit and credit columns, a title-free header, a balance row skipped; CSV with a signed amount and ISO dates; two identical lines on one day keep two keys; a CSV amount with three decimals refuses the whole statement; OFX 1 (SGML, leaf tags unclosed, a timestamped DTPOSTED) keyed by FITID; OFX 2 (XML) without FITID keyed by hash; an OFX with no transaction is refused.",
+  "steps": [
+    {
+      "name": "csv_debit_credit",
+      "format": "csv",
+      "mapping": {
+        "delimiter": "",
+        "decimal_point": false,
+        "date": "Date opération",
+        "debit": "Débit",
+        "credit": "Crédit",
+        "label": "Libellé"
+      },
+      "data": "Date opération;Libellé;Débit;Crédit\n05/10/2026;VIR SEPA MME LEA MARTIN LOYER OCT;;800,00\n06/10/2026;VIR CAF APL;;212,34\n07/10/2026;PRLV SYNDIC RESIDENCE LES LILAS;1 250,40;\n;Solde au 31/10/2026;;\n05/11/2026;VIR SEPA MME LEA MARTIN LOYER OCT;;800,00\n"
+    },
+    {
+      "name": "csv_signed_iso",
+      "format": "csv",
+      "mapping": {
+        "delimiter": ",",
+        "decimal_point": true,
+        "date": "date",
+        "date_format": "2006-01-02",
+        "amount": "amount",
+        "label": "label",
+        "reference": "ref"
+      },
+      "data": "date,label,amount,ref\n2026-10-05,Rent October,800.00,LOYER-L1-2026-10\n2026-10-31,Bank fee,-2.50,\n"
+    },
+    {
+      "name": "csv_twice_same_line",
+      "format": "csv",
+      "mapping": {
+        "delimiter": "",
+        "decimal_point": false,
+        "date": "Date",
+        "amount": "Montant",
+        "label": "Libellé"
+      },
+      "data": "Date;Libellé;Montant\n05/10/2026;VIR LOYER;400,00\n05/10/2026;VIR LOYER;400,00\n"
+    },
+    {
+      "name": "csv_bad_amount",
+      "format": "csv",
+      "mapping": {
+        "delimiter": "",
+        "decimal_point": false,
+        "date": "Date",
+        "amount": "Montant",
+        "label": "Libellé"
+      },
+      "data": "Date;Libellé;Montant\n05/10/2026;VIR;12,345\n"
+    },
+    {
+      "name": "ofx_v1_sgml",
+      "format": "ofx",
+      "data": "OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nCHARSET:1252\n\n\u003cOFX\u003e\u003cBANKMSGSRSV1\u003e\u003cSTMTTRNRS\u003e\u003cSTMTRS\u003e\u003cBANKTRANLIST\u003e\n\u003cSTMTTRN\u003e\n\u003cTRNTYPE\u003eCREDIT\n\u003cDTPOSTED\u003e20261005\n\u003cTRNAMT\u003e800.00\n\u003cFITID\u003e2026100500001\n\u003cNAME\u003eVIR SEPA LEA MARTIN\n\u003cMEMO\u003eLOYER OCTOBRE\n\u003c/STMTTRN\u003e\n\u003cSTMTTRN\u003e\n\u003cTRNTYPE\u003eDEBIT\n\u003cDTPOSTED\u003e20261007120000[+1:CET]\n\u003cTRNAMT\u003e-1250.40\n\u003cFITID\u003e2026100700002\n\u003cNAME\u003ePRLV SYNDIC\n\u003c/STMTTRN\u003e\n\u003c/BANKTRANLIST\u003e\u003c/STMTRS\u003e\u003c/STMTTRNRS\u003e\u003c/BANKMSGSRSV1\u003e\u003c/OFX\u003e\n"
+    },
+    {
+      "name": "ofx_v2_xml_no_fitid",
+      "format": "ofx",
+      "data": "\u003c?xml version=\"1.0\"?\u003e\u003cOFX\u003e\u003cBANKTRANLIST\u003e\u003cSTMTTRN\u003e\u003cDTPOSTED\u003e20261006\u003c/DTPOSTED\u003e\u003cTRNAMT\u003e212.34\u003c/TRNAMT\u003e\u003cNAME\u003eCAF\u003c/NAME\u003e\u003cMEMO\u003eAPL OCTOBRE\u003c/MEMO\u003e\u003c/STMTTRN\u003e\u003c/BANKTRANLIST\u003e\u003c/OFX\u003e"
+    },
+    {
+      "name": "ofx_empty",
+      "format": "ofx",
+      "data": "\u003cOFX\u003e\u003c/OFX\u003e"
+    }
+  ],
+  "expected": {
+    "csv_bad_amount": {
+      "refused": "payment: bank statement: row 2: amount \"12,345\""
+    },
+    "csv_debit_credit": [
+      {
+        "row": 2,
+        "booked_on": "2026-10-05",
+        "amount_cents": 80000,
+        "label": "VIR SEPA MME LEA MARTIN LOYER OCT",
+        "key": "hash:d68b95b4aa6732890ede6884c1e46628"
+      },
+      {
+        "row": 3,
+        "booked_on": "2026-10-06",
+        "amount_cents": 21234,
+        "label": "VIR CAF APL",
+        "key": "hash:6d6e3935650568f955b590f4171c6cbb"
+      },
+      {
+        "row": 4,
+        "booked_on": "2026-10-07",
+        "amount_cents": -125040,
+        "label": "PRLV SYNDIC RESIDENCE LES LILAS",
+        "key": "hash:182db0c15c4ea5c2be4b584e5b3a0f25"
+      },
+      {
+        "row": 6,
+        "booked_on": "2026-11-05",
+        "amount_cents": 80000,
+        "label": "VIR SEPA MME LEA MARTIN LOYER OCT",
+        "key": "hash:91bb653e5c9c68cc3883c86e899868d1"
+      }
+    ],
+    "csv_signed_iso": [
+      {
+        "row": 2,
+        "booked_on": "2026-10-05",
+        "amount_cents": 80000,
+        "label": "Rent October",
+        "reference": "LOYER-L1-2026-10",
+        "key": "hash:254bf05322059f2aabe1264f5ad8b77d"
+      },
+      {
+        "row": 3,
+        "booked_on": "2026-10-31",
+        "amount_cents": -250,
+        "label": "Bank fee",
+        "key": "hash:e64f20008ea3937424b93605c8a427ee"
+      }
+    ],
+    "csv_twice_same_line": [
+      {
+        "row": 2,
+        "booked_on": "2026-10-05",
+        "amount_cents": 40000,
+        "label": "VIR LOYER",
+        "key": "hash:de3bcc8bdcc9e9e2a9d82708113e9824"
+      },
+      {
+        "row": 3,
+        "booked_on": "2026-10-05",
+        "amount_cents": 40000,
+        "label": "VIR LOYER",
+        "key": "hash:98a55763e1eba9b6e238e01d64e3b271"
+      }
+    ],
+    "ofx_empty": {
+      "refused": "payment: bank statement: no STMTTRN"
+    },
+    "ofx_v1_sgml": [
+      {
+        "row": 1,
+        "booked_on": "2026-10-05",
+        "amount_cents": 80000,
+        "label": "VIR SEPA LEA MARTIN LOYER OCTOBRE",
+        "key": "fitid:2026100500001"
+      },
+      {
+        "row": 2,
+        "booked_on": "2026-10-07",
+        "amount_cents": -125040,
+        "label": "PRLV SYNDIC",
+        "key": "fitid:2026100700002"
+      }
+    ],
+    "ofx_v2_xml_no_fitid": [
+      {
+        "row": 1,
+        "booked_on": "2026-10-06",
+        "amount_cents": 21234,
+        "label": "CAF APL OCTOBRE",
+        "key": "hash:62a9a3c470f31f095a029e0de8602142"
+      }
+    ]
+  }
+}

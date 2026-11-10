@@ -210,6 +210,15 @@
       },
       "source": "Plan d’apurement amiable (RENT-SPEC-011) : délai de grâce d’une échéance et nombre maximal d’échéances, valeurs par défaut sans base légale ; le juge peut accorder jusqu’à trois ans de délais de paiement (loi 89-462 art. 24 V) ; à vérifier sur Légifrance avant la barrière de la phase 2",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "bank.reconciliation",
+      "effective_from": "2024-01-01",
+      "value": {
+        "unmatched_alert_days": 10
+      },
+      "source": "RENT-SPEC-013 : une ligne bancaire non rapprochée après dix jours apparaît au tableau de bord ; règle de gestion, sans base légale",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     }
   ]
 }

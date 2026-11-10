@@ -59,6 +59,8 @@ const (
 	KeyRecovery = "recovery.escalation"
 	// KeyRecoveryPlan is the payment plan of unpaid rent (RENT-SPEC-011, Q-122).
 	KeyRecoveryPlan = "recovery.plan"
+	// KeyBank is the bank reconciliation (RENT-SPEC-013, Q-123).
+	KeyBank = "bank.reconciliation"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -504,5 +506,18 @@ type RecoveryPlan struct {
 func (s Set) RecoveryPlan(asOf period.Date) (RecoveryPlan, error) {
 	var r RecoveryPlan
 	err := s.Decode(KeyRecoveryPlan, asOf, &r)
+	return r, err
+}
+
+// Bank is the bank reconciliation (RENT-SPEC-013, Q-123): a line still
+// unmatched UnmatchedAlertDays after its booking day is flagged.
+type Bank struct {
+	UnmatchedAlertDays int `json:"unmatched_alert_days"`
+}
+
+// Bank returns the bank reconciliation rules effective on asOf.
+func (s Set) Bank(asOf period.Date) (Bank, error) {
+	var r Bank
+	err := s.Decode(KeyBank, asOf, &r)
 	return r, err
 }

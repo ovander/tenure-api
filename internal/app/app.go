@@ -114,7 +114,7 @@ func New(d Deps) (*App, error) {
 		Documents:      document.Handler{Service: docs},
 		Charges:        charge.Handler{Service: cs},
 		Tax:            tax.Handler{Service: ts},
-		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Now: d.Now, NewID: newID}},
+		Payments:       payment.Handler{Service: payment.Service{DB: d.API, Docs: docs, Params: params.Repository{}, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
 		WriteBurst:     d.WriteBurst,

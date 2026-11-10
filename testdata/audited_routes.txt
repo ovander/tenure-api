@@ -69,3 +69,6 @@ POST /jobs/{name}/trigger +
 POST /payments +
 PUT /payments/{id}
 POST /payments/{id}/matches
+POST /payments/import
+POST /bank-accounts
+POST /bank-lines/{id}/status
