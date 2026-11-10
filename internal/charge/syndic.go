@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -39,37 +38,9 @@ type SyndicLine struct {
 // the row and the column.
 var ErrSyndicFile = errors.New("charge: syndic statement")
 
-// ParseCents reads a French or plain amount ("1 234,56", "1234.56", "12 €")
-// as cents; an empty cell is zero.
+// ParseCents reads a French or plain amount as cents (money.Parse).
 func ParseCents(s string, decimalPoint bool) (money.Cents, error) {
-	s = strings.NewReplacer(" ", "", " ", "", " ", "", "€", "").Replace(strings.TrimSpace(s))
-	if s == "" {
-		return 0, nil
-	}
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-	sep := ","
-	if decimalPoint {
-		sep = "."
-		s = strings.ReplaceAll(s, ",", "")
-	} else {
-		s = strings.ReplaceAll(s, ".", "")
-	}
-	whole, frac, _ := strings.Cut(s, sep)
-	if len(frac) > 2 || whole == "" {
-		return 0, fmt.Errorf("amount %q", s)
-	}
-	for len(frac) < 2 {
-		frac += "0"
-	}
-	n, err := strconv.ParseInt(whole+frac, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("amount %q", s)
-	}
-	if neg {
-		n = -n
-	}
-	return money.Cents(n), nil
+	return money.Parse(s, decimalPoint)
 }
 
 // ParseSyndic reads a syndic statement exported as CSV with a header row
