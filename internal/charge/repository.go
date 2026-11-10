@@ -29,6 +29,7 @@ type chargeRow struct {
 	Source                 string     `gorm:"column:source"`
 	Status                 string     `gorm:"column:status"`
 	ReconciliationID       *uuid.UUID `gorm:"column:reconciliation_id"`
+	BankLineID             *uuid.UUID `gorm:"column:bank_line_id"`
 	Version                int        `gorm:"column:version"`
 	CreatedAt              time.Time  `gorm:"column:created_at"`
 	CreatedBy              string     `gorm:"column:created_by"`
@@ -439,4 +440,45 @@ func (Repository) VoidPostings(ctx context.Context, ids []uuid.UUID, at time.Tim
 		return err
 	}
 	return t.Model(&PostingRow{}).Where("id IN ?", ids).Update("voided_at", at).Error
+}
+
+// OpenCharges returns the confirmed charges no bank line paid yet, oldest
+// first.
+func (Repository) OpenCharges(ctx context.Context) ([]chargeRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []chargeRow
+	err = t.Where("status = 'confirmed' AND bank_line_id IS NULL").Order("charged_on, created_at").Find(&rows).Error
+	return rows, err
+}
+
+// ChargesByID returns charges by id, locked for update.
+func (Repository) ChargesByID(ctx context.Context, ids []uuid.UUID) ([]chargeRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []chargeRow
+	err = t.Where("id IN ?", ids).Clauses(clause.Locking{Strength: "UPDATE"}).Order("charged_on, id").Find(&rows).Error
+	return rows, err
+}
+
+// PayByLine records that a bank line paid a charge on a day, bumping its
+// version.
+func (Repository) PayByLine(ctx context.Context, c chargeRow, line uuid.UUID, paidOn, at time.Time, by string) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&chargeRow{}).Where("id = ? AND version = ? AND bank_line_id IS NULL", c.ID, c.Version).
+		Updates(map[string]any{"bank_line_id": line, "paid_on": paidOn, "version": c.Version + 1, "updated_at": at, "updated_by": by})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
 }

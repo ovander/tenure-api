@@ -63,6 +63,8 @@ const (
 	KeyBank = "bank.reconciliation"
 	// KeyBankMatching is how bank credits are matched to rent (Q-124).
 	KeyBankMatching = "bank.matching"
+	// KeyBankCharges is how bank debits are matched to charges (Q-125).
+	KeyBankCharges = "bank.charges"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -539,5 +541,19 @@ type BankMatching struct {
 func (s Set) BankMatching(asOf period.Date) (BankMatching, error) {
 	var r BankMatching
 	err := s.Decode(KeyBankMatching, asOf, &r)
+	return r, err
+}
+
+// BankCharges is how bank debits are matched to charges (RENT-SPEC-013,
+// Q-125): a charge is suggested for a debit booked at most WindowDays from
+// the day it was charged.
+type BankCharges struct {
+	WindowDays int `json:"window_days"`
+}
+
+// BankCharges returns the debit matching rules effective on asOf.
+func (s Set) BankCharges(asOf period.Date) (BankCharges, error) {
+	var r BankCharges
+	err := s.Decode(KeyBankCharges, asOf, &r)
 	return r, err
 }

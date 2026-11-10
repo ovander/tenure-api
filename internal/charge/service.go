@@ -20,6 +20,7 @@ import (
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -70,15 +71,16 @@ var Categories = []Category{CategoryCoproProvision, CategoryCoproStatement, Cate
 
 // Service implements the charges ledger and the reconciliation.
 type Service struct {
-	DB      *db.DB
-	Repo    Repository
-	Lease   lease.Service
-	Billing billing.Service
-	Docs    document.Service
-	Issuer  document.Issuer
-	Params  params.Repository
-	Now     func() time.Time
-	NewID   func() uuid.UUID
+	DB       *db.DB
+	Repo     Repository
+	Lease    lease.Service
+	Billing  billing.Service
+	Payments payment.Service
+	Docs     document.Service
+	Issuer   document.Issuer
+	Params   params.Repository
+	Now      func() time.Time
+	NewID    func() uuid.UUID
 }
 
 func (s Service) now() time.Time { return s.Now().UTC().Truncate(time.Microsecond) }

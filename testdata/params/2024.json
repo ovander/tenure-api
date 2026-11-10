@@ -236,6 +236,15 @@
       },
       "source": "RENT-SPEC-013 : rapprochement des virements (montant et référence du locataire, puis montant et période ; allocations logement CAF/MSA versées au bailleur) ; règles de gestion, sans base légale",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "bank.charges",
+      "effective_from": "2024-01-01",
+      "value": {
+        "window_days": 45
+      },
+      "source": "RENT-SPEC-013 : sorties bancaires rapprochées des charges (appels du syndic, taxe foncière, assurance, artisans) ; délai entre la charge et son paiement, règle de gestion sans base légale",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     }
   ]
 }

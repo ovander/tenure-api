@@ -347,3 +347,59 @@ func (h Handler) UpdateLine(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.Resource(w, http.StatusOK, v.Version, v)
 }
+
+// ChargeSuggestions godoc
+//
+//	@Summary		The charges a bank debit may pay
+//	@Description	A whole statement (every unpaid charge of one asset and day adding up to the debit, as a syndic call), then each unpaid charge of the debit's amount, charged near its day (Q-125). A credit, or a line already matched or ignored, has none.
+//	@Tags			charge
+//	@Produce		json
+//	@Param			id				path		string	true	"bank line id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		Suggestion
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/charge-suggestions [get]
+func (h Handler) ChargeSuggestions(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.ChargeSuggestions(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// MatchCharges godoc
+//
+//	@Summary		Match a bank debit to charges
+//	@Description	The confirmed charges the debit paid, adding up to exactly its amount and paid by no other line: each is paid on the line's day and names it, so the charges ledger is bank-backed; the line becomes matched.
+//	@Tags			charge
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string				true	"bank line id"
+//	@Param			body			body		MatchChargesInput	true	"charges"
+//	@Param			X-Owner-Scope	header		string				false	"owner scope"
+//	@Success		200				{object}	MatchChargesResult
+//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/charges [post]
+func (h Handler) MatchCharges(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	var in MatchChargesInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.MatchCharges(r.Context(), caller(r), httpx.RequestID(r), id, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
