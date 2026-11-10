@@ -1610,3 +1610,29 @@ amount and period, then manual », with CAF/APL and third-party payers. Provisio
   - undoing a match (for now, edit the payment while no receipt covers it);
   - the screen (part 14d).
 
+**Q-125 Bank debits matched to charges, part 14c — Open (#149).** RENT-SPEC-013 asks for
+« outgoing lines matched to charges (syndic calls, taxe foncière, insurance, contractors) so the
+charges ledger is bank-backed ». Provisional reading:
+
+- **Suggestions**, charged within `bank.charges.window_days` of the debit:
+  1. **statement**: every unpaid charge of one asset and one day whose total is the debit,
+     when there are two or more. This is how a syndic call imported from its statement looks
+     (Q-77).
+  2. **amount_date**: each single unpaid charge of the debit's amount.
+
+  « Unpaid » means a charge that is confirmed and that no bank line has paid yet; a paid_on
+  typed by hand does not count. There is no subset search beyond the whole statement, so no
+  guess at which part of a syndic call was paid.
+- **Matching.**
+  - The owner picks the charges. They must be confirmed, paid by no other line, and add up to
+    exactly the debit.
+  - Each one is then paid on the line's day and names it (`charges.bank_line_id`). A charge is
+    paid by one line at most; a line may pay several charges.
+  - The line becomes matched, and each charge gets its own audit event.
+- **Not automatic.** Debits are never matched without the owner. A charge is the owner's own
+  record, and a wrong match would hide an unpaid bill.
+- **Not built yet:**
+  - creating the charge from a debit that has none (create the charge, then match it);
+  - undoing a match;
+  - the screen (part 14d).
+
