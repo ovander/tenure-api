@@ -61,6 +61,8 @@ const (
 	KeyRecoveryPlan = "recovery.plan"
 	// KeyBank is the bank reconciliation (RENT-SPEC-013, Q-123).
 	KeyBank = "bank.reconciliation"
+	// KeyBankMatching is how bank credits are matched to rent (Q-124).
+	KeyBankMatching = "bank.matching"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -519,5 +521,23 @@ type Bank struct {
 func (s Set) Bank(asOf period.Date) (Bank, error) {
 	var r Bank
 	err := s.Decode(KeyBank, asOf, &r)
+	return r, err
+}
+
+// BankMatching is how bank credits are matched to rent calls (RENT-SPEC-013,
+// Q-124): a credit of the amount owed matches a call booked within
+// WindowDays of its due day; a label naming a housing allowance holds one
+// of AllowanceKeywords; a tenant's name is matched on its words of
+// MinNameLength letters or more.
+type BankMatching struct {
+	WindowDays        int      `json:"window_days"`
+	AllowanceKeywords []string `json:"allowance_keywords"`
+	MinNameLength     int      `json:"min_name_length"`
+}
+
+// BankMatching returns the matching rules effective on asOf.
+func (s Set) BankMatching(asOf period.Date) (BankMatching, error) {
+	var r BankMatching
+	err := s.Decode(KeyBankMatching, asOf, &r)
 	return r, err
 }

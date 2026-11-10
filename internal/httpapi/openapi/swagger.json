@@ -1219,6 +1219,181 @@
                 }
             }
         },
+        "/bank-lines/auto": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Matches, without asking, every unmatched credit with one sure suggestion (the rent call's number, the tenant's name and amount, or an allowance naming the tenant); the amount-and-period rule alone and any ambiguity stay for the owner. dry_run only lists them.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payment"
+                ],
+                "summary": "Match the sure bank credits",
+                "parameters": [
+                    {
+                        "description": "account, dry run",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/payment.AutoMatchInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payment.AutoMatchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/bank-lines/{id}/match": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records the credit as payments of the leases it is split across (a third party may pay; one line may pay several leases), adding up to its amount; each is paid on the line's day and applied to the lease's oldest unpaid rent calls. The line becomes matched.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payment"
+                ],
+                "summary": "Match a bank credit to rent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "bank line id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "allocations",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/payment.MatchLineInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payment.MatchLineResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/bank-lines/{id}/status": {
             "post": {
                 "security": [
@@ -1312,6 +1487,67 @@
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/bank-lines/{id}/suggestions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Strongest rule first (Q-124): the rent call's number and the amount owed; a tenant's name and the amount owed; a housing allowance (CAF, MSA) naming a tenant, for at most the amount owed; the amount owed, booked near the call's due day. A debit, or a line already matched or ignored, has none.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payment"
+                ],
+                "summary": "The rent calls a bank credit may pay",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "bank line id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/payment.Suggestion"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -15053,6 +15289,65 @@
                 }
             }
         },
+        "payment.Allocation": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "transfer",
+                        "direct_debit",
+                        "cheque",
+                        "cash",
+                        "card",
+                        "caf",
+                        "other"
+                    ]
+                }
+            }
+        },
+        "payment.AutoMatchInput": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "dry_run": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "payment.AutoMatchResult": {
+            "type": "object",
+            "properties": {
+                "left": {
+                    "type": "integer"
+                },
+                "matched": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/payment.AutoMatched"
+                    }
+                }
+            }
+        },
+        "payment.AutoMatched": {
+            "type": "object",
+            "properties": {
+                "line_id": {
+                    "type": "string"
+                },
+                "suggestion": {
+                    "$ref": "#/definitions/payment.Suggestion"
+                }
+            }
+        },
         "payment.BankLine": {
             "type": "object",
             "properties": {
@@ -15281,6 +15576,34 @@
                 }
             }
         },
+        "payment.MatchLineInput": {
+            "type": "object",
+            "properties": {
+                "allocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/payment.Allocation"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "payment.MatchLineResult": {
+            "type": "object",
+            "properties": {
+                "line": {
+                    "$ref": "#/definitions/payment.LineView"
+                },
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/payment.View"
+                    }
+                }
+            }
+        },
         "payment.MatchView": {
             "type": "object",
             "properties": {
@@ -15295,6 +15618,48 @@
                 },
                 "id": {
                     "type": "string"
+                }
+            }
+        },
+        "payment.Suggestion": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "billing_document_id": {
+                    "type": "string"
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "transfer",
+                        "caf"
+                    ]
+                },
+                "number": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "rule": {
+                    "type": "string",
+                    "enum": [
+                        "reference",
+                        "name_amount",
+                        "allowance",
+                        "amount_period"
+                    ]
+                },
+                "tenants": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
