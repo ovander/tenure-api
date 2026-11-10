@@ -47,12 +47,12 @@ func openCharge(c chargeRow) OpenCharge {
 // ChargeSuggestions lists the charges a bank debit may pay (RENT-SPEC-013,
 // Q-125): a whole statement, then one charge of its amount. A credit, or a
 // line already matched or ignored, has none.
-func (s Service) ChargeSuggestions(ctx context.Context, p *auth.Principal, requestID string, lineID uuid.UUID) ([]ChargeSuggestion, error) {
+func (s Service) ChargeSuggestions(ctx context.Context, p *auth.Principal, requestID string, lineID uuid.UUID) ([]Suggestion, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
 		return nil, err
 	}
-	out := []ChargeSuggestion{}
+	out := []Suggestion{}
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		l, err := s.Payments.LineInTx(ctx, lineID)
 		if err != nil {

@@ -25,9 +25,9 @@ type OpenCharge struct {
 	AmountCents money.Cents `json:"amount_cents"`
 }
 
-// ChargeSuggestion is one or more charges a bank debit may pay, and the rule
+// Suggestion is one or more charges a bank debit may pay, and the rule
 // it rests on.
-type ChargeSuggestion struct {
+type Suggestion struct {
 	Rule    string       `json:"rule" enums:"statement,amount_date"`
 	Charges []OpenCharge `json:"charges"`
 }
@@ -37,8 +37,8 @@ type ChargeSuggestion struct {
 // a syndic import gives) whose total is the debit, when there are two or
 // more; then each unpaid charge of the debit's amount. Either is charged at
 // most WindowDays from the debit's day. A credit has none. Pure.
-func SuggestCharges(day period.Date, amount money.Cents, open []OpenCharge, r params.BankCharges) []ChargeSuggestion {
-	out := []ChargeSuggestion{}
+func SuggestCharges(day period.Date, amount money.Cents, open []OpenCharge, r params.BankCharges) []Suggestion {
+	out := []Suggestion{}
 	if amount >= 0 {
 		return out
 	}
@@ -70,13 +70,13 @@ func SuggestCharges(day period.Date, amount money.Cents, open []OpenCharge, r pa
 			sum += c.AmountCents
 		}
 		if len(g) > 1 && sum == want {
-			out = append(out, ChargeSuggestion{Rule: RuleStatement, Charges: g})
+			out = append(out, Suggestion{Rule: RuleStatement, Charges: g})
 		}
 	}
 	for _, k := range order {
 		for _, c := range groups[k] {
 			if c.AmountCents == want {
-				out = append(out, ChargeSuggestion{Rule: RuleAmountDate, Charges: []OpenCharge{c}})
+				out = append(out, Suggestion{Rule: RuleAmountDate, Charges: []OpenCharge{c}})
 			}
 		}
 	}

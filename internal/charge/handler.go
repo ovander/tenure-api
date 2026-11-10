@@ -356,7 +356,7 @@ func (h Handler) UpdateLine(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			id				path		string	true	"bank line id"
 //	@Param			X-Owner-Scope	header		string	false	"owner scope"
-//	@Success		200				{array}		ChargeSuggestion
+//	@Success		200				{array}		Suggestion
 //	@Failure		401,403,404		{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/bank-lines/{id}/charge-suggestions [get]

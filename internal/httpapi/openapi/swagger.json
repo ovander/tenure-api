@@ -1330,7 +1330,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/charge.ChargeSuggestion"
+                                "$ref": "#/definitions/charge.Suggestion"
                             }
                         }
                     },
@@ -11376,24 +11376,6 @@
                 "CategoryUnrecoveredAtClose"
             ]
         },
-        "charge.ChargeSuggestion": {
-            "type": "object",
-            "properties": {
-                "charges": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/charge.OpenCharge"
-                    }
-                },
-                "rule": {
-                    "type": "string",
-                    "enum": [
-                        "statement",
-                        "amount_date"
-                    ]
-                }
-            }
-        },
         "charge.ImportInput": {
             "type": "object",
             "properties": {
@@ -11739,6 +11721,24 @@
                 "StateSettled",
                 "StateCancelled"
             ]
+        },
+        "charge.Suggestion": {
+            "type": "object",
+            "properties": {
+                "charges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/charge.OpenCharge"
+                    }
+                },
+                "rule": {
+                    "type": "string",
+                    "enum": [
+                        "statement",
+                        "amount_date"
+                    ]
+                }
+            }
         },
         "charge.Totals": {
             "type": "object",
