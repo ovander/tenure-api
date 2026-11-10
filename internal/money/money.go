@@ -5,7 +5,10 @@ package money
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 )
 
 // Cents is an amount of money in euro cents. Negative values are credits.
@@ -112,4 +115,37 @@ func Sum(amounts ...Cents) Cents {
 		s += a
 	}
 	return s
+}
+
+// Parse reads a French or plain amount ("1 234,56", "1234.56", "12 €")
+// as cents; an empty cell is zero.
+func Parse(s string, decimalPoint bool) (Cents, error) {
+	s = strings.NewReplacer(" ", "", " ", "", " ", "", "€", "").Replace(strings.TrimSpace(s))
+	if s == "" {
+		return 0, nil
+	}
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	sep := ","
+	if decimalPoint {
+		sep = "."
+		s = strings.ReplaceAll(s, ",", "")
+	} else {
+		s = strings.ReplaceAll(s, ".", "")
+	}
+	whole, frac, _ := strings.Cut(s, sep)
+	if len(frac) > 2 || whole == "" {
+		return 0, fmt.Errorf("amount %q", s)
+	}
+	for len(frac) < 2 {
+		frac += "0"
+	}
+	n, err := strconv.ParseInt(whole+frac, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("amount %q", s)
+	}
+	if neg {
+		n = -n
+	}
+	return Cents(n), nil
 }

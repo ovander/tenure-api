@@ -311,6 +311,7 @@ Imported bank lines are matched to rent calls, regularisations and charges autom
 - Matching rules: amount and tenant reference, then amount and period, then manual; CAF/APL paid directly to the owner matched as part of the tenant’s fee; third-party payers allowed.
 - Outgoing lines matched to charges (syndic calls, taxe foncière, insurance, contractors) so the charges ledger is bank-backed.
 - Unmatched lines after 10 days appear on the dashboard; a match can be split across several documents.
+- Built so far (tenure-api #145, Q-123): bank accounts (label and last four IBAN characters), the import of CSV (mapped) and OFX statements, deduplicated by the bank’s id or a hash, bank lines with their status, ignored or reopened by hand, flagged once unmatched past the alert delay. Matching comes next.
 
 ## RENT-SPEC-014 — Loans and owner ledger (phase 3)
 
