@@ -34,6 +34,7 @@ import (
 	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
+	"github.com/ovander/tenure-api/internal/loan"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
@@ -60,6 +61,7 @@ type Deps struct {
 	Tax            tax.Handler
 	Inventory      inventory.Handler
 	Calendar       calendar.Handler
+	Loans          loan.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -206,6 +208,11 @@ func Routes(d Deps) []Route {
 		{"POST", "/bank-lines/auto", GuardScopeOwnerW, false, h(d.Payments.AutoMatch)},
 		{"GET", "/bank-lines/{id}/charge-suggestions", GuardScopeOwnerW, false, h(d.Charges.ChargeSuggestions)},
 		{"POST", "/bank-lines/{id}/charges", GuardScopeOwnerW, false, h(d.Charges.MatchCharges)},
+		{"GET", "/loans", GuardScopeOwnerW, false, h(d.Loans.List)},
+		{"POST", "/loans", GuardScopeOwnerW, false, h(d.Loans.Create)},
+		{"GET", "/loans/schedule", GuardScopeOwnerW, false, h(d.Loans.Schedule)},
+		{"GET", "/loans/{id}", GuardScopeOwnerW, false, h(d.Loans.Get)},
+		{"PUT", "/loans/{id}", GuardScopeOwnerW, false, h(d.Loans.Update)},
 		{"GET", "/charges", GuardScopeOwnerW, false, h(d.Charges.ListCharges)},
 		{"POST", "/charges", GuardScopeOwnerW, false, h(d.Charges.CreateCharge)},
 		{"POST", "/charges/import/syndic", GuardScopeOwnerW, false, h(d.Charges.ImportSyndic)},

@@ -1636,3 +1636,56 @@ charges ledger is bank-backed ». Provisional reading:
   - undoing a match;
   - the screen (part 14d).
 
+
+**Q-126 Loans and line 250, part 15a — Open (#154).** RENT-SPEC-014 asks for « principal, rate,
+start, amortisation table imported or computed; yearly interest and insurance go to RENT-SPEC-004
+line 250 automatically ». Provisional reading:
+
+- **A loan finances one asset.** It carries a label, a lender, the principal, the rate when it
+  is known, the term, the first due day and the insurance per instalment. The bank's offer or
+  table may be attached (`document_id`), and the tax summary lists it among its supporting
+  documents.
+- **A computed table** is a fixed rate repaid in constant monthly instalments:
+  - The rate is nominal and annual, stored in parts per million (3.45 % is 34 500), so no float
+    is involved. The monthly rate is that rate divided by twelve (taux proportionnel), which is
+    how French banks compute a monthly instalment.
+  - The constant instalment P·r / (1 − (1 + r)^−n) is computed exactly and rounded to the cent
+    half-up.
+  - Each month's interest is the balance times the monthly rate, to the cent half-up; the
+    principal is the rest of the instalment.
+  - The last instalment repays the balance, so the principal always adds up. A zero rate repays
+    the principal in equal parts, with the remainder on the last instalment.
+  - The due day is kept from month to month, clamped to the month's last day.
+- **A typed-in table** is the bank's, for any other loan: variable rate, deferral, progressive
+  instalments, quarterly instalments. It is checked, not recomputed:
+  - from 1 to 600 instalments, on strictly increasing days;
+  - no negative amount, and no instalment repaying more than the balance;
+  - the principal adds up exactly.
+
+  The term and the first due day are read from the table.
+- **Editing** replaces the terms and the whole table (`PUT`, If-Match). A tax summary already
+  issued keeps the figures it was issued with.
+- **Line 250.** Each instalment due in the income year counts on its due day:
+  - its interest as a `loan_interest` charge and its insurance as a `loan_insurance` one, both
+    on line 250;
+  - split between the asset's owners like any charge;
+  - its sources are `loan:<loan>:<seq>` and `loan:<loan>:<seq>:insurance`.
+
+  This is a cash basis that assumes a debited instalment is paid on its due day.
+- **No double count.** On an asset whose loan has an instalment due in the year:
+  - a `loan_interest` charge typed by hand and paid that year is set aside and flagged
+    `superseded_by_loan`;
+  - so is a `loan_insurance` charge, but only when an instalment of the year carries insurance.
+    Borrower insurance taken apart from the bank stays.
+
+  This may understate a deduction when an asset has two loans and only one is recorded. That is
+  the conservative direction, and the flag shows the owner which charges were set aside.
+- **A loan without an uploaded table** is flagged `missing_document`, one flag per instalment
+  and per part, like any charge without its proof.
+- **Not built yet:**
+  - the loan fees (dossier, guarantee), which stay charges typed by hand;
+  - a loan taken by one co-owner only, which is split by the asset's shares for now;
+  - loan instalments on the obligations calendar;
+  - the ledger and the period lock (part 15b);
+  - the exports (part 15c);
+  - the screen (part 15d).

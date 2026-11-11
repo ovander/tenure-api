@@ -1,0 +1,429 @@
+{
+  "case": "schedule",
+  "description": "Amortisation tables (Q-126). A 150 000 € loan at 3.45 % over 20 years with 25 € insurance a month, from 31 January 2026: constant instalments, the due day clamped to short months, the last instalment closing the balance. A 12 000 € loan at 0 % over 7 months. A bank table typed in with a deferral month and an odd last instalment. Refusals: a table that does not repay the principal, and a rate of 100 %.",
+  "steps": [
+    {
+      "name": "fixed rate 20 years",
+      "terms": {
+        "principal_cents": 15000000,
+        "annual_rate_ppm": 34500,
+        "term_months": 240,
+        "first_due_on": "2026-01-31",
+        "insurance_cents": 2500
+      }
+    },
+    {
+      "name": "zero rate",
+      "terms": {
+        "principal_cents": 1200000,
+        "annual_rate_ppm": 0,
+        "term_months": 7,
+        "first_due_on": "2026-03-15",
+        "insurance_cents": 0
+      }
+    },
+    {
+      "name": "typed table with deferral",
+      "principal_cents": 1000000,
+      "instalments": [
+        {
+          "seq": 0,
+          "due_on": "2026-11-05",
+          "principal_cents": 0,
+          "interest_cents": 2875,
+          "insurance_cents": 300,
+          "remaining_cents": 0
+        },
+        {
+          "seq": 0,
+          "due_on": "2026-12-05",
+          "principal_cents": 330000,
+          "interest_cents": 2875,
+          "insurance_cents": 300,
+          "remaining_cents": 0
+        },
+        {
+          "seq": 0,
+          "due_on": "2027-01-05",
+          "principal_cents": 335000,
+          "interest_cents": 1926,
+          "insurance_cents": 300,
+          "remaining_cents": 0
+        },
+        {
+          "seq": 0,
+          "due_on": "2027-02-05",
+          "principal_cents": 335000,
+          "interest_cents": 963,
+          "insurance_cents": 300,
+          "remaining_cents": 0
+        }
+      ]
+    },
+    {
+      "name": "typed table short of the principal",
+      "principal_cents": 1000000,
+      "instalments": [
+        {
+          "seq": 0,
+          "due_on": "2026-11-05",
+          "principal_cents": 600000,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 0
+        }
+      ]
+    },
+    {
+      "name": "rate of 100 %",
+      "terms": {
+        "principal_cents": 100000,
+        "annual_rate_ppm": 1000000,
+        "term_months": 12,
+        "first_due_on": "2026-01-01",
+        "insurance_cents": 0
+      }
+    }
+  ],
+  "expected": {
+    "fixed rate 20 years": {
+      "count": 240,
+      "first": [
+        {
+          "seq": 1,
+          "due_on": "2026-01-31",
+          "principal_cents": 43484,
+          "interest_cents": 43125,
+          "insurance_cents": 2500,
+          "remaining_cents": 14956516
+        },
+        {
+          "seq": 2,
+          "due_on": "2026-02-28",
+          "principal_cents": 43609,
+          "interest_cents": 43000,
+          "insurance_cents": 2500,
+          "remaining_cents": 14912907
+        },
+        {
+          "seq": 3,
+          "due_on": "2026-03-31",
+          "principal_cents": 43734,
+          "interest_cents": 42875,
+          "insurance_cents": 2500,
+          "remaining_cents": 14869173
+        }
+      ],
+      "last": [
+        {
+          "seq": 239,
+          "due_on": "2045-11-30",
+          "principal_cents": 86113,
+          "interest_cents": 496,
+          "insurance_cents": 2500,
+          "remaining_cents": 86384
+        },
+        {
+          "seq": 240,
+          "due_on": "2045-12-31",
+          "principal_cents": 86384,
+          "interest_cents": 248,
+          "insurance_cents": 2500,
+          "remaining_cents": 0
+        }
+      ],
+      "years": [
+        {
+          "year": 2026,
+          "instalments": 12,
+          "principal_cents": 530138,
+          "interest_cents": 509170,
+          "insurance_cents": 30000,
+          "remaining_cents": 14469862
+        },
+        {
+          "year": 2027,
+          "instalments": 12,
+          "principal_cents": 548720,
+          "interest_cents": 490588,
+          "insurance_cents": 30000,
+          "remaining_cents": 13921142
+        },
+        {
+          "year": 2028,
+          "instalments": 12,
+          "principal_cents": 567954,
+          "interest_cents": 471354,
+          "insurance_cents": 30000,
+          "remaining_cents": 13353188
+        },
+        {
+          "year": 2029,
+          "instalments": 12,
+          "principal_cents": 587861,
+          "interest_cents": 451447,
+          "insurance_cents": 30000,
+          "remaining_cents": 12765327
+        },
+        {
+          "year": 2030,
+          "instalments": 12,
+          "principal_cents": 608465,
+          "interest_cents": 430843,
+          "insurance_cents": 30000,
+          "remaining_cents": 12156862
+        },
+        {
+          "year": 2031,
+          "instalments": 12,
+          "principal_cents": 629794,
+          "interest_cents": 409514,
+          "insurance_cents": 30000,
+          "remaining_cents": 11527068
+        },
+        {
+          "year": 2032,
+          "instalments": 12,
+          "principal_cents": 651868,
+          "interest_cents": 387440,
+          "insurance_cents": 30000,
+          "remaining_cents": 10875200
+        },
+        {
+          "year": 2033,
+          "instalments": 12,
+          "principal_cents": 674716,
+          "interest_cents": 364592,
+          "insurance_cents": 30000,
+          "remaining_cents": 10200484
+        },
+        {
+          "year": 2034,
+          "instalments": 12,
+          "principal_cents": 698364,
+          "interest_cents": 340944,
+          "insurance_cents": 30000,
+          "remaining_cents": 9502120
+        },
+        {
+          "year": 2035,
+          "instalments": 12,
+          "principal_cents": 722844,
+          "interest_cents": 316464,
+          "insurance_cents": 30000,
+          "remaining_cents": 8779276
+        },
+        {
+          "year": 2036,
+          "instalments": 12,
+          "principal_cents": 748180,
+          "interest_cents": 291128,
+          "insurance_cents": 30000,
+          "remaining_cents": 8031096
+        },
+        {
+          "year": 2037,
+          "instalments": 12,
+          "principal_cents": 774404,
+          "interest_cents": 264904,
+          "insurance_cents": 30000,
+          "remaining_cents": 7256692
+        },
+        {
+          "year": 2038,
+          "instalments": 12,
+          "principal_cents": 801548,
+          "interest_cents": 237760,
+          "insurance_cents": 30000,
+          "remaining_cents": 6455144
+        },
+        {
+          "year": 2039,
+          "instalments": 12,
+          "principal_cents": 829641,
+          "interest_cents": 209667,
+          "insurance_cents": 30000,
+          "remaining_cents": 5625503
+        },
+        {
+          "year": 2040,
+          "instalments": 12,
+          "principal_cents": 858721,
+          "interest_cents": 180587,
+          "insurance_cents": 30000,
+          "remaining_cents": 4766782
+        },
+        {
+          "year": 2041,
+          "instalments": 12,
+          "principal_cents": 888822,
+          "interest_cents": 150486,
+          "insurance_cents": 30000,
+          "remaining_cents": 3877960
+        },
+        {
+          "year": 2042,
+          "instalments": 12,
+          "principal_cents": 919976,
+          "interest_cents": 119332,
+          "insurance_cents": 30000,
+          "remaining_cents": 2957984
+        },
+        {
+          "year": 2043,
+          "instalments": 12,
+          "principal_cents": 952221,
+          "interest_cents": 87087,
+          "insurance_cents": 30000,
+          "remaining_cents": 2005763
+        },
+        {
+          "year": 2044,
+          "instalments": 12,
+          "principal_cents": 985596,
+          "interest_cents": 53712,
+          "insurance_cents": 30000,
+          "remaining_cents": 1020167
+        },
+        {
+          "year": 2045,
+          "instalments": 12,
+          "principal_cents": 1020167,
+          "interest_cents": 19164,
+          "insurance_cents": 30000,
+          "remaining_cents": 0
+        }
+      ]
+    },
+    "rate of 100 %": {
+      "detail": "annual_rate_ppm must be between 0 and 999999",
+      "error": "loan/schedule-invalid"
+    },
+    "typed table short of the principal": {
+      "detail": "the instalments repay 600000 cents of a 1000000 cent principal",
+      "error": "loan/schedule-invalid"
+    },
+    "typed table with deferral": {
+      "count": 4,
+      "first": [
+        {
+          "seq": 1,
+          "due_on": "2026-11-05",
+          "principal_cents": 0,
+          "interest_cents": 2875,
+          "insurance_cents": 300,
+          "remaining_cents": 1000000
+        },
+        {
+          "seq": 2,
+          "due_on": "2026-12-05",
+          "principal_cents": 330000,
+          "interest_cents": 2875,
+          "insurance_cents": 300,
+          "remaining_cents": 670000
+        },
+        {
+          "seq": 3,
+          "due_on": "2027-01-05",
+          "principal_cents": 335000,
+          "interest_cents": 1926,
+          "insurance_cents": 300,
+          "remaining_cents": 335000
+        }
+      ],
+      "last": [
+        {
+          "seq": 3,
+          "due_on": "2027-01-05",
+          "principal_cents": 335000,
+          "interest_cents": 1926,
+          "insurance_cents": 300,
+          "remaining_cents": 335000
+        },
+        {
+          "seq": 4,
+          "due_on": "2027-02-05",
+          "principal_cents": 335000,
+          "interest_cents": 963,
+          "insurance_cents": 300,
+          "remaining_cents": 0
+        }
+      ],
+      "years": [
+        {
+          "year": 2026,
+          "instalments": 2,
+          "principal_cents": 330000,
+          "interest_cents": 5750,
+          "insurance_cents": 600,
+          "remaining_cents": 670000
+        },
+        {
+          "year": 2027,
+          "instalments": 2,
+          "principal_cents": 670000,
+          "interest_cents": 2889,
+          "insurance_cents": 600,
+          "remaining_cents": 0
+        }
+      ]
+    },
+    "zero rate": {
+      "count": 7,
+      "first": [
+        {
+          "seq": 1,
+          "due_on": "2026-03-15",
+          "principal_cents": 171428,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 1028572
+        },
+        {
+          "seq": 2,
+          "due_on": "2026-04-15",
+          "principal_cents": 171428,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 857144
+        },
+        {
+          "seq": 3,
+          "due_on": "2026-05-15",
+          "principal_cents": 171428,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 685716
+        }
+      ],
+      "last": [
+        {
+          "seq": 6,
+          "due_on": "2026-08-15",
+          "principal_cents": 171428,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 171432
+        },
+        {
+          "seq": 7,
+          "due_on": "2026-09-15",
+          "principal_cents": 171432,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 0
+        }
+      ],
+      "years": [
+        {
+          "year": 2026,
+          "instalments": 7,
+          "principal_cents": 1200000,
+          "interest_cents": 0,
+          "insurance_cents": 0,
+          "remaining_cents": 0
+        }
+      ]
+    }
+  }
+}

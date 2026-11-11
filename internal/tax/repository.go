@@ -122,6 +122,31 @@ func (Repository) Charges(ctx context.Context, from, to time.Time) ([]chargeRow,
 	return rows, err
 }
 
+// instalmentRow is an instalment of a recorded loan due in the year.
+type instalmentRow struct {
+	LoanID         uuid.UUID  `gorm:"column:loan_id"`
+	AssetID        uuid.UUID  `gorm:"column:asset_id"`
+	Seq            int        `gorm:"column:seq"`
+	DueOn          time.Time  `gorm:"column:due_on"`
+	InterestCents  int64      `gorm:"column:interest_cents"`
+	InsuranceCents int64      `gorm:"column:insurance_cents"`
+	DocumentID     *uuid.UUID `gorm:"column:document_id"`
+}
+
+// LoanInstalments returns the instalments of the scope's loans due in
+// [from, to] (RENT-SPEC-014, Q-126).
+func (Repository) LoanInstalments(ctx context.Context, from, to time.Time) ([]instalmentRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []instalmentRow
+	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
+		Select("i.loan_id, l.asset_id, i.seq, i.due_on, i.interest_cents, i.insurance_cents, l.document_id").
+		Where("i.due_on BETWEEN ? AND ?", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
+	return rows, err
+}
+
 // assetRow is an asset with its furnished flag for the year.
 type assetRow struct {
 	ID        uuid.UUID `gorm:"column:id"`
