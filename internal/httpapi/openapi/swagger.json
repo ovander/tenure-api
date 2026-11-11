@@ -16783,7 +16783,7 @@
                 },
                 "go_version": {
                     "type": "string",
-                    "example": "go1.27.3"
+                    "example": "go1.27.4"
                 },
                 "modified": {
                     "description": "Modified says an unstamped build was made from a tree with local\nchanges.",
