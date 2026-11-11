@@ -37,7 +37,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 
 | Concern | Choice |
 | --- | --- |
-| Go | 1.27.3 (`go` line in `go.mod`; CI fails if it runs another version) |
+| Go | 1.27.4 (`go` line in `go.mod`; CI fails if it runs another version) |
 | HTTP | Chi; problem details RFC 9457; JSON only |
 | Database | PostgreSQL 17, gorm on the pgx driver, row-level security |
 | Migrations | `migrations/NNNNNN_<name>.sql`, six-digit zero-padded, reversible or marked not; applied by `tenure migrate` |
@@ -49,7 +49,7 @@ keep going. If a behaviour has to change, change the spec in the same PR (CONTRI
 | E-signature | Yousign API v3 (OD-08) through `internal/esign`, optional: `TENURE_YOUSIGN_API_URL` and `TENURE_YOUSIGN_API_KEY`, both or neither; state pulled, no webhook (Q-112) |
 | Identity | Socrate through `github.com/ovander/backendkit` (pinned in `go.mod`); browsers through a BFF (`backendkit/bff`), never holding a token |
 | Logs | `log/slog` JSON; backendkit's logrus entry is configured to JSON as well |
-| Lint | golangci-lint v2.14.0 built with Go 1.27.3 (includes staticcheck), govulncheck, gitleaks |
+| Lint | golangci-lint v2.14.0 built with Go 1.27.4 (includes staticcheck), govulncheck, gitleaks |
 | Build | `-ldflags "-X …version=… -X …commit=… -X …date=…"` version stamping |
 
 Configuration comes only from environment variables, validated at start: tenure's own `TENURE_*`,
@@ -183,7 +183,7 @@ testdata/inventory/            inventory templates (French), the seed of invento
 go mod tidy && git diff --exit-code go.mod go.sum
 go build ./...
 go vet -tags integration,e2e ./...
-golangci-lint run --build-tags integration,e2e ./...   # v2.14.0 built with Go 1.27.3; staticcheck runs inside it
+golangci-lint run --build-tags integration,e2e ./...   # v2.14.0 built with Go 1.27.4; staticcheck runs inside it
 govulncheck ./...
 go test -race -count=1 ./...
 go test -tags integration -race -count=1 ./internal/itest   # needs Docker

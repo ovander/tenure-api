@@ -30,7 +30,7 @@ type API struct {
 	// Modified says an unstamped build was made from a tree with local
 	// changes.
 	Modified   bool   `json:"modified,omitempty"`
-	GoVersion  string `json:"go_version" example:"go1.27.3"`
+	GoVersion  string `json:"go_version" example:"go1.27.4"`
 	Platform   string `json:"platform" example:"linux/amd64"`
 	Backendkit string `json:"backendkit,omitempty" example:"v1.9.0"`
 	// Schema is the last migration embedded in the binary (applied by
