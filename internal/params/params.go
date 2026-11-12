@@ -65,6 +65,8 @@ const (
 	KeyBankMatching = "bank.matching"
 	// KeyBankCharges is how bank debits are matched to charges (Q-125).
 	KeyBankCharges = "bank.charges"
+	// KeyLedgerChart is the chart of accounts of the owner's journal (Q-127).
+	KeyLedgerChart = "ledger.chart"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -555,5 +557,29 @@ type BankCharges struct {
 func (s Set) BankCharges(asOf period.Date) (BankCharges, error) {
 	var r BankCharges
 	err := s.Decode(KeyBankCharges, asOf, &r)
+	return r, err
+}
+
+// LedgerAccount is an account of the owner's journal: its number in the
+// plan comptable général and its label.
+type LedgerAccount struct {
+	Code  string `json:"code"`
+	Label string `json:"label"`
+}
+
+// LedgerChart is the chart of accounts of the owner's journal (RENT-SPEC-014,
+// Q-127): the accounts by role (bank, tenants, rent, deposits, loans, ...),
+// the account of each charge category, and the categories that are income
+// (money received) rather than expenses.
+type LedgerChart struct {
+	Accounts         map[string]LedgerAccount `json:"accounts"`
+	Categories       map[string]LedgerAccount `json:"categories"`
+	IncomeCategories []string                 `json:"income_categories"`
+}
+
+// LedgerChart returns the chart of accounts effective on asOf.
+func (s Set) LedgerChart(asOf period.Date) (LedgerChart, error) {
+	var r LedgerChart
+	err := s.Decode(KeyLedgerChart, asOf, &r)
 	return r, err
 }

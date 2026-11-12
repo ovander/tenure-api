@@ -26,6 +26,7 @@ import (
 	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
+	"github.com/ovander/tenure-api/internal/ledger"
 	"github.com/ovander/tenure-api/internal/loan"
 	"github.com/ovander/tenure-api/internal/notify"
 	"github.com/ovander/tenure-api/internal/params"
@@ -117,6 +118,7 @@ func New(d Deps) (*App, error) {
 		Charges:        charge.Handler{Service: cs},
 		Tax:            tax.Handler{Service: ts},
 		Payments:       payment.Handler{Service: ps},
+		Ledger:         ledger.Handler{Service: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
 		Loans:          loan.Handler{Service: loan.Service{DB: d.API, Portfolio: pf, Docs: docs, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,
