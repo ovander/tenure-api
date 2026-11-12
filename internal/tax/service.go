@@ -94,7 +94,10 @@ type Inputs struct {
 	Payments     int `json:"payments"`
 	Charges      int `json:"charges"`
 	DraftCharges int `json:"draft_charges"`
-	PriorYear    int `json:"prior_year,omitempty"`
+	// LoanInstalments counts the recorded loans' instalments due in the
+	// year (Q-126).
+	LoanInstalments int `json:"loan_instalments,omitempty"`
+	PriorYear       int `json:"prior_year,omitempty"`
 }
 
 // computed is a summary with its inputs.
@@ -195,6 +198,26 @@ func (s Service) compute(ctx context.Context, year int) (computed, error) {
 		}
 		charges = append(charges, dc)
 	}
+	insts, err := s.Repo.LoanInstalments(ctx, from, to)
+	if err != nil {
+		return out, err
+	}
+	var loans []LoanInstalment
+	seenDoc := map[uuid.UUID]bool{}
+	for _, i := range insts {
+		li := LoanInstalment{LoanID: i.LoanID.String(), AssetID: i.AssetID.String(), Seq: i.Seq, DueOn: period.FromTime(i.DueOn),
+			InterestCents: money.Cents(i.InterestCents), InsuranceCents: money.Cents(i.InsuranceCents)}
+		if i.DocumentID != nil {
+			li.DocumentID = i.DocumentID.String()
+			if !seenDoc[*i.DocumentID] {
+				seenDoc[*i.DocumentID] = true
+				out.docs = append(out.docs, *i.DocumentID)
+			}
+		}
+		loans = append(loans, li)
+	}
+	typed := len(charges)
+	charges, superseded := WithLoans(charges, loans, year)
 	as, shares, err := s.Repo.Assets(ctx, from, to)
 	if err != nil {
 		return out, err
@@ -219,8 +242,10 @@ func (s Service) compute(ctx context.Context, year int) (computed, error) {
 		return out, mapErr(err)
 	}
 	sum.Flags = append(sum.Flags, drafts...)
+	sum.Flags = append(sum.Flags, superseded...)
 	out.summary = sum
-	out.inputs.Payments, out.inputs.Charges, out.inputs.DraftCharges = len(payments), len(charges), len(drafts)
+	out.inputs.Payments, out.inputs.Charges, out.inputs.DraftCharges = len(payments), typed, len(drafts)
+	out.inputs.LoanInstalments = len(loans)
 	return out, nil
 }
 

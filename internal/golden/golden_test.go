@@ -46,7 +46,10 @@ type caseFile struct {
 	Charges        []charge.Charge   `json:"charges,omitempty"`
 	Payments       []payment.Payment `json:"payments,omitempty"`
 	Assets         []tax.AssetShares `json:"assets,omitempty"`
-	Steps          []step            `json:"steps"`
+	// Loans are the recorded loans' instalments the tax steps read
+	// (RENT-SPEC-014, Q-126).
+	Loans []tax.LoanInstalment `json:"loans,omitempty"`
+	Steps []step               `json:"steps"`
 }
 
 type step struct {
@@ -248,7 +251,10 @@ func runStep(s *step, leases map[string]lease.Lease, c caseFile, ps params.Set) 
 		}
 		return errs, err
 	case s.Tax != nil:
-		return tax.Lines(c.Payments, c.Charges, c.Assets, s.Tax.Year, ps, s.Tax.Prior)
+		charges, flags := tax.WithLoans(c.Charges, c.Loans, s.Tax.Year)
+		sum, err := tax.Lines(c.Payments, charges, c.Assets, s.Tax.Year, ps, s.Tax.Prior)
+		sum.Flags = append(sum.Flags, flags...)
+		return sum, err
 	}
 	return nil, fmt.Errorf("step has no calculation")
 }

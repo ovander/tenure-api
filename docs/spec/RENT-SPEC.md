@@ -320,6 +320,7 @@ Each asset can carry its loans, so interest is derived for the tax summary, and 
 - Loan: principal, rate, start, amortisation table imported or computed; yearly interest and insurance go to RENT-SPEC-004 line 250 automatically.
 - Ledger: every payment, charge and deposit movement as a double-entry line per owner, deposits as liabilities; period lock after the tax summary is issued.
 - Exports: year-end pack (ledger CSV, 2044 figures, supporting documents index) and FEC format for SCI or LMNP accounting.
+- Built so far (tenure-api #154, Q-126): loans on an asset, their table computed (fixed rate, constant monthly instalments) or typed in from the bank, and the interest and insurance of the instalments due in the income year on line 250, a loan charge typed by hand for the same asset and year set aside and flagged. The ledger, the period lock, the exports and the screen come next.
 
 ## RENT-SPEC-015 — Maintenance and incidents (phase 3)
 

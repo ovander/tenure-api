@@ -1,0 +1,780 @@
+{
+  "case": "loan-line-250",
+  "description": "Recorded loans give line 250 (RENT-SPEC-014, Q-126). House H1, owned 50/50 by O1 and O2, has loan K1 whose table carries interest and insurance: its 2025 instalments are counted on their due days, split between the owners, and the interest and loan insurance typed in by hand for H1 are set aside and flagged. Apartment A2, O1's alone, has loan K2 without insurance in its table: the interest typed in by hand is set aside, the borrower insurance taken apart from the bank stays. Instalments due in 2024 and 2026 are not counted.",
+  "leases": [
+    {
+      "id": "L5",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "H1",
+          "kind": "house",
+          "furnished": false,
+          "controlled_zone": false,
+          "tense_zone": false
+        }
+      ],
+      "start_on": "2024-01-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 120001,
+      "provision_cents": 15000,
+      "deposit_cents": 120001,
+      "due_day": 5,
+      "irl_ref_quarter": "2023-Q4",
+      "irl_ref_value": 14206,
+      "revision_month": 1
+    }
+  ],
+  "charges": [
+    {
+      "id": "rep",
+      "asset_id": "H1",
+      "category": "repairs",
+      "amount_cents": 2000001,
+      "charged_on": "2025-09-30",
+      "paid_on": "2025-09-30",
+      "recoverable_bp": 0,
+      "document_id": "doc-rep"
+    },
+    {
+      "id": "ins",
+      "asset_id": "H1",
+      "category": "insurance",
+      "amount_cents": 31000,
+      "charged_on": "2025-02-01",
+      "paid_on": "2025-02-01",
+      "recoverable_bp": 0,
+      "document_id": "doc-ins"
+    },
+    {
+      "id": "tf",
+      "asset_id": "H1",
+      "category": "property_tax",
+      "amount_cents": 140000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 0,
+      "document_id": "doc-tf"
+    },
+    {
+      "id": "teom",
+      "asset_id": "H1",
+      "category": "teom",
+      "amount_cents": 20000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 10000,
+      "document_id": "doc-teom"
+    },
+    {
+      "id": "int",
+      "asset_id": "H1",
+      "category": "loan_interest",
+      "amount_cents": 300000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0,
+      "document_id": "doc-int"
+    },
+    {
+      "id": "lins",
+      "asset_id": "H1",
+      "category": "loan_insurance",
+      "amount_cents": 30000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0
+    },
+    {
+      "id": "int2",
+      "asset_id": "A2",
+      "category": "loan_interest",
+      "amount_cents": 90000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0
+    },
+    {
+      "id": "ins2",
+      "asset_id": "A2",
+      "category": "loan_insurance",
+      "amount_cents": 12001,
+      "charged_on": "2025-06-30",
+      "paid_on": "2025-06-30",
+      "recoverable_bp": 0,
+      "document_id": "doc-ins2"
+    }
+  ],
+  "payments": [
+    {
+      "id": "p01",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-01-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p01",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p01",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-02-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p02",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p02",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p03",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-03-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p03",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p03",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-04-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p04",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p04",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-05-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p05",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p05",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p06",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-06-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p06",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p06",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p07",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-07-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p07",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p07",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p08",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-08-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p08",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p08",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p09",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-09-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p09",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p09",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-10-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p10",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p10",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p11",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-11-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p11",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p11",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p12",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-12-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p12",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p12",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "H1",
+      "furnished": false,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 5000
+        },
+        {
+          "owner_id": "O2",
+          "bp": 5000
+        }
+      ]
+    },
+    {
+      "asset_id": "A2",
+      "furnished": false,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 10000
+        }
+      ]
+    }
+  ],
+  "loans": [
+    {
+      "loan_id": "K1",
+      "asset_id": "H1",
+      "seq": 1,
+      "due_on": "2024-12-10",
+      "interest_cents": 25000,
+      "insurance_cents": 2500,
+      "document_id": "doc-k1"
+    },
+    {
+      "loan_id": "K1",
+      "asset_id": "H1",
+      "seq": 2,
+      "due_on": "2025-01-10",
+      "interest_cents": 24951,
+      "insurance_cents": 2500,
+      "document_id": "doc-k1"
+    },
+    {
+      "loan_id": "K1",
+      "asset_id": "H1",
+      "seq": 3,
+      "due_on": "2025-02-10",
+      "interest_cents": 24903,
+      "insurance_cents": 2500,
+      "document_id": "doc-k1"
+    },
+    {
+      "loan_id": "K1",
+      "asset_id": "H1",
+      "seq": 4,
+      "due_on": "2025-03-10",
+      "interest_cents": 24855,
+      "insurance_cents": 2501,
+      "document_id": "doc-k1"
+    },
+    {
+      "loan_id": "K1",
+      "asset_id": "H1",
+      "seq": 5,
+      "due_on": "2026-01-10",
+      "interest_cents": 24807,
+      "insurance_cents": 2500,
+      "document_id": "doc-k1"
+    },
+    {
+      "loan_id": "K2",
+      "asset_id": "A2",
+      "seq": 1,
+      "due_on": "2025-05-31",
+      "interest_cents": 7333,
+      "insurance_cents": 0
+    },
+    {
+      "loan_id": "K2",
+      "asset_id": "A2",
+      "seq": 2,
+      "due_on": "2025-06-30",
+      "interest_cents": 7100,
+      "insurance_cents": 0
+    }
+  ],
+  "steps": [
+    {
+      "name": "tax 2025",
+      "tax": {
+        "year": 2025
+      },
+      "expected": {
+        "year": 2025,
+        "millesime": 2026,
+        "owners": [
+          {
+            "owner_id": "O1",
+            "assets": [
+              {
+                "asset_id": "A2",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "250",
+                    "amount_cents": 26434,
+                    "sources": [
+                      "ins2",
+                      "loan:K2:1",
+                      "loan:K2:2"
+                    ]
+                  }
+                ],
+                "net_cents": -26434
+              },
+              {
+                "asset_id": "H1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "211",
+                    "amount_cents": 720006,
+                    "sources": [
+                      "p01",
+                      "p02",
+                      "p03",
+                      "p04",
+                      "p05",
+                      "p06",
+                      "p07",
+                      "p08",
+                      "p09",
+                      "p10",
+                      "p11",
+                      "p12"
+                    ]
+                  },
+                  {
+                    "line": "222",
+                    "amount_cents": 1000,
+                    "sources": [
+                      "forfait_222:L5"
+                    ]
+                  },
+                  {
+                    "line": "223",
+                    "amount_cents": 15500,
+                    "sources": [
+                      "ins"
+                    ]
+                  },
+                  {
+                    "line": "224",
+                    "amount_cents": 1000001,
+                    "sources": [
+                      "rep"
+                    ]
+                  },
+                  {
+                    "line": "227",
+                    "amount_cents": 70000,
+                    "sources": [
+                      "tf"
+                    ]
+                  },
+                  {
+                    "line": "250",
+                    "amount_cents": 41105,
+                    "sources": [
+                      "loan:K1:2",
+                      "loan:K1:2:insurance",
+                      "loan:K1:3",
+                      "loan:K1:3:insurance",
+                      "loan:K1:4",
+                      "loan:K1:4:insurance"
+                    ]
+                  }
+                ],
+                "net_cents": -407600
+              }
+            ],
+            "totals": [
+              {
+                "line": "211",
+                "amount_cents": 720006,
+                "sources": [
+                  "p01",
+                  "p02",
+                  "p03",
+                  "p04",
+                  "p05",
+                  "p06",
+                  "p07",
+                  "p08",
+                  "p09",
+                  "p10",
+                  "p11",
+                  "p12"
+                ]
+              },
+              {
+                "line": "222",
+                "amount_cents": 1000,
+                "sources": [
+                  "forfait_222:L5"
+                ]
+              },
+              {
+                "line": "223",
+                "amount_cents": 15500,
+                "sources": [
+                  "ins"
+                ]
+              },
+              {
+                "line": "224",
+                "amount_cents": 1000001,
+                "sources": [
+                  "rep"
+                ]
+              },
+              {
+                "line": "227",
+                "amount_cents": 70000,
+                "sources": [
+                  "tf"
+                ]
+              },
+              {
+                "line": "250",
+                "amount_cents": 67539,
+                "sources": [
+                  "ins2",
+                  "loan:K1:2",
+                  "loan:K1:2:insurance",
+                  "loan:K1:3",
+                  "loan:K1:3:insurance",
+                  "loan:K1:4",
+                  "loan:K1:4:insurance",
+                  "loan:K2:1",
+                  "loan:K2:2"
+                ]
+              }
+            ],
+            "micro": {
+              "eligible": true,
+              "gross_cents": 720006,
+              "allowance_cents": 216002,
+              "taxable_cents": 504004
+            },
+            "reel": {
+              "income_cents": 720006,
+              "interest_cents": 67539,
+              "other_expenses_cents": 1086501,
+              "net_cents": -434034,
+              "prior_used": null,
+              "taxable_cents": 0,
+              "global_imputable_cents": 434034,
+              "carried_forward": null,
+              "expired": null
+            },
+            "furnished_gross_receipts_cents": 0
+          },
+          {
+            "owner_id": "O2",
+            "assets": [
+              {
+                "asset_id": "H1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "211",
+                    "amount_cents": 720006,
+                    "sources": [
+                      "p01",
+                      "p02",
+                      "p03",
+                      "p04",
+                      "p05",
+                      "p06",
+                      "p07",
+                      "p08",
+                      "p09",
+                      "p10",
+                      "p11",
+                      "p12"
+                    ]
+                  },
+                  {
+                    "line": "222",
+                    "amount_cents": 1000,
+                    "sources": [
+                      "forfait_222:L5"
+                    ]
+                  },
+                  {
+                    "line": "223",
+                    "amount_cents": 15500,
+                    "sources": [
+                      "ins"
+                    ]
+                  },
+                  {
+                    "line": "224",
+                    "amount_cents": 1000000,
+                    "sources": [
+                      "rep"
+                    ]
+                  },
+                  {
+                    "line": "227",
+                    "amount_cents": 70000,
+                    "sources": [
+                      "tf"
+                    ]
+                  },
+                  {
+                    "line": "250",
+                    "amount_cents": 41105,
+                    "sources": [
+                      "loan:K1:2",
+                      "loan:K1:2:insurance",
+                      "loan:K1:3",
+                      "loan:K1:3:insurance",
+                      "loan:K1:4",
+                      "loan:K1:4:insurance"
+                    ]
+                  }
+                ],
+                "net_cents": -407599
+              }
+            ],
+            "totals": [
+              {
+                "line": "211",
+                "amount_cents": 720006,
+                "sources": [
+                  "p01",
+                  "p02",
+                  "p03",
+                  "p04",
+                  "p05",
+                  "p06",
+                  "p07",
+                  "p08",
+                  "p09",
+                  "p10",
+                  "p11",
+                  "p12"
+                ]
+              },
+              {
+                "line": "222",
+                "amount_cents": 1000,
+                "sources": [
+                  "forfait_222:L5"
+                ]
+              },
+              {
+                "line": "223",
+                "amount_cents": 15500,
+                "sources": [
+                  "ins"
+                ]
+              },
+              {
+                "line": "224",
+                "amount_cents": 1000000,
+                "sources": [
+                  "rep"
+                ]
+              },
+              {
+                "line": "227",
+                "amount_cents": 70000,
+                "sources": [
+                  "tf"
+                ]
+              },
+              {
+                "line": "250",
+                "amount_cents": 41105,
+                "sources": [
+                  "loan:K1:2",
+                  "loan:K1:2:insurance",
+                  "loan:K1:3",
+                  "loan:K1:3:insurance",
+                  "loan:K1:4",
+                  "loan:K1:4:insurance"
+                ]
+              }
+            ],
+            "micro": {
+              "eligible": true,
+              "gross_cents": 720006,
+              "allowance_cents": 216002,
+              "taxable_cents": 504004
+            },
+            "reel": {
+              "income_cents": 720006,
+              "interest_cents": 41105,
+              "other_expenses_cents": 1086500,
+              "net_cents": -407599,
+              "prior_used": null,
+              "taxable_cents": 0,
+              "global_imputable_cents": 407599,
+              "carried_forward": null,
+              "expired": null
+            },
+            "furnished_gross_receipts_cents": 0
+          }
+        ],
+        "flags": [
+          {
+            "kind": "missing_document",
+            "id": "loan:K2:1"
+          },
+          {
+            "kind": "missing_document",
+            "id": "loan:K2:2"
+          },
+          {
+            "kind": "superseded_by_loan",
+            "id": "int"
+          },
+          {
+            "kind": "superseded_by_loan",
+            "id": "lins"
+          },
+          {
+            "kind": "superseded_by_loan",
+            "id": "int2"
+          }
+        ]
+      }
+    }
+  ]
+}

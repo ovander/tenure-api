@@ -8200,6 +8200,411 @@
                 }
             }
         },
+        "/loans": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The loans financing the scope's assets, of one asset with asset_id, each with its totals by year and without its instalments (RENT-SPEC-014, Q-126).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loan"
+                ],
+                "summary": "Loans",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/loan.View"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Without instalments, the table is computed: a fixed rate, constant monthly instalments, the interest of each month the balance times the annual rate divided by twelve, to the cent half-up, the last instalment closing the balance. With instalments, it is the bank's table as typed in, checked to repay the principal (Q-126). Each instalment due in an income year puts its interest and insurance on line 250 of the tax summary.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loan"
+                ],
+                "summary": "Record a loan",
+                "parameters": [
+                    {
+                        "description": "loan",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/loan.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/loan.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/loans/schedule": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The table POST /loans would compute from these terms, without recording anything.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loan"
+                ],
+                "summary": "Preview an amortisation table",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "principal, in cents",
+                        "name": "principal_cents",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "annual rate, in parts per million",
+                        "name": "annual_rate_ppm",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "number of monthly instalments",
+                        "name": "term_months",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "date",
+                        "description": "first due day",
+                        "name": "first_due_on",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "insurance per instalment, in cents",
+                        "name": "insurance_cents",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loan.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/loans/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loan"
+                ],
+                "summary": "A loan and its amortisation table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "loan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loan.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces its terms and its table, computed or typed in as for POST /loans. A tax summary already issued keeps its figures.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loan"
+                ],
+                "summary": "Change a loan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "loan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "loan",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/loan.Input"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loan.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/me": {
             "get": {
                 "security": [
@@ -15416,6 +15821,187 @@
                 }
             }
         },
+        "loan.Input": {
+            "type": "object",
+            "properties": {
+                "annual_rate_ppm": {
+                    "description": "AnnualRatePPM is the nominal annual rate in parts per million (3.45 %\nis 34500); required for a computed table.",
+                    "type": "integer",
+                    "example": 34500
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "description": "DocumentID is the bank's offer or table, uploaded through POST\n/documents.",
+                    "type": "string"
+                },
+                "first_due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "instalments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loan.InstalmentInput"
+                    }
+                },
+                "insurance_cents": {
+                    "type": "integer",
+                    "example": 2500
+                },
+                "label": {
+                    "type": "string",
+                    "example": "Prêt bancaire"
+                },
+                "lender": {
+                    "type": "string",
+                    "example": "Banque Exemple"
+                },
+                "principal_cents": {
+                    "type": "integer",
+                    "example": 15000000
+                },
+                "term_months": {
+                    "type": "integer",
+                    "example": 240
+                }
+            }
+        },
+        "loan.Instalment": {
+            "type": "object",
+            "properties": {
+                "due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "insurance_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "principal_cents": {
+                    "type": "integer"
+                },
+                "remaining_cents": {
+                    "type": "integer"
+                },
+                "seq": {
+                    "type": "integer"
+                }
+            }
+        },
+        "loan.InstalmentInput": {
+            "type": "object",
+            "properties": {
+                "due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "insurance_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "principal_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "loan.View": {
+            "type": "object",
+            "properties": {
+                "annual_rate_ppm": {
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "first_due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "instalments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loan.Instalment"
+                    }
+                },
+                "insurance_cents": {
+                    "type": "integer"
+                },
+                "insurance_total_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "last_due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "lender": {
+                    "type": "string"
+                },
+                "principal_cents": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string",
+                    "enum": [
+                        "computed",
+                        "imported"
+                    ]
+                },
+                "term_months": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "years": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loan.Year"
+                    }
+                }
+            }
+        },
+        "loan.Year": {
+            "type": "object",
+            "properties": {
+                "instalments": {
+                    "type": "integer"
+                },
+                "insurance_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "principal_cents": {
+                    "type": "integer"
+                },
+                "remaining_cents": {
+                    "description": "RemainingCents is the principal still owed at the year's end.",
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
         "params.Entry": {
             "type": "object",
             "properties": {
@@ -16557,6 +17143,10 @@
                     "type": "integer"
                 },
                 "draft_charges": {
+                    "type": "integer"
+                },
+                "loan_instalments": {
+                    "description": "LoanInstalments counts the recorded loans' instalments due in the\nyear (Q-126).",
                     "type": "integer"
                 },
                 "payments": {
