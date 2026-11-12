@@ -1689,3 +1689,63 @@ line 250 automatically ». Provisional reading:
   - the ledger and the period lock (part 15b);
   - the exports (part 15c);
   - the screen (part 15d).
+
+**Q-127 The owner's journal and the period lock, part 15b — Open (#156).** RENT-SPEC-014 asks for
+« every payment, charge and deposit movement as a double-entry line per owner, deposits as
+liabilities; period lock after the tax summary is issued ». Provisional reading:
+
+- **Computed, not stored.** The journal is posted on demand from the movements already
+  recorded, like the calendar (Q-116). It cannot drift from them, and the period lock is what
+  makes a closed year's journal stable.
+- **Cash basis**, the tax summary's: a movement is posted on the day the money moved. Rent
+  calls are not posted. A receivables journal (rent called, then paid) would need the calls'
+  cancellations and reissues posted too, and is left for when an accountant asks for it.
+- **The chart of accounts lives in `legal_params`** (`ledger.chart`). It holds the accounts by
+  role and the account of each charge category, numbered after the plan comptable général. It
+  is a management choice for the owner's accountant to confirm, not a legal value. A charge
+  whose category the chart does not map refuses the journal (`ledger/chart-incomplete`), so
+  nothing is posted to no account.
+- **Entries**, each balanced:
+  - **A payment**: debit the bank. Credit rent with the rent it paid, and the provisions
+    account with the provisions and regularisation it paid. The split is the tax summary's
+    (Q-65), so the rent account is line 211's figure. Credit the tenants' advances with what
+    is unapplied.
+  - **A confirmed charge paid**: credit the bank.
+    - Its recoverable part is debited to the provisions account. It is to be recovered from the
+      tenants, so that account's balance is the regularisation still to come.
+    - The rest is debited to its category's account.
+    - An income category (an expense reimbursed by the tenant, an indemnity) is money
+      received: debit the bank and credit the category's account.
+  - **A loan instalment**: debit the loan with the principal, plus the interest and the
+    borrower insurance; credit the bank.
+  - **A deposit received**: debit the bank and credit the deposits account, a liability. It is
+    dated on the guarantee's `valid_from`, or else the lease's start, for a lease past its
+    draft.
+  - **A deposit statement (RD)**:
+    - debit the deposit it releases and the late penalty;
+    - credit rent with the arrears kept, the provisions with the regularisation kept, and other
+      income with the deductions;
+    - credit the bank with what is paid back, assumed paid on the statement's day;
+    - when the balance is negative, debit the tenants' account with what the tenant still owes.
+- **`GET /ledger?year=`** returns the year's entries, the movements of each account, and
+  whether the year is closed.
+- **The period lock.** Once a year's tax summary is issued (an issued summary is final), the year is closed. A
+  database trigger refuses any write that would change what the summary was computed from, on
+  every path, the bank matching and the jobs included:
+  - a payment's day, amount or lease, a payment created or deleted, and its matches, when the
+    payment is dated in the closed year;
+  - a charge's day paid, amount, recoverable part, category, asset or status, on either side of
+    the change;
+  - a loan instalment due in the closed year.
+
+  The refusal is SQLSTATE TL001, turned into a 409 `ledger/period-locked`. Attaching an
+  invoice to a closed charge stays possible: it changes no figure. A rent call paid in a
+  closed year can no longer be cancelled and reissued, since its matches would move.
+- **Not locked:** deposits and statements, which the tax summary does not read; a statement is
+  already immutable.
+- **Not built yet:**
+  - opening balances carried from one year to the next;
+  - the loan's disbursement and the asset's purchase;
+  - a correction posted in the next year to undo a closed figure (today it is refused);
+  - the exports: ledger CSV, year-end pack and FEC (part 15c);
+  - the screen (part 15d).

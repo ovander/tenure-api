@@ -34,6 +34,7 @@ import (
 	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/jobs"
 	"github.com/ovander/tenure-api/internal/lease"
+	"github.com/ovander/tenure-api/internal/ledger"
 	"github.com/ovander/tenure-api/internal/loan"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
@@ -62,6 +63,7 @@ type Deps struct {
 	Inventory      inventory.Handler
 	Calendar       calendar.Handler
 	Loans          loan.Handler
+	Ledger         ledger.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -208,6 +210,7 @@ func Routes(d Deps) []Route {
 		{"POST", "/bank-lines/auto", GuardScopeOwnerW, false, h(d.Payments.AutoMatch)},
 		{"GET", "/bank-lines/{id}/charge-suggestions", GuardScopeOwnerW, false, h(d.Charges.ChargeSuggestions)},
 		{"POST", "/bank-lines/{id}/charges", GuardScopeOwnerW, false, h(d.Charges.MatchCharges)},
+		{"GET", "/ledger", GuardScopeOwnerW, false, h(d.Ledger.Get)},
 		{"GET", "/loans", GuardScopeOwnerW, false, h(d.Loans.List)},
 		{"POST", "/loans", GuardScopeOwnerW, false, h(d.Loans.Create)},
 		{"GET", "/loans/schedule", GuardScopeOwnerW, false, h(d.Loans.Schedule)},

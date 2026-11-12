@@ -8200,6 +8200,70 @@
                 }
             }
         },
+        "/ledger": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Every movement of the year posted on a cash basis, in double entry, to the accounts of the chart in legal_params: rent received (rent, provisions, unapplied), charges paid (their recoverable part to the provisions account), loan instalments, deposits received (a liability) and deposit statements; and the balance of each account. closed says the year's tax summary is issued: what it was computed from no longer changes (Q-127).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ledger"
+                ],
+                "summary": "The owner's journal of a year",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ledger.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/loans": {
             "get": {
                 "security": [
@@ -15817,6 +15881,106 @@
                     "type": "string"
                 },
                 "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ledger.Balance": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "balance_cents": {
+                    "description": "BalanceCents is debit − credit.",
+                    "type": "integer"
+                },
+                "credit_cents": {
+                    "type": "integer"
+                },
+                "debit_cents": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "ledger.Entry": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "journal": {
+                    "type": "string",
+                    "enum": [
+                        "BQ",
+                        "OD"
+                    ]
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "payment",
+                        "charge",
+                        "instalment",
+                        "deposit",
+                        "settlement"
+                    ]
+                },
+                "label": {
+                    "type": "string"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ledger.Line"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "ledger.Line": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "credit_cents": {
+                    "type": "integer"
+                },
+                "debit_cents": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "ledger.View": {
+            "type": "object",
+            "properties": {
+                "balances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ledger.Balance"
+                    }
+                },
+                "closed": {
+                    "description": "Closed says the year's tax summary is issued: its figures no longer\nchange (Q-127).",
+                    "type": "boolean"
+                },
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ledger.Entry"
+                    }
+                },
+                "year": {
                     "type": "integer"
                 }
             }

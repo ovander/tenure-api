@@ -16,10 +16,30 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/ovander/tenure-api/internal/invariant"
 )
+
+// TypePeriodLocked is the problem of a write the period lock refused
+// (migration 000025, Q-127): the database raises SQLSTATE codePeriodLocked
+// and InScope returns it as this business rule. internal/ledger registers
+// its titles.
+const TypePeriodLocked = "ledger/period-locked"
+
+const codePeriodLocked = "TL001"
+
+// lockErr turns the period lock's refusal into its business rule.
+func lockErr(err error) error {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.Code == codePeriodLocked {
+		return invariant.New(TypePeriodLocked, pg.Message)
+	}
+	return err
+}
 
 // ErrNoScope is returned by Tx outside InScope.
 var ErrNoScope = errors.New("db: no scoped transaction in context")
@@ -91,7 +111,7 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 		}
 		return fn(ctx)
 	}
-	return d.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return lockErr(d.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		owner := ""
 		if scope.OwnerID != uuid.Nil {
 			owner = scope.OwnerID.String()
@@ -101,7 +121,7 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 			return fmt.Errorf("db: set scope: %w", err)
 		}
 		return fn(context.WithValue(ctx, txKey{}, txValue{tx: tx, scope: scope}))
-	})
+	}))
 }
 
 // Tx returns the scoped transaction of ctx, bound to ctx.
