@@ -2,12 +2,17 @@ package golden
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
+
+	"golang.org/x/text/encoding/charmap"
 
 	"github.com/ovander/tenure-api/internal/ledger"
 	"github.com/ovander/tenure-api/internal/period"
@@ -22,6 +27,9 @@ type ledgerStep struct {
 	From   period.Date   `json:"from"`
 	To     period.Date   `json:"to"`
 	Inputs ledger.Inputs `json:"inputs"`
+	// ValidOn, when set, also writes the journal CSV and the FEC validated
+	// on that day (Q-128).
+	ValidOn *period.Date `json:"valid_on,omitempty"`
 }
 
 type ledgerCase struct {
@@ -65,7 +73,22 @@ func TestLedgerGolden(t *testing.T) {
 					out[s.Name] = map[string]string{"error": err.Error()}
 					continue
 				}
-				out[s.Name] = map[string]any{"entries": entries, "balances": balances}
+				res := map[string]any{"entries": entries, "balances": balances}
+				if s.ValidOn != nil {
+					fec, err := ledger.FEC(entries, *s.ValidOn)
+					if err != nil {
+						t.Fatal(err)
+					}
+					text, err := charmap.ISO8859_15.NewDecoder().Bytes(fec)
+					if err != nil {
+						t.Fatal(err)
+					}
+					sum := sha256.Sum256(fec)
+					res["csv"] = strings.Split(string(ledger.CSV(entries)), "\n")
+					res["fec"] = strings.Split(string(text), "\r\n")
+					res["fec_sha256"] = hex.EncodeToString(sum[:])
+				}
+				out[s.Name] = res
 			}
 			got, err := json.MarshalIndent(out, "  ", "  ")
 			if err != nil {

@@ -8264,6 +8264,204 @@
                 }
             }
         },
+        "/ledger/fec.txt": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The eighteen fields of LPF art. A47 A-1, tab-separated, ISO 8859-15, dates AAAAMMJJ, amounts with a decimal comma; only for a closed year, validated the day its tax summary was issued (Q-128). Requires a recent multi-factor login; the export is audited.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "ledger"
+                ],
+                "summary": "The year's fichier des écritures comptables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/ledger/journal.csv": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "One row per line of each entry, numbered, amounts in cents (Q-128). Requires a recent multi-factor login; the export is audited.",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "ledger"
+                ],
+                "summary": "The year's journal as CSV",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/ledger/pack.zip": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A ZIP of the journal, the balances, the index of the supporting documents and a note; for a closed year, the FEC and the issued 2044 lines too (Q-128). Requires a recent multi-factor login; the export is audited.",
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "ledger"
+                ],
+                "summary": "The year-end pack",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/loans": {
             "get": {
                 "security": [
@@ -15912,6 +16110,10 @@
                 "date": {
                     "type": "string",
                     "format": "date"
+                },
+                "document_id": {
+                    "description": "DocumentID is the supporting document archived for it, if any.",
+                    "type": "string"
                 },
                 "journal": {
                     "type": "string",

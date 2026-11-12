@@ -3,6 +3,10 @@
 package itest
 
 import (
+	"archive/zip"
+	"bytes"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -108,5 +112,50 @@ func TestLedger(t *testing.T) {
 	}
 	if n := superCount(t, "SELECT count(*) FROM charges WHERE owner_id = $1 AND paid_on BETWEEN '2025-01-01' AND '2025-12-31'", owner.ID); n != 1 {
 		t.Errorf("2025 charges: %d", n)
+	}
+
+	// The exports (Q-128), behind a recent multi-factor login, each audited.
+	if r := call(t, "GET", "/ledger/journal.csv?year=2025", req{tok: tok}); r.Status != 401 {
+		t.Errorf("journal without step-up: %d", r.Status)
+	}
+	r := call(t, "GET", "/ledger/journal.csv?year=2025", req{tok: fresh()})
+	if r.Status != 200 || !strings.HasPrefix(string(r.Body), "entry,date,journal") || !strings.Contains(string(r.Body), invoice.ID) {
+		t.Errorf("journal csv %d %s", r.Status, r.Body)
+	}
+	if r := call(t, "GET", "/ledger/fec.txt?year=2026", req{tok: fresh()}); r.problemType(t) != ledger.TypeYearOpen {
+		t.Errorf("FEC of an open year: %d %s", r.Status, r.Body)
+	}
+	r = call(t, "GET", "/ledger/fec.txt?year=2025", req{tok: fresh()})
+	rows := strings.Split(strings.TrimSpace(string(r.Body)), "\r\n")
+	issuedOn := strings.ReplaceAll(today().String(), "-", "")
+	if r.Status != 200 || !strings.HasPrefix(rows[0], "JournalCode\tJournalLib") || len(rows) < 4 ||
+		!strings.Contains(rows[1], "\t"+issuedOn+"\t") || !strings.Contains(r.Header.Get("Content-Disposition"), "FEC20251231.txt") {
+		t.Errorf("FEC %d %q", r.Status, rows)
+	}
+	r = call(t, "GET", "/ledger/pack.zip?year=2025", req{tok: fresh()})
+	z, err := zip.NewReader(bytes.NewReader(r.Body), int64(len(r.Body)))
+	if r.Status != 200 || err != nil {
+		t.Fatalf("pack %d %v", r.Status, err)
+	}
+	files := map[string]string{}
+	for _, f := range z.File {
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(rc)
+		_ = rc.Close()
+		files[f.Name] = string(b)
+	}
+	for _, name := range []string{"journal-2025.csv", "soldes-2025.csv", "FEC20251231.txt", "lignes-2044-2025.csv", "pieces-2025.csv", "LISEZMOI.txt"} {
+		if _, ok := files[name]; !ok {
+			t.Errorf("pack lacks %s: %v", name, z.File)
+		}
+	}
+	if !strings.Contains(files["pieces-2025.csv"], invoice.ID) || !strings.Contains(files["pieces-2025.csv"], "tax_summary:2025") {
+		t.Errorf("pieces %s", files["pieces-2025.csv"])
+	}
+	if n := superCount(t, "SELECT count(*) FROM audit_events WHERE action = 'ledger.export' AND owner_id = $1", owner.ID); n != 3 {
+		t.Errorf("exports audited: %d", n)
 	}
 }

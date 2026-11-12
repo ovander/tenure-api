@@ -52,12 +52,13 @@ func (Repository) Payments(ctx context.Context, from, to time.Time) ([]paymentRo
 }
 
 type chargeRow struct {
-	ID               uuid.UUID `gorm:"column:id"`
-	AssetID          uuid.UUID `gorm:"column:asset_id"`
-	Category         string    `gorm:"column:category"`
-	PaidOn           time.Time `gorm:"column:paid_on"`
-	AmountCents      int64     `gorm:"column:amount_cents"`
-	RecoverableCents int64     `gorm:"column:recoverable_cents"`
+	ID               uuid.UUID  `gorm:"column:id"`
+	AssetID          uuid.UUID  `gorm:"column:asset_id"`
+	Category         string     `gorm:"column:category"`
+	PaidOn           time.Time  `gorm:"column:paid_on"`
+	AmountCents      int64      `gorm:"column:amount_cents"`
+	RecoverableCents int64      `gorm:"column:recoverable_cents"`
+	DocumentID       *uuid.UUID `gorm:"column:document_id"`
 }
 
 // Charges returns the confirmed charges paid in [from, to].
@@ -67,18 +68,19 @@ func (Repository) Charges(ctx context.Context, from, to time.Time) ([]chargeRow,
 		return nil, err
 	}
 	var rows []chargeRow
-	err = t.Table("charges").Select("id, asset_id, category, paid_on, amount_cents, recoverable_cents").
+	err = t.Table("charges").Select("id, asset_id, category, paid_on, amount_cents, recoverable_cents, document_id").
 		Where("status = 'confirmed' AND paid_on BETWEEN ? AND ?", from, to).Order("paid_on, id").Scan(&rows).Error
 	return rows, err
 }
 
 type instalmentRow struct {
-	LoanID         uuid.UUID `gorm:"column:loan_id"`
-	Seq            int       `gorm:"column:seq"`
-	DueOn          time.Time `gorm:"column:due_on"`
-	PrincipalCents int64     `gorm:"column:principal_cents"`
-	InterestCents  int64     `gorm:"column:interest_cents"`
-	InsuranceCents int64     `gorm:"column:insurance_cents"`
+	LoanID         uuid.UUID  `gorm:"column:loan_id"`
+	Seq            int        `gorm:"column:seq"`
+	DueOn          time.Time  `gorm:"column:due_on"`
+	PrincipalCents int64      `gorm:"column:principal_cents"`
+	InterestCents  int64      `gorm:"column:interest_cents"`
+	InsuranceCents int64      `gorm:"column:insurance_cents"`
+	DocumentID     *uuid.UUID `gorm:"column:document_id"`
 }
 
 // Instalments returns the loan instalments due in [from, to].
@@ -88,8 +90,9 @@ func (Repository) Instalments(ctx context.Context, from, to time.Time) ([]instal
 		return nil, err
 	}
 	var rows []instalmentRow
-	err = t.Table("loan_instalments").Select("loan_id, seq, due_on, principal_cents, interest_cents, insurance_cents").
-		Where("due_on BETWEEN ? AND ?", from, to).Order("due_on, loan_id, seq").Scan(&rows).Error
+	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
+		Select("i.loan_id, i.seq, i.due_on, i.principal_cents, i.interest_cents, i.insurance_cents, l.document_id").
+		Where("i.due_on BETWEEN ? AND ?", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
 	return rows, err
 }
 
@@ -118,10 +121,11 @@ func (Repository) Deposits(ctx context.Context, from, to time.Time) ([]depositRo
 }
 
 type settlementRow struct {
-	ID        uuid.UUID       `gorm:"column:id"`
-	LeaseID   uuid.UUID       `gorm:"column:lease_id"`
-	SettledOn time.Time       `gorm:"column:settled_on"`
-	Figures   json.RawMessage `gorm:"column:figures"`
+	ID         uuid.UUID       `gorm:"column:id"`
+	LeaseID    uuid.UUID       `gorm:"column:lease_id"`
+	SettledOn  time.Time       `gorm:"column:settled_on"`
+	Figures    json.RawMessage `gorm:"column:figures"`
+	DocumentID uuid.UUID       `gorm:"column:document_id"`
 }
 
 // Settlements returns the deposit statements settled in [from, to].
@@ -131,18 +135,54 @@ func (Repository) Settlements(ctx context.Context, from, to time.Time) ([]settle
 		return nil, err
 	}
 	var rows []settlementRow
-	err = t.Table("deposit_settlements").Select("id, lease_id, settled_on, figures").
+	err = t.Table("deposit_settlements").Select("id, lease_id, settled_on, figures, document_id").
 		Where("settled_on BETWEEN ? AND ?", from, to).Order("settled_on, id").Scan(&rows).Error
 	return rows, err
 }
 
-// Closed reports whether the scope's tax summary of year is issued.
-func (Repository) Closed(ctx context.Context, year int) (bool, error) {
+type issuedRow struct {
+	IssuedAt      time.Time       `gorm:"column:issued_at"`
+	Summary       json.RawMessage `gorm:"column:summary"`
+	DocumentID    *uuid.UUID      `gorm:"column:document_id"`
+	CSVDocumentID *uuid.UUID      `gorm:"column:csv_document_id"`
+}
+
+// Issued returns the scope's issued tax summary of year, if any.
+func (Repository) Issued(ctx context.Context, year int) (issuedRow, bool, error) {
 	t, err := tx(ctx)
 	if err != nil {
-		return false, err
+		return issuedRow{}, false, err
 	}
-	var n int64
-	err = t.Table("tax_summaries").Where("tax_year = ? AND state = 'issued'", year).Count(&n).Error
-	return n > 0, err
+	var rows []issuedRow
+	err = t.Table("tax_summaries").Select("issued_at, summary, document_id, csv_document_id").
+		Where("tax_year = ? AND state = 'issued'", year).Limit(1).Scan(&rows).Error
+	if err != nil || len(rows) == 0 {
+		return issuedRow{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+type documentRow struct {
+	ID           uuid.UUID `gorm:"column:id"`
+	Class        string    `gorm:"column:class"`
+	OriginalName string    `gorm:"column:original_name"`
+	ObjectKey    string    `gorm:"column:object_key"`
+	SHA256       string    `gorm:"column:sha256"`
+	SizeBytes    int64     `gorm:"column:size_bytes"`
+	CreatedAt    time.Time `gorm:"column:created_at"`
+}
+
+// Documents returns the scope's documents with ids, by id.
+func (Repository) Documents(ctx context.Context, ids []uuid.UUID) ([]documentRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []documentRow
+	if len(ids) == 0 {
+		return rows, nil
+	}
+	err = t.Table("documents").Select("id, class, original_name, object_key, sha256, size_bytes, created_at").
+		Where("id IN ?", ids).Order("id").Scan(&rows).Error
+	return rows, err
 }
