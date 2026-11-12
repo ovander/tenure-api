@@ -79,6 +79,8 @@ type Charge struct {
 	PaidOn           period.Date `json:"paid_on"`
 	AmountCents      money.Cents `json:"amount_cents"`
 	RecoverableCents money.Cents `json:"recoverable_cents"`
+	// DocumentID is its invoice, if uploaded.
+	DocumentID string `json:"document_id,omitempty"`
 }
 
 // Instalment is a loan instalment, debited on its due day.
@@ -89,6 +91,8 @@ type Instalment struct {
 	PrincipalCents money.Cents `json:"principal_cents"`
 	InterestCents  money.Cents `json:"interest_cents"`
 	InsuranceCents money.Cents `json:"insurance_cents"`
+	// DocumentID is the loan's offer or table, if uploaded.
+	DocumentID string `json:"document_id,omitempty"`
 }
 
 // Deposit is a security deposit received for a lease.
@@ -112,6 +116,8 @@ type Settlement struct {
 	RegularisationCents money.Cents `json:"regularisation_cents"`
 	PenaltyCents        money.Cents `json:"penalty_cents"`
 	TotalCents          money.Cents `json:"total_cents"`
+	// DocumentID is the RD statement.
+	DocumentID string `json:"document_id,omitempty"`
 }
 
 // Inputs are the movements the journal posts.
@@ -141,7 +147,9 @@ type Entry struct {
 	Kind    string      `json:"kind" enums:"payment,charge,instalment,deposit,settlement"`
 	Source  string      `json:"source"`
 	Label   string      `json:"label"`
-	Lines   []Line      `json:"lines"`
+	// DocumentID is the supporting document archived for it, if any.
+	DocumentID string `json:"document_id,omitempty"`
+	Lines      []Line `json:"lines"`
 }
 
 // Balance is an account's movements over the journal.
@@ -249,7 +257,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !ok || a.Code == "" {
 			return nil, nil, fmt.Errorf("%w: category %s (charge %s)", ErrChart, c.Category, c.ID)
 		}
-		b := &builder{Entry{Date: c.PaidOn, Journal: JournalBank, Kind: "charge", Source: c.ID, Label: a.Label}}
+		b := &builder{Entry{Date: c.PaidOn, Journal: JournalBank, Kind: "charge", Source: c.ID, Label: a.Label, DocumentID: c.DocumentID}}
 		if income[c.Category] {
 			b.add(acc[RoleBank], c.AmountCents)
 			b.add(a, -c.AmountCents)
@@ -266,7 +274,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(i.DueOn) {
 			continue
 		}
-		b := &builder{Entry{Date: i.DueOn, Journal: JournalBank, Kind: "instalment", Source: fmt.Sprintf("loan:%s:%d", i.LoanID, i.Seq), Label: "Échéance d’emprunt"}}
+		b := &builder{Entry{Date: i.DueOn, Journal: JournalBank, Kind: "instalment", Source: fmt.Sprintf("loan:%s:%d", i.LoanID, i.Seq), Label: "Échéance d’emprunt", DocumentID: i.DocumentID}}
 		b.add(acc[RoleLoans], i.PrincipalCents)
 		b.add(acc[RoleLoanInterest], i.InterestCents)
 		b.add(acc[RoleLoanInsurance], i.InsuranceCents)
@@ -290,7 +298,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(s.SettledOn) {
 			continue
 		}
-		b := &builder{Entry{Date: s.SettledOn, Journal: JournalGeneral, Kind: "settlement", Source: s.ID, Label: "Restitution du dépôt de garantie"}}
+		b := &builder{Entry{Date: s.SettledOn, Journal: JournalGeneral, Kind: "settlement", Source: s.ID, Label: "Restitution du dépôt de garantie", DocumentID: s.DocumentID}}
 		b.add(acc[RoleDeposits], s.ReleasedCents)
 		b.add(acc[RolePenalties], s.PenaltyCents)
 		b.add(acc[RoleRent], -s.ArrearsCents)

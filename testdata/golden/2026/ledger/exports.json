@@ -1,0 +1,579 @@
+{
+  "case": "exports",
+  "description": "The journal of the journal case exported (Q-128): the CSV, one row per line; the FEC validated the day the year was closed, in ISO 8859-15 with a decimal comma and AAAAMMJJ dates, its typographic apostrophes written plainly; the invoices and statements behind the entries carried as their document ids.",
+  "steps": [
+    {
+      "name": "year 2026, exported",
+      "from": "2026-01-01",
+      "to": "2026-12-31",
+      "inputs": {
+        "payments": [
+          {
+            "id": "P0",
+            "lease_id": "L1",
+            "paid_on": "2025-12-28",
+            "amount_cents": 90000,
+            "rent_cents": 80000,
+            "provision_cents": 10000,
+            "regularisation_cents": 0
+          },
+          {
+            "id": "P1",
+            "lease_id": "L1",
+            "paid_on": "2026-01-05",
+            "amount_cents": 90000,
+            "rent_cents": 80000,
+            "provision_cents": 10000,
+            "regularisation_cents": 0
+          },
+          {
+            "id": "P2",
+            "lease_id": "L1",
+            "paid_on": "2026-03-04",
+            "amount_cents": 95000,
+            "rent_cents": 80000,
+            "provision_cents": 10000,
+            "regularisation_cents": 0
+          }
+        ],
+        "charges": [
+          {
+            "id": "TF",
+            "asset_id": "A1",
+            "category": "property_tax",
+            "paid_on": "2026-10-15",
+            "amount_cents": 120000,
+            "recoverable_cents": 0,
+            "document_id": "DOC-TF"
+          },
+          {
+            "id": "TEOM",
+            "asset_id": "A1",
+            "category": "teom",
+            "paid_on": "2026-10-15",
+            "amount_cents": 15000,
+            "recoverable_cents": 15000
+          },
+          {
+            "id": "COPRO",
+            "asset_id": "A1",
+            "category": "copro_provision",
+            "paid_on": "2026-04-01",
+            "amount_cents": 60000,
+            "recoverable_cents": 35001
+          },
+          {
+            "id": "REFACT",
+            "asset_id": "A1",
+            "category": "owner_expense_charged_to_tenant",
+            "paid_on": "2026-05-20",
+            "amount_cents": 4500,
+            "recoverable_cents": 0
+          },
+          {
+            "id": "NEXT",
+            "asset_id": "A1",
+            "category": "repairs",
+            "paid_on": "2027-01-02",
+            "amount_cents": 1000,
+            "recoverable_cents": 0
+          }
+        ],
+        "instalments": [
+          {
+            "loan_id": "K1",
+            "seq": 13,
+            "due_on": "2026-01-10",
+            "principal_cents": 43484,
+            "interest_cents": 43125,
+            "insurance_cents": 2500,
+            "document_id": "DOC-K1"
+          }
+        ],
+        "deposits": [
+          {
+            "id": "G1",
+            "lease_id": "L1",
+            "received_on": "2026-01-01",
+            "amount_cents": 80000
+          }
+        ],
+        "settlements": [
+          {
+            "id": "RD1",
+            "lease_id": "L9",
+            "settled_on": "2026-06-30",
+            "released_cents": 100000,
+            "deductions_cents": 20000,
+            "arrears_cents": 30000,
+            "regularisation_cents": 5000,
+            "penalty_cents": 10000,
+            "total_cents": 55000,
+            "document_id": "DOC-RD1"
+          },
+          {
+            "id": "RD2",
+            "lease_id": "L8",
+            "settled_on": "2026-07-31",
+            "released_cents": 50000,
+            "deductions_cents": 60000,
+            "arrears_cents": 0,
+            "regularisation_cents": 0,
+            "penalty_cents": 0,
+            "total_cents": -10000
+          }
+        ]
+      },
+      "valid_on": "2027-05-20"
+    }
+  ],
+  "expected": {
+    "year 2026, exported": {
+      "balances": [
+        {
+          "account": "164000",
+          "label": "Emprunts auprès des établissements de crédit",
+          "debit_cents": 43484,
+          "credit_cents": 0,
+          "balance_cents": 43484
+        },
+        {
+          "account": "165000",
+          "label": "Dépôts et cautionnements reçus",
+          "debit_cents": 150000,
+          "credit_cents": 80000,
+          "balance_cents": 70000
+        },
+        {
+          "account": "411000",
+          "label": "Locataires",
+          "debit_cents": 10000,
+          "credit_cents": 0,
+          "balance_cents": 10000
+        },
+        {
+          "account": "419100",
+          "label": "Locataires, avances reçues",
+          "debit_cents": 0,
+          "credit_cents": 5000,
+          "balance_cents": -5000
+        },
+        {
+          "account": "419800",
+          "label": "Locataires, provisions sur charges",
+          "debit_cents": 50001,
+          "credit_cents": 25000,
+          "balance_cents": 25001
+        },
+        {
+          "account": "512000",
+          "label": "Banque",
+          "debit_cents": 269500,
+          "credit_cents": 339109,
+          "balance_cents": -69609
+        },
+        {
+          "account": "614000",
+          "label": "Charges locatives et de copropriété",
+          "debit_cents": 24999,
+          "credit_cents": 0,
+          "balance_cents": 24999
+        },
+        {
+          "account": "616100",
+          "label": "Assurance emprunteur",
+          "debit_cents": 2500,
+          "credit_cents": 0,
+          "balance_cents": 2500
+        },
+        {
+          "account": "635120",
+          "label": "Taxes foncières",
+          "debit_cents": 120000,
+          "credit_cents": 0,
+          "balance_cents": 120000
+        },
+        {
+          "account": "661100",
+          "label": "Intérêts des emprunts",
+          "debit_cents": 43125,
+          "credit_cents": 0,
+          "balance_cents": 43125
+        },
+        {
+          "account": "671200",
+          "label": "Pénalités et amendes",
+          "debit_cents": 10000,
+          "credit_cents": 0,
+          "balance_cents": 10000
+        },
+        {
+          "account": "706000",
+          "label": "Loyers",
+          "debit_cents": 0,
+          "credit_cents": 190000,
+          "balance_cents": -190000
+        },
+        {
+          "account": "708000",
+          "label": "Produits des activités annexes",
+          "debit_cents": 0,
+          "credit_cents": 84500,
+          "balance_cents": -84500
+        }
+      ],
+      "csv": [
+        "entry,date,journal,kind,source,label,account,account_label,debit_cents,credit_cents,document_id",
+        "1,2026-01-01,BQ,deposit,G1,Dépôt de garantie reçu,512000,Banque,80000,0,",
+        "1,2026-01-01,BQ,deposit,G1,Dépôt de garantie reçu,165000,Dépôts et cautionnements reçus,0,80000,",
+        "2,2026-01-05,BQ,payment,P1,Encaissement du locataire,512000,Banque,90000,0,",
+        "2,2026-01-05,BQ,payment,P1,Encaissement du locataire,706000,Loyers,0,80000,",
+        "2,2026-01-05,BQ,payment,P1,Encaissement du locataire,419800,\"Locataires, provisions sur charges\",0,10000,",
+        "3,2026-01-10,BQ,instalment,loan:K1:13,Échéance d’emprunt,164000,Emprunts auprès des établissements de crédit,43484,0,DOC-K1",
+        "3,2026-01-10,BQ,instalment,loan:K1:13,Échéance d’emprunt,661100,Intérêts des emprunts,43125,0,DOC-K1",
+        "3,2026-01-10,BQ,instalment,loan:K1:13,Échéance d’emprunt,616100,Assurance emprunteur,2500,0,DOC-K1",
+        "3,2026-01-10,BQ,instalment,loan:K1:13,Échéance d’emprunt,512000,Banque,0,89109,DOC-K1",
+        "4,2026-03-04,BQ,payment,P2,Encaissement du locataire,512000,Banque,95000,0,",
+        "4,2026-03-04,BQ,payment,P2,Encaissement du locataire,706000,Loyers,0,80000,",
+        "4,2026-03-04,BQ,payment,P2,Encaissement du locataire,419800,\"Locataires, provisions sur charges\",0,10000,",
+        "4,2026-03-04,BQ,payment,P2,Encaissement du locataire,419100,\"Locataires, avances reçues\",0,5000,",
+        "5,2026-04-01,BQ,charge,COPRO,Charges locatives et de copropriété,419800,\"Locataires, provisions sur charges\",35001,0,",
+        "5,2026-04-01,BQ,charge,COPRO,Charges locatives et de copropriété,614000,Charges locatives et de copropriété,24999,0,",
+        "5,2026-04-01,BQ,charge,COPRO,Charges locatives et de copropriété,512000,Banque,0,60000,",
+        "6,2026-05-20,BQ,charge,REFACT,Produits des activités annexes,512000,Banque,4500,0,",
+        "6,2026-05-20,BQ,charge,REFACT,Produits des activités annexes,708000,Produits des activités annexes,0,4500,",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,165000,Dépôts et cautionnements reçus,100000,0,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,671200,Pénalités et amendes,10000,0,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,706000,Loyers,0,30000,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,419800,\"Locataires, provisions sur charges\",0,5000,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,708000,Produits des activités annexes,0,20000,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,512000,Banque,0,55000,DOC-RD1",
+        "8,2026-07-31,OD,settlement,RD2,Restitution du dépôt de garantie,165000,Dépôts et cautionnements reçus,50000,0,",
+        "8,2026-07-31,OD,settlement,RD2,Restitution du dépôt de garantie,708000,Produits des activités annexes,0,60000,",
+        "8,2026-07-31,OD,settlement,RD2,Restitution du dépôt de garantie,411000,Locataires,10000,0,",
+        "9,2026-10-15,BQ,charge,TEOM,Taxes foncières,419800,\"Locataires, provisions sur charges\",15000,0,",
+        "9,2026-10-15,BQ,charge,TEOM,Taxes foncières,512000,Banque,0,15000,",
+        "10,2026-10-15,BQ,charge,TF,Taxes foncières,635120,Taxes foncières,120000,0,DOC-TF",
+        "10,2026-10-15,BQ,charge,TF,Taxes foncières,512000,Banque,0,120000,DOC-TF",
+        ""
+      ],
+      "entries": [
+        {
+          "date": "2026-01-01",
+          "journal": "BQ",
+          "kind": "deposit",
+          "source": "G1",
+          "label": "Dépôt de garantie reçu",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 80000,
+              "credit_cents": 0
+            },
+            {
+              "account": "165000",
+              "label": "Dépôts et cautionnements reçus",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            }
+          ]
+        },
+        {
+          "date": "2026-01-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "P1",
+          "label": "Encaissement du locataire",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Locataires, provisions sur charges",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "journal": "BQ",
+          "kind": "instalment",
+          "source": "loan:K1:13",
+          "label": "Échéance d’emprunt",
+          "document_id": "DOC-K1",
+          "lines": [
+            {
+              "account": "164000",
+              "label": "Emprunts auprès des établissements de crédit",
+              "debit_cents": 43484,
+              "credit_cents": 0
+            },
+            {
+              "account": "661100",
+              "label": "Intérêts des emprunts",
+              "debit_cents": 43125,
+              "credit_cents": 0
+            },
+            {
+              "account": "616100",
+              "label": "Assurance emprunteur",
+              "debit_cents": 2500,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 89109
+            }
+          ]
+        },
+        {
+          "date": "2026-03-04",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "P2",
+          "label": "Encaissement du locataire",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 95000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Locataires, provisions sur charges",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            },
+            {
+              "account": "419100",
+              "label": "Locataires, avances reçues",
+              "debit_cents": 0,
+              "credit_cents": 5000
+            }
+          ]
+        },
+        {
+          "date": "2026-04-01",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "COPRO",
+          "label": "Charges locatives et de copropriété",
+          "lines": [
+            {
+              "account": "419800",
+              "label": "Locataires, provisions sur charges",
+              "debit_cents": 35001,
+              "credit_cents": 0
+            },
+            {
+              "account": "614000",
+              "label": "Charges locatives et de copropriété",
+              "debit_cents": 24999,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 60000
+            }
+          ]
+        },
+        {
+          "date": "2026-05-20",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "REFACT",
+          "label": "Produits des activités annexes",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 4500,
+              "credit_cents": 0
+            },
+            {
+              "account": "708000",
+              "label": "Produits des activités annexes",
+              "debit_cents": 0,
+              "credit_cents": 4500
+            }
+          ]
+        },
+        {
+          "date": "2026-06-30",
+          "journal": "OD",
+          "kind": "settlement",
+          "source": "RD1",
+          "label": "Restitution du dépôt de garantie",
+          "document_id": "DOC-RD1",
+          "lines": [
+            {
+              "account": "165000",
+              "label": "Dépôts et cautionnements reçus",
+              "debit_cents": 100000,
+              "credit_cents": 0
+            },
+            {
+              "account": "671200",
+              "label": "Pénalités et amendes",
+              "debit_cents": 10000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 30000
+            },
+            {
+              "account": "419800",
+              "label": "Locataires, provisions sur charges",
+              "debit_cents": 0,
+              "credit_cents": 5000
+            },
+            {
+              "account": "708000",
+              "label": "Produits des activités annexes",
+              "debit_cents": 0,
+              "credit_cents": 20000
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 55000
+            }
+          ]
+        },
+        {
+          "date": "2026-07-31",
+          "journal": "OD",
+          "kind": "settlement",
+          "source": "RD2",
+          "label": "Restitution du dépôt de garantie",
+          "lines": [
+            {
+              "account": "165000",
+              "label": "Dépôts et cautionnements reçus",
+              "debit_cents": 50000,
+              "credit_cents": 0
+            },
+            {
+              "account": "708000",
+              "label": "Produits des activités annexes",
+              "debit_cents": 0,
+              "credit_cents": 60000
+            },
+            {
+              "account": "411000",
+              "label": "Locataires",
+              "debit_cents": 10000,
+              "credit_cents": 0
+            }
+          ]
+        },
+        {
+          "date": "2026-10-15",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "TEOM",
+          "label": "Taxes foncières",
+          "lines": [
+            {
+              "account": "419800",
+              "label": "Locataires, provisions sur charges",
+              "debit_cents": 15000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 15000
+            }
+          ]
+        },
+        {
+          "date": "2026-10-15",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "TF",
+          "label": "Taxes foncières",
+          "document_id": "DOC-TF",
+          "lines": [
+            {
+              "account": "635120",
+              "label": "Taxes foncières",
+              "debit_cents": 120000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 120000
+            }
+          ]
+        }
+      ],
+      "fec": [
+        "JournalCode\tJournalLib\tEcritureNum\tEcritureDate\tCompteNum\tCompteLib\tCompAuxNum\tCompAuxLib\tPieceRef\tPieceDate\tEcritureLib\tDebit\tCredit\tEcritureLet\tDateLet\tValidDate\tMontantdevise\tIdevise",
+        "BQ\tBanque\t1\t20260101\t512000\tBanque\t\t\tG1\t20260101\tDépôt de garantie reçu\t800,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t1\t20260101\t165000\tDépôts et cautionnements reçus\t\t\tG1\t20260101\tDépôt de garantie reçu\t0,00\t800,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t2\t20260105\t512000\tBanque\t\t\tP1\t20260105\tEncaissement du locataire\t900,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t2\t20260105\t706000\tLoyers\t\t\tP1\t20260105\tEncaissement du locataire\t0,00\t800,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t2\t20260105\t419800\tLocataires, provisions sur charges\t\t\tP1\t20260105\tEncaissement du locataire\t0,00\t100,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t3\t20260110\t164000\tEmprunts auprès des établissements de crédit\t\t\tloan:K1:13\t20260110\tÉchéance d'emprunt\t434,84\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t3\t20260110\t661100\tIntérêts des emprunts\t\t\tloan:K1:13\t20260110\tÉchéance d'emprunt\t431,25\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t3\t20260110\t616100\tAssurance emprunteur\t\t\tloan:K1:13\t20260110\tÉchéance d'emprunt\t25,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t3\t20260110\t512000\tBanque\t\t\tloan:K1:13\t20260110\tÉchéance d'emprunt\t0,00\t891,09\t\t\t20270520\t\t",
+        "BQ\tBanque\t4\t20260304\t512000\tBanque\t\t\tP2\t20260304\tEncaissement du locataire\t950,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t4\t20260304\t706000\tLoyers\t\t\tP2\t20260304\tEncaissement du locataire\t0,00\t800,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t4\t20260304\t419800\tLocataires, provisions sur charges\t\t\tP2\t20260304\tEncaissement du locataire\t0,00\t100,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t4\t20260304\t419100\tLocataires, avances reçues\t\t\tP2\t20260304\tEncaissement du locataire\t0,00\t50,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t5\t20260401\t419800\tLocataires, provisions sur charges\t\t\tCOPRO\t20260401\tCharges locatives et de copropriété\t350,01\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t5\t20260401\t614000\tCharges locatives et de copropriété\t\t\tCOPRO\t20260401\tCharges locatives et de copropriété\t249,99\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t5\t20260401\t512000\tBanque\t\t\tCOPRO\t20260401\tCharges locatives et de copropriété\t0,00\t600,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t6\t20260520\t512000\tBanque\t\t\tREFACT\t20260520\tProduits des activités annexes\t45,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t6\t20260520\t708000\tProduits des activités annexes\t\t\tREFACT\t20260520\tProduits des activités annexes\t0,00\t45,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t165000\tDépôts et cautionnements reçus\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t1000,00\t0,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t671200\tPénalités et amendes\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t100,00\t0,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t706000\tLoyers\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t300,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t419800\tLocataires, provisions sur charges\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t50,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t708000\tProduits des activités annexes\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t200,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t512000\tBanque\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t550,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t8\t20260731\t165000\tDépôts et cautionnements reçus\t\t\tRD2\t20260731\tRestitution du dépôt de garantie\t500,00\t0,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t8\t20260731\t708000\tProduits des activités annexes\t\t\tRD2\t20260731\tRestitution du dépôt de garantie\t0,00\t600,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t8\t20260731\t411000\tLocataires\t\t\tRD2\t20260731\tRestitution du dépôt de garantie\t100,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t9\t20261015\t419800\tLocataires, provisions sur charges\t\t\tTEOM\t20261015\tTaxes foncières\t150,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t9\t20261015\t512000\tBanque\t\t\tTEOM\t20261015\tTaxes foncières\t0,00\t150,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t10\t20261015\t635120\tTaxes foncières\t\t\tTF\t20261015\tTaxes foncières\t1200,00\t0,00\t\t\t20270520\t\t",
+        "BQ\tBanque\t10\t20261015\t512000\tBanque\t\t\tTF\t20261015\tTaxes foncières\t0,00\t1200,00\t\t\t20270520\t\t",
+        ""
+      ],
+      "fec_sha256": "4c1db61637631a5f17e7becb68f3370b819e838317ebac4a57ed9fca25d29bbb"
+    }
+  }
+}

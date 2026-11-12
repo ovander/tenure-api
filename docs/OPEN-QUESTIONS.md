@@ -1749,3 +1749,38 @@ liabilities; period lock after the tax summary is issued ». Provisional reading
   - a correction posted in the next year to undo a closed figure (today it is refused);
   - the exports: ledger CSV, year-end pack and FEC (part 15c);
   - the screen (part 15d).
+
+**Q-128 Year-end exports, part 15c — Open (#158).** RENT-SPEC-014 asks for a « year-end pack
+(ledger CSV, 2044 figures, supporting documents index) and FEC format ». Provisional reading:
+
+- **Three exports of a calendar year.** Each one needs a recent multi-factor login, like every
+  export, and is audited (`ledger.export`, with its kind and digest):
+  - `GET /ledger/journal.csv`: one row per line of each entry, numbered, in cents like every CSV
+    of the tool, with the entry's supporting document.
+  - `GET /ledger/fec.txt`: the fichier des écritures comptables.
+  - `GET /ledger/pack.zip`: the year-end pack.
+- **The FEC** has the eighteen fields of LPF art. A47 A-1:
+  - one header line, then tab-separated fields;
+  - encoded in ISO 8859-15; a typographic apostrophe is written plainly;
+  - dates as AAAAMMJJ, amounts with a decimal comma;
+  - one continuous sequence of entry numbers, the piece being the movement's source;
+  - no auxiliary account (tenants are not followed one by one) and no foreign currency.
+
+  It is produced **only for a closed year**: a FEC holds validated entries, and an entry is
+  validated on the day the year's tax summary was issued. An open year is a 409
+  `ledger/year-open`. The file is named `FEC<year>1231.txt`; the article puts the SIREN first,
+  and a private owner has none. An SCI's SIREN comes with the SCI entity (RENT-SPEC-019).
+- **The pack** is a ZIP whose files are all dated the closing day, so a closed year always packs
+  to the same bytes. It holds:
+  - the journal and the balances;
+  - for a closed year, the FEC and the 2044 lines of the issued summary, regenerated from its
+    stored figures;
+  - the index of the supporting documents (charges' invoices, loans' tables, RD statements,
+    the tax summary PDF and CSV), each with its digest and the movements it supports;
+  - a LISEZMOI that says what the pack holds and, for an open year, that its figures may still
+    change.
+
+  The documents themselves are not copied in: the archive's ZIP export downloads them, and
+  the index gives their digests.
+- **Not built yet:** rent receipts in the index, auxiliary accounts per tenant, the screen (part
+  15d).
