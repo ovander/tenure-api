@@ -337,6 +337,7 @@ The owner sees the portfolio’s performance at a glance: yield, vacancy, arrear
 - Per asset: gross and net yield, occupancy and vacancy days, arrears aging (30/60/90), charges actual vs provision, next obligations.
 - Portfolio: monthly cash position, year-to-date income and expenses vs previous year, tax estimate under both regimes.
 - Exports to CSV; figures are the same ones the tax summary uses, never recomputed separately.
+- Built so far (tenure-api #161, Q-129): per asset and for the portfolio, from the owner’s journal: rent, income, expenses and net, gross and net yield on the acquisition price, vacant days, provisions against recoverable charges, arrears aged at 30/60/90 days, the bank by month, the year to date against the previous year, and the tax estimate once the year has its 2044 map; the CSV export. The screen comes next.
 
 ## RENT-SPEC-017 — Tenant portal (phase 4)
 

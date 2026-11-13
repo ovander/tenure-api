@@ -1784,3 +1784,51 @@ liabilities; period lock after the tax summary is issued ». Provisional reading
   the index gives their digests.
 - **Not built yet:** rent receipts in the index, auxiliary accounts per tenant, the screen (part
   15d).
+
+**Q-129 The dashboard, part 16a — Open (#161).** RENT-SPEC-016 asks for yields, vacancy, aged
+arrears, charges against provisions, cash, the year to date against the previous year and a tax
+estimate, « the same figures the tax summary uses, never recomputed separately ». Provisional
+reading:
+
+- **One source: the owner's journal** (Q-127). It is on a cash basis and splits each payment as
+  the tax summary does (Q-65). Each entry now carries its asset:
+  - a lease's principal asset for a payment, a deposit or a statement;
+  - the charge's asset;
+  - the loan's asset for an instalment.
+
+  An entry tied to no asset counts in the portfolio only.
+- **Per asset**, over the year up to the as-of day (today, or the year's end):
+  - rent: the rent account's credits;
+  - other income: the rest of class 7;
+  - expenses: class 6, loan interest among them, the principal repaid excluded;
+  - net: income − expenses.
+- **Yields** are the rent (gross) and the net (net) over the acquisition price, in basis points,
+  for a year's worth:
+  - annualised over the days elapsed while the year runs;
+  - over the days held when the asset was bought during the year;
+  - none without a price.
+
+  The price is the asset's own, not reduced by a co-owner's share.
+- **Days**: the days the asset was held in the year, its vacant days (`lease.Vacancies`, Q-119)
+  and the rest occupied.
+- **Charges against provisions**: the provisions the tenants paid (payments to the provisions
+  account) against the recoverable charges the owner paid (charges' debits to it). The
+  difference is the regularisation to come.
+- **Arrears** are each lease's overdue calls as of today, aged by days past their due day into
+  the buckets of the parameter `dashboard.aging` (30, 60, 90, then more).
+- **Portfolio**:
+  - the same figures summed;
+  - by month, the bank's movements in and out and the income and expenses;
+  - the year to date against the same days of the previous year (1 January to the same day,
+    clamped to the month's end).
+- **The tax estimate** is the year's summary computed as a draft, not stored, for the scope's
+  owner, with both regimes and the lower one. A year whose 2044 map is not yet published has
+  none (`available: false`, `reason: tax/line-map-missing`): a guess at next year's lines would
+  overstate or understate a deduction.
+- **`GET /dashboard/assets.csv`**, one row per asset and then the portfolio, is an export: it
+  needs a recent strong sign-in and is audited (`dashboard.export`).
+- **Not built yet:**
+  - next obligations per asset (the screen reads `GET /calendar?asset_id`);
+  - the yield on a co-owner's share;
+  - a trailing twelve months;
+  - the screen (part 16b).

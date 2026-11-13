@@ -363,6 +363,16 @@ func (s Service) moveMatches(ctx context.Context, from, to uuid.UUID, total mone
 // errReceipted is returned when a cancelled rent call already has a quittance.
 func receiptedError(number string) error { return invariant.New(TypeReceiptIssued, number) }
 
+// ArrearsInTx returns a lease's arrears as of today in the caller's scoped
+// transaction (the dashboard ages them, RENT-SPEC-016).
+func (s Service) ArrearsInTx(ctx context.Context, leaseID uuid.UUID, today period.Date) (ArrearsView, error) {
+	calls, err := s.calls(ctx, leaseID)
+	if err != nil {
+		return ArrearsView{}, err
+	}
+	return Arrears(leaseID, calls, today, 0), nil
+}
+
 // OutstandingInTx is, inside the caller's scoped transaction, what the
 // lease's live rent calls still owe (total − matched): the arrears the
 // deposit settlement deducts (RENT-INV-001 §6). internal/app hands it to the

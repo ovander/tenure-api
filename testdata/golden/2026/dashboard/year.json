@@ -1,0 +1,997 @@
+{
+  "case": "year",
+  "description": "The dashboard of 2026 as of 31 March (Q-129). Apartment A1: three months of rent with provisions, one payment partly unapplied, a copro charge mostly recoverable, two loan instalments; its arrears aged into the 30/60/90 buckets. Box B2, bought on 1 February: its rent and a repair over its 59 days held, ten of them vacant. Workshop C3: no price, no movement, vacant all along. A payment tied to no asset counts in the portfolio only. An April payment is past the as-of day. The year to date is compared with 1 January to 31 March 2025, a payment of 2 April 2025 left out. Then the same year seen from the next 1 January, complete.",
+  "steps": [
+    {
+      "name": "2026 as of 31 March",
+      "year": 2026,
+      "as_of": "2026-03-31",
+      "current": [
+        {
+          "date": "2026-01-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p1",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p2",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p3",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 95000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            },
+            {
+              "account": "419100",
+              "label": "Avances",
+              "debit_cents": 0,
+              "credit_cents": 5000
+            }
+          ]
+        },
+        {
+          "date": "2026-02-15",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "c1",
+          "label": "Charge",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "614000",
+              "label": "Charge",
+              "debit_cents": 10000,
+              "credit_cents": 0
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 20000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 30000
+            }
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "journal": "BQ",
+          "kind": "instalment",
+          "source": "loan:K:1",
+          "label": "Échéance",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "164000",
+              "label": "Emprunt",
+              "debit_cents": 40000,
+              "credit_cents": 0
+            },
+            {
+              "account": "661100",
+              "label": "Intérêts",
+              "debit_cents": 30000,
+              "credit_cents": 0
+            },
+            {
+              "account": "616100",
+              "label": "Assurance",
+              "debit_cents": 2000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 72000
+            }
+          ]
+        },
+        {
+          "date": "2026-02-10",
+          "journal": "BQ",
+          "kind": "instalment",
+          "source": "loan:K:2",
+          "label": "Échéance",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "164000",
+              "label": "Emprunt",
+              "debit_cents": 40100,
+              "credit_cents": 0
+            },
+            {
+              "account": "661100",
+              "label": "Intérêts",
+              "debit_cents": 29900,
+              "credit_cents": 0
+            },
+            {
+              "account": "616100",
+              "label": "Assurance",
+              "debit_cents": 2000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 72000
+            }
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p4",
+          "label": "Encaissement",
+          "asset_id": "B2",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 50000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 50000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 0
+            }
+          ]
+        },
+        {
+          "date": "2026-03-01",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "c2",
+          "label": "Charge",
+          "asset_id": "B2",
+          "lines": [
+            {
+              "account": "615200",
+              "label": "Charge",
+              "debit_cents": 12000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 12000
+            }
+          ]
+        },
+        {
+          "date": "2026-03-20",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p9",
+          "label": "Encaissement",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 1000,
+              "credit_cents": 0
+            },
+            {
+              "account": "419100",
+              "label": "Avances",
+              "debit_cents": 0,
+              "credit_cents": 1000
+            }
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p5",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        }
+      ],
+      "previous": [
+        {
+          "date": "2025-01-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "q1",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 88000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 78000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2025-02-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "q2",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 88000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 78000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2025-02-20",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "d1",
+          "label": "Charge",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "635120",
+              "label": "Charge",
+              "debit_cents": 50000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 50000
+            }
+          ]
+        },
+        {
+          "date": "2025-03-31",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "q3",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 88000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 78000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2025-04-02",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "q4",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 88000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 78000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "asset_id": "A1",
+          "label": "12 rue des Lilas",
+          "acquisition_cents": 18000000,
+          "vacant_days": 0,
+          "overdue": [
+            {
+              "days_late": 12,
+              "outstanding_cents": 90000
+            },
+            {
+              "days_late": 45,
+              "outstanding_cents": 30000
+            },
+            {
+              "days_late": 130,
+              "outstanding_cents": 5000
+            }
+          ]
+        },
+        {
+          "asset_id": "B2",
+          "label": "Box 4",
+          "acquired_on": "2026-02-01",
+          "acquisition_cents": 1500000,
+          "vacant_days": 10
+        },
+        {
+          "asset_id": "C3",
+          "label": "Atelier",
+          "vacant_days": 59
+        }
+      ]
+    },
+    {
+      "name": "2026 complete",
+      "year": 2026,
+      "as_of": "2027-01-01",
+      "current": [
+        {
+          "date": "2026-01-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p1",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p2",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 90000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            }
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "journal": "BQ",
+          "kind": "payment",
+          "source": "p3",
+          "label": "Encaissement",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 95000,
+              "credit_cents": 0
+            },
+            {
+              "account": "706000",
+              "label": "Loyers",
+              "debit_cents": 0,
+              "credit_cents": 80000
+            },
+            {
+              "account": "419800",
+              "label": "Provisions",
+              "debit_cents": 0,
+              "credit_cents": 10000
+            },
+            {
+              "account": "419100",
+              "label": "Avances",
+              "debit_cents": 0,
+              "credit_cents": 5000
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "asset_id": "A1",
+          "label": "12 rue des Lilas",
+          "acquisition_cents": 18000000,
+          "vacant_days": 0,
+          "overdue": [
+            {
+              "days_late": 12,
+              "outstanding_cents": 90000
+            },
+            {
+              "days_late": 45,
+              "outstanding_cents": 30000
+            },
+            {
+              "days_late": 130,
+              "outstanding_cents": 5000
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "2026 as of 31 March": {
+      "csv": [
+        "year,as_of,asset_id,label,acquisition_cents,rent_cents,other_income_cents,expenses_cents,interest_cents,net_cents,gross_yield_bp,net_yield_bp,days,vacant_days,occupied_days,provisions_received_cents,recoverable_paid_cents,arrears_cents",
+        "2026,2026-03-31,A1,12 rue des Lilas,18000000,240000,0,73900,59900,166100,540,374,90,0,90,30000,20000,125000",
+        "2026,2026-03-31,C3,Atelier,,0,0,0,0,0,,,90,59,31,0,0,0",
+        "2026,2026-03-31,B2,Box 4,1500000,50000,0,12000,0,38000,2062,1567,59,10,49,0,0,0",
+        "2026,2026-03-31,portfolio,,,290000,0,85900,59900,204100,,,,,,30000,20000,125000",
+        ""
+      ],
+      "dashboard": {
+        "year": 2026,
+        "as_of": "2026-03-31",
+        "partial": true,
+        "assets": [
+          {
+            "asset_id": "A1",
+            "label": "12 rue des Lilas",
+            "acquisition_cents": 18000000,
+            "rent_cents": 240000,
+            "other_income_cents": 0,
+            "expenses_cents": 73900,
+            "interest_cents": 59900,
+            "net_cents": 166100,
+            "provisions_received_cents": 30000,
+            "recoverable_paid_cents": 20000,
+            "arrears_cents": 125000,
+            "arrears": [
+              {
+                "from_days": 1,
+                "to_days": 30,
+                "cents": 90000
+              },
+              {
+                "from_days": 31,
+                "to_days": 60,
+                "cents": 30000
+              },
+              {
+                "from_days": 61,
+                "to_days": 90,
+                "cents": 0
+              },
+              {
+                "from_days": 91,
+                "to_days": null,
+                "cents": 5000
+              }
+            ],
+            "gross_yield_bp": 540,
+            "net_yield_bp": 374,
+            "days": 90,
+            "vacant_days": 0,
+            "occupied_days": 90
+          },
+          {
+            "asset_id": "C3",
+            "label": "Atelier",
+            "acquisition_cents": null,
+            "rent_cents": 0,
+            "other_income_cents": 0,
+            "expenses_cents": 0,
+            "interest_cents": 0,
+            "net_cents": 0,
+            "provisions_received_cents": 0,
+            "recoverable_paid_cents": 0,
+            "arrears_cents": 0,
+            "arrears": [
+              {
+                "from_days": 1,
+                "to_days": 30,
+                "cents": 0
+              },
+              {
+                "from_days": 31,
+                "to_days": 60,
+                "cents": 0
+              },
+              {
+                "from_days": 61,
+                "to_days": 90,
+                "cents": 0
+              },
+              {
+                "from_days": 91,
+                "to_days": null,
+                "cents": 0
+              }
+            ],
+            "gross_yield_bp": null,
+            "net_yield_bp": null,
+            "days": 90,
+            "vacant_days": 59,
+            "occupied_days": 31
+          },
+          {
+            "asset_id": "B2",
+            "label": "Box 4",
+            "acquisition_cents": 1500000,
+            "rent_cents": 50000,
+            "other_income_cents": 0,
+            "expenses_cents": 12000,
+            "interest_cents": 0,
+            "net_cents": 38000,
+            "provisions_received_cents": 0,
+            "recoverable_paid_cents": 0,
+            "arrears_cents": 0,
+            "arrears": [
+              {
+                "from_days": 1,
+                "to_days": 30,
+                "cents": 0
+              },
+              {
+                "from_days": 31,
+                "to_days": 60,
+                "cents": 0
+              },
+              {
+                "from_days": 61,
+                "to_days": 90,
+                "cents": 0
+              },
+              {
+                "from_days": 91,
+                "to_days": null,
+                "cents": 0
+              }
+            ],
+            "gross_yield_bp": 2062,
+            "net_yield_bp": 1567,
+            "days": 59,
+            "vacant_days": 10,
+            "occupied_days": 49
+          }
+        ],
+        "portfolio": {
+          "rent_cents": 290000,
+          "other_income_cents": 0,
+          "expenses_cents": 85900,
+          "interest_cents": 59900,
+          "net_cents": 204100,
+          "provisions_received_cents": 30000,
+          "recoverable_paid_cents": 20000,
+          "arrears_cents": 125000,
+          "arrears": [
+            {
+              "from_days": 1,
+              "to_days": 30,
+              "cents": 90000
+            },
+            {
+              "from_days": 31,
+              "to_days": 60,
+              "cents": 30000
+            },
+            {
+              "from_days": 61,
+              "to_days": 90,
+              "cents": 0
+            },
+            {
+              "from_days": 91,
+              "to_days": null,
+              "cents": 5000
+            }
+          ]
+        },
+        "months": [
+          {
+            "month": "2026-01",
+            "in_cents": 90000,
+            "out_cents": 72000,
+            "net_cents": 18000,
+            "income_cents": 80000,
+            "expenses_cents": 32000
+          },
+          {
+            "month": "2026-02",
+            "in_cents": 140000,
+            "out_cents": 102000,
+            "net_cents": 38000,
+            "income_cents": 130000,
+            "expenses_cents": 41900
+          },
+          {
+            "month": "2026-03",
+            "in_cents": 96000,
+            "out_cents": 12000,
+            "net_cents": 84000,
+            "income_cents": 80000,
+            "expenses_cents": 12000
+          }
+        ],
+        "year_to_date": {
+          "from": "2026-01-01",
+          "to": "2026-03-31",
+          "income_cents": 290000,
+          "expenses_cents": 85900,
+          "net_cents": 204100
+        },
+        "previous_year": {
+          "from": "2025-01-01",
+          "to": "2025-03-31",
+          "income_cents": 234000,
+          "expenses_cents": 50000,
+          "net_cents": 184000
+        }
+      }
+    },
+    "2026 complete": {
+      "csv": [
+        "year,as_of,asset_id,label,acquisition_cents,rent_cents,other_income_cents,expenses_cents,interest_cents,net_cents,gross_yield_bp,net_yield_bp,days,vacant_days,occupied_days,provisions_received_cents,recoverable_paid_cents,arrears_cents",
+        "2026,2026-12-31,A1,12 rue des Lilas,18000000,240000,0,0,0,240000,133,133,365,0,365,30000,0,125000",
+        "2026,2026-12-31,portfolio,,,240000,0,0,0,240000,,,,,,30000,0,125000",
+        ""
+      ],
+      "dashboard": {
+        "year": 2026,
+        "as_of": "2026-12-31",
+        "partial": false,
+        "assets": [
+          {
+            "asset_id": "A1",
+            "label": "12 rue des Lilas",
+            "acquisition_cents": 18000000,
+            "rent_cents": 240000,
+            "other_income_cents": 0,
+            "expenses_cents": 0,
+            "interest_cents": 0,
+            "net_cents": 240000,
+            "provisions_received_cents": 30000,
+            "recoverable_paid_cents": 0,
+            "arrears_cents": 125000,
+            "arrears": [
+              {
+                "from_days": 1,
+                "to_days": 30,
+                "cents": 90000
+              },
+              {
+                "from_days": 31,
+                "to_days": 60,
+                "cents": 30000
+              },
+              {
+                "from_days": 61,
+                "to_days": 90,
+                "cents": 0
+              },
+              {
+                "from_days": 91,
+                "to_days": null,
+                "cents": 5000
+              }
+            ],
+            "gross_yield_bp": 133,
+            "net_yield_bp": 133,
+            "days": 365,
+            "vacant_days": 0,
+            "occupied_days": 365
+          }
+        ],
+        "portfolio": {
+          "rent_cents": 240000,
+          "other_income_cents": 0,
+          "expenses_cents": 0,
+          "interest_cents": 0,
+          "net_cents": 240000,
+          "provisions_received_cents": 30000,
+          "recoverable_paid_cents": 0,
+          "arrears_cents": 125000,
+          "arrears": [
+            {
+              "from_days": 1,
+              "to_days": 30,
+              "cents": 90000
+            },
+            {
+              "from_days": 31,
+              "to_days": 60,
+              "cents": 30000
+            },
+            {
+              "from_days": 61,
+              "to_days": 90,
+              "cents": 0
+            },
+            {
+              "from_days": 91,
+              "to_days": null,
+              "cents": 5000
+            }
+          ]
+        },
+        "months": [
+          {
+            "month": "2026-01",
+            "in_cents": 90000,
+            "out_cents": 0,
+            "net_cents": 90000,
+            "income_cents": 80000,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-02",
+            "in_cents": 90000,
+            "out_cents": 0,
+            "net_cents": 90000,
+            "income_cents": 80000,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-03",
+            "in_cents": 95000,
+            "out_cents": 0,
+            "net_cents": 95000,
+            "income_cents": 80000,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-04",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-05",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-06",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-07",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-08",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-09",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-10",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-11",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          },
+          {
+            "month": "2026-12",
+            "in_cents": 0,
+            "out_cents": 0,
+            "net_cents": 0,
+            "income_cents": 0,
+            "expenses_cents": 0
+          }
+        ],
+        "year_to_date": {
+          "from": "2026-01-01",
+          "to": "2026-12-31",
+          "income_cents": 240000,
+          "expenses_cents": 0,
+          "net_cents": 240000
+        },
+        "previous_year": {
+          "from": "2025-01-01",
+          "to": "2025-12-31",
+          "income_cents": 0,
+          "expenses_cents": 0,
+          "net_cents": 0
+        }
+      }
+    }
+  }
+}

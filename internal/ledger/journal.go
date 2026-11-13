@@ -62,8 +62,10 @@ var ErrChart = errors.New("ledger: chart of accounts incomplete")
 // provisions and the regularisation of the rent calls it was matched to;
 // the rest is unapplied.
 type Payment struct {
-	ID                  string      `json:"id"`
-	LeaseID             string      `json:"lease_id"`
+	ID      string `json:"id"`
+	LeaseID string `json:"lease_id"`
+	// AssetID is the lease's principal asset.
+	AssetID             string      `json:"asset_id,omitempty"`
 	PaidOn              period.Date `json:"paid_on"`
 	AmountCents         money.Cents `json:"amount_cents"`
 	RentCents           money.Cents `json:"rent_cents"`
@@ -85,7 +87,9 @@ type Charge struct {
 
 // Instalment is a loan instalment, debited on its due day.
 type Instalment struct {
-	LoanID         string      `json:"loan_id"`
+	LoanID string `json:"loan_id"`
+	// AssetID is the asset the loan finances.
+	AssetID        string      `json:"asset_id,omitempty"`
 	Seq            int         `json:"seq"`
 	DueOn          period.Date `json:"due_on"`
 	PrincipalCents money.Cents `json:"principal_cents"`
@@ -97,8 +101,10 @@ type Instalment struct {
 
 // Deposit is a security deposit received for a lease.
 type Deposit struct {
-	ID          string      `json:"id"`
-	LeaseID     string      `json:"lease_id"`
+	ID      string `json:"id"`
+	LeaseID string `json:"lease_id"`
+	// AssetID is the lease's principal asset.
+	AssetID     string      `json:"asset_id,omitempty"`
 	ReceivedOn  period.Date `json:"received_on"`
 	AmountCents money.Cents `json:"amount_cents"`
 }
@@ -107,8 +113,10 @@ type Deposit struct {
 // releases, what it keeps (deductions, arrears, regularisation), the late
 // penalty, and the total paid back (negative: what the tenant still owes).
 type Settlement struct {
-	ID                  string      `json:"id"`
-	LeaseID             string      `json:"lease_id"`
+	ID      string `json:"id"`
+	LeaseID string `json:"lease_id"`
+	// AssetID is the lease's principal asset.
+	AssetID             string      `json:"asset_id,omitempty"`
 	SettledOn           period.Date `json:"settled_on"`
 	ReleasedCents       money.Cents `json:"released_cents"`
 	DeductionsCents     money.Cents `json:"deductions_cents"`
@@ -149,7 +157,9 @@ type Entry struct {
 	Label   string      `json:"label"`
 	// DocumentID is the supporting document archived for it, if any.
 	DocumentID string `json:"document_id,omitempty"`
-	Lines      []Line `json:"lines"`
+	// AssetID is the asset the movement concerns, when known.
+	AssetID string `json:"asset_id,omitempty"`
+	Lines   []Line `json:"lines"`
 }
 
 // Balance is an account's movements over the journal.
@@ -239,7 +249,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(p.PaidOn) {
 			continue
 		}
-		b := &builder{Entry{Date: p.PaidOn, Journal: JournalBank, Kind: "payment", Source: p.ID, Label: "Encaissement du locataire"}}
+		b := &builder{Entry{Date: p.PaidOn, Journal: JournalBank, Kind: "payment", Source: p.ID, Label: "Encaissement du locataire", AssetID: p.AssetID}}
 		unapplied := p.AmountCents - p.RentCents - p.ProvisionCents - p.RegularisationCents
 		b.add(acc[RoleBank], p.AmountCents)
 		b.add(acc[RoleRent], -p.RentCents)
@@ -257,7 +267,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !ok || a.Code == "" {
 			return nil, nil, fmt.Errorf("%w: category %s (charge %s)", ErrChart, c.Category, c.ID)
 		}
-		b := &builder{Entry{Date: c.PaidOn, Journal: JournalBank, Kind: "charge", Source: c.ID, Label: a.Label, DocumentID: c.DocumentID}}
+		b := &builder{Entry{Date: c.PaidOn, Journal: JournalBank, Kind: "charge", Source: c.ID, Label: a.Label, DocumentID: c.DocumentID, AssetID: c.AssetID}}
 		if income[c.Category] {
 			b.add(acc[RoleBank], c.AmountCents)
 			b.add(a, -c.AmountCents)
@@ -274,7 +284,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(i.DueOn) {
 			continue
 		}
-		b := &builder{Entry{Date: i.DueOn, Journal: JournalBank, Kind: "instalment", Source: fmt.Sprintf("loan:%s:%d", i.LoanID, i.Seq), Label: "Échéance d’emprunt", DocumentID: i.DocumentID}}
+		b := &builder{Entry{Date: i.DueOn, Journal: JournalBank, Kind: "instalment", Source: fmt.Sprintf("loan:%s:%d", i.LoanID, i.Seq), Label: "Échéance d’emprunt", DocumentID: i.DocumentID, AssetID: i.AssetID}}
 		b.add(acc[RoleLoans], i.PrincipalCents)
 		b.add(acc[RoleLoanInterest], i.InterestCents)
 		b.add(acc[RoleLoanInsurance], i.InsuranceCents)
@@ -287,7 +297,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(d.ReceivedOn) {
 			continue
 		}
-		b := &builder{Entry{Date: d.ReceivedOn, Journal: JournalBank, Kind: "deposit", Source: d.ID, Label: "Dépôt de garantie reçu"}}
+		b := &builder{Entry{Date: d.ReceivedOn, Journal: JournalBank, Kind: "deposit", Source: d.ID, Label: "Dépôt de garantie reçu", AssetID: d.AssetID}}
 		b.add(acc[RoleBank], d.AmountCents)
 		b.add(acc[RoleDeposits], -d.AmountCents)
 		if err := push(b); err != nil {
@@ -298,7 +308,7 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(s.SettledOn) {
 			continue
 		}
-		b := &builder{Entry{Date: s.SettledOn, Journal: JournalGeneral, Kind: "settlement", Source: s.ID, Label: "Restitution du dépôt de garantie", DocumentID: s.DocumentID}}
+		b := &builder{Entry{Date: s.SettledOn, Journal: JournalGeneral, Kind: "settlement", Source: s.ID, Label: "Restitution du dépôt de garantie", DocumentID: s.DocumentID, AssetID: s.AssetID}}
 		b.add(acc[RoleDeposits], s.ReleasedCents)
 		b.add(acc[RolePenalties], s.PenaltyCents)
 		b.add(acc[RoleRent], -s.ArrearsCents)

@@ -67,6 +67,8 @@ const (
 	KeyBankCharges = "bank.charges"
 	// KeyLedgerChart is the chart of accounts of the owner's journal (Q-127).
 	KeyLedgerChart = "ledger.chart"
+	// KeyDashboardAging is how the dashboard ages the arrears (Q-129).
+	KeyDashboardAging = "dashboard.aging"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -581,5 +583,19 @@ type LedgerChart struct {
 func (s Set) LedgerChart(asOf period.Date) (LedgerChart, error) {
 	var r LedgerChart
 	err := s.Decode(KeyLedgerChart, asOf, &r)
+	return r, err
+}
+
+// DashboardAging is how the dashboard ages the arrears (RENT-SPEC-016,
+// Q-129): the upper bounds, in days past the due day, of each bucket but
+// the last, which is open.
+type DashboardAging struct {
+	BucketsDays []int `json:"buckets_days"`
+}
+
+// DashboardAging returns the aging buckets effective on asOf.
+func (s Set) DashboardAging(asOf period.Date) (DashboardAging, error) {
+	var r DashboardAging
+	err := s.Decode(KeyDashboardAging, asOf, &r)
 	return r, err
 }
