@@ -78,6 +78,16 @@ type statementFigures struct {
 // inputs gathers the movements of [from, to].
 func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error) {
 	var in Inputs
+	principal, err := tax.Repository{}.PrincipalAssets(ctx)
+	if err != nil {
+		return in, err
+	}
+	assetOf := func(lease uuid.UUID) string {
+		if a, ok := principal[lease]; ok {
+			return a.String()
+		}
+		return ""
+	}
 	ps, ms, err := s.Repo.Payments(ctx, from, to)
 	if err != nil {
 		return in, err
@@ -87,7 +97,7 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 		byPayment[m.PaymentID] = append(byPayment[m.PaymentID], m)
 	}
 	for _, p := range ps {
-		lp := Payment{ID: p.ID.String(), LeaseID: p.LeaseID.String(), PaidOn: period.FromTime(p.PaidOn), AmountCents: money.Cents(p.AmountCents)}
+		lp := Payment{ID: p.ID.String(), LeaseID: p.LeaseID.String(), AssetID: assetOf(p.LeaseID), PaidOn: period.FromTime(p.PaidOn), AmountCents: money.Cents(p.AmountCents)}
 		for _, m := range byPayment[p.ID] {
 			var lines []document.Line
 			if err := json.Unmarshal(m.Lines, &lines); err != nil {
@@ -135,7 +145,7 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 		return in, err
 	}
 	for _, i := range is {
-		in.Instalments = append(in.Instalments, Instalment{LoanID: i.LoanID.String(), Seq: i.Seq, DueOn: period.FromTime(i.DueOn),
+		in.Instalments = append(in.Instalments, Instalment{LoanID: i.LoanID.String(), AssetID: i.AssetID.String(), Seq: i.Seq, DueOn: period.FromTime(i.DueOn),
 			PrincipalCents: money.Cents(i.PrincipalCents), InterestCents: money.Cents(i.InterestCents), InsuranceCents: money.Cents(i.InsuranceCents),
 			DocumentID: idString(i.DocumentID)})
 	}
@@ -144,7 +154,7 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 		return in, err
 	}
 	for _, d := range ds {
-		in.Deposits = append(in.Deposits, Deposit{ID: d.ID.String(), LeaseID: d.LeaseID.String(), ReceivedOn: period.FromTime(d.ReceivedOn),
+		in.Deposits = append(in.Deposits, Deposit{ID: d.ID.String(), LeaseID: d.LeaseID.String(), AssetID: assetOf(d.LeaseID), ReceivedOn: period.FromTime(d.ReceivedOn),
 			AmountCents: money.Cents(d.AmountCents)})
 	}
 	ss, err := s.Repo.Settlements(ctx, from, to)
@@ -156,7 +166,7 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 		if err := json.Unmarshal(x.Figures, &f); err != nil {
 			return in, fmt.Errorf("ledger: settlement %s: %w", x.ID, err)
 		}
-		in.Settlements = append(in.Settlements, Settlement{ID: x.ID.String(), LeaseID: x.LeaseID.String(), SettledOn: period.FromTime(x.SettledOn),
+		in.Settlements = append(in.Settlements, Settlement{ID: x.ID.String(), LeaseID: x.LeaseID.String(), AssetID: assetOf(x.LeaseID), SettledOn: period.FromTime(x.SettledOn),
 			ReleasedCents: f.DepositCents - f.HoldbackCents, DeductionsCents: f.DeductionsCents, ArrearsCents: f.ArrearsCents,
 			RegularisationCents: f.RegularisationCents, PenaltyCents: f.PenaltyCents, TotalCents: f.TotalCents, DocumentID: x.DocumentID.String()})
 	}
@@ -187,6 +197,16 @@ func (s Service) Year(ctx context.Context, p *auth.Principal, requestID string, 
 		return err
 	})
 	return out, err
+}
+
+// JournalInTx posts the journal of a calendar year in the caller's scoped
+// transaction (the dashboard reads it, RENT-SPEC-016).
+func (s Service) JournalInTx(ctx context.Context, year int) (View, error) {
+	if err := checkYear(year); err != nil {
+		return View{}, err
+	}
+	y, err := s.year(ctx, year)
+	return y.View, err
 }
 
 // yearData is a year's journal with what its exports need.

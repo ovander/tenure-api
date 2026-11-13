@@ -75,6 +75,7 @@ func (Repository) Charges(ctx context.Context, from, to time.Time) ([]chargeRow,
 
 type instalmentRow struct {
 	LoanID         uuid.UUID  `gorm:"column:loan_id"`
+	AssetID        uuid.UUID  `gorm:"column:asset_id"`
 	Seq            int        `gorm:"column:seq"`
 	DueOn          time.Time  `gorm:"column:due_on"`
 	PrincipalCents int64      `gorm:"column:principal_cents"`
@@ -91,7 +92,7 @@ func (Repository) Instalments(ctx context.Context, from, to time.Time) ([]instal
 	}
 	var rows []instalmentRow
 	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
-		Select("i.loan_id, i.seq, i.due_on, i.principal_cents, i.interest_cents, i.insurance_cents, l.document_id").
+		Select("i.loan_id, l.asset_id, i.seq, i.due_on, i.principal_cents, i.interest_cents, i.insurance_cents, l.document_id").
 		Where("i.due_on BETWEEN ? AND ?", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
 	return rows, err
 }

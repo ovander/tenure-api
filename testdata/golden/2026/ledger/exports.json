@@ -379,6 +379,7 @@
           "kind": "charge",
           "source": "COPRO",
           "label": "Charges locatives et de copropriété",
+          "asset_id": "A1",
           "lines": [
             {
               "account": "419800",
@@ -406,6 +407,7 @@
           "kind": "charge",
           "source": "REFACT",
           "label": "Produits des activités annexes",
+          "asset_id": "A1",
           "lines": [
             {
               "account": "512000",
@@ -500,6 +502,7 @@
           "kind": "charge",
           "source": "TEOM",
           "label": "Taxes foncières",
+          "asset_id": "A1",
           "lines": [
             {
               "account": "419800",
@@ -522,6 +525,7 @@
           "source": "TF",
           "label": "Taxes foncières",
           "document_id": "DOC-TF",
+          "asset_id": "A1",
           "lines": [
             {
               "account": "635120",

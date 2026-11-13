@@ -61,31 +61,39 @@ func (s Service) Vacancies(ctx context.Context, p *auth.Principal, requestID str
 	}
 	var out VacancyView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		a, err := s.Portfolio.AssetInTx(ctx, asset)
-		if err != nil {
-			return err
-		}
-		rows, err := s.Repo.Occupancies(ctx, asset)
-		if err != nil {
-			return err
-		}
-		occ := make([]Occupancy, len(rows))
-		for i, r := range rows {
-			occ[i] = Occupancy{StartOn: period.FromTime(r.StartOn)}
-			if r.EndOn != nil {
-				e := period.FromTime(*r.EndOn)
-				occ[i].EndOn = &e
-			}
-		}
-		var since period.Date
-		if a.AcquiredOn != nil {
-			since = *a.AcquiredOn
-		} else if len(occ) > 0 {
-			since = occ[0].StartOn
-		}
-		out.AssetID, out.Since = asset, since
-		out.Periods, out.DaysByYear = Vacancies(occ, since, s.today())
-		return nil
+		out, err = s.VacanciesInTx(ctx, asset, s.today())
+		return err
 	})
 	return out, err
+}
+
+// VacanciesInTx computes an asset's vacancies as of today in the caller's
+// scoped transaction (the dashboard reads them, RENT-SPEC-016).
+func (s Service) VacanciesInTx(ctx context.Context, asset uuid.UUID, today period.Date) (VacancyView, error) {
+	var out VacancyView
+	a, err := s.Portfolio.AssetInTx(ctx, asset)
+	if err != nil {
+		return out, err
+	}
+	rows, err := s.Repo.Occupancies(ctx, asset)
+	if err != nil {
+		return out, err
+	}
+	occ := make([]Occupancy, len(rows))
+	for i, r := range rows {
+		occ[i] = Occupancy{StartOn: period.FromTime(r.StartOn)}
+		if r.EndOn != nil {
+			e := period.FromTime(*r.EndOn)
+			occ[i].EndOn = &e
+		}
+	}
+	var since period.Date
+	if a.AcquiredOn != nil {
+		since = *a.AcquiredOn
+	} else if len(occ) > 0 {
+		since = occ[0].StartOn
+	}
+	out.AssetID, out.Since = asset, since
+	out.Periods, out.DaysByYear = Vacancies(occ, since, today)
+	return out, nil
 }

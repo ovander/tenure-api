@@ -4,5 +4,5 @@
 set -eu
 cd "$(dirname "$0")/.."
 swag init \
-  --dir internal/httpapi,internal/version,internal/portfolio,internal/lease,internal/params,internal/audit,internal/jobs,internal/billing,internal/document,internal/payment,internal/charge,internal/tax,internal/inventory,internal/calendar,internal/loan,internal/ledger,internal/period,internal/money,internal/problem,internal/httpx,internal/auth \
+  --dir internal/httpapi,internal/version,internal/portfolio,internal/lease,internal/params,internal/audit,internal/jobs,internal/billing,internal/document,internal/payment,internal/charge,internal/tax,internal/inventory,internal/calendar,internal/loan,internal/ledger,internal/dashboard,internal/period,internal/money,internal/problem,internal/httpx,internal/auth \
   -g router.go --parseInternal --outputTypes json --output internal/httpapi/openapi --quiet

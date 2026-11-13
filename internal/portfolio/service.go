@@ -344,6 +344,16 @@ func (s Service) AssetsInTx(ctx context.Context, ids []uuid.UUID) ([]AssetView, 
 	return s.withShares(ctx, rows)
 }
 
+// AllAssetsInTx returns every asset of the scope inside the current
+// transaction (the dashboard lists them, RENT-SPEC-016).
+func (s Service) AllAssetsInTx(ctx context.Context) ([]AssetView, error) {
+	rows, _, err := s.Repo.ListAssets(ctx, 0, 100000)
+	if err != nil {
+		return nil, err
+	}
+	return s.withShares(ctx, rows)
+}
+
 // AssetInTx returns one asset inside the current transaction.
 func (s Service) AssetInTx(ctx context.Context, id uuid.UUID) (AssetView, error) {
 	out, err := s.AssetsInTx(ctx, []uuid.UUID{id})

@@ -19,6 +19,7 @@ import (
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/calendar"
 	"github.com/ovander/tenure-api/internal/charge"
+	"github.com/ovander/tenure-api/internal/dashboard"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/esign"
@@ -109,16 +110,18 @@ func New(d Deps) (*App, error) {
 		Inventory: inventory.Handler{Service: inventory.Service{DB: d.API, Portfolio: pf, Lease: ls, Issuer: issuer, Now: d.Now, NewID: newID,
 			Photos: inventory.PhotoStore{Store: d.Store, Scanner: d.Scanner, Params: params.Repository{}}, ESign: d.ESign,
 			Arrears: bs.OutstandingInTx}},
-		Calendar:       calendar.Handler{Service: calendar.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
-		Params:         params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
-		Audit:          audit.Handler{Service: audit.Service{DB: d.API}},
-		Jobs:           jobs.Handler{DB: d.API, Runner: runner},
-		Billing:        billing.Handler{Service: bs, Runner: runner},
-		Documents:      document.Handler{Service: docs},
-		Charges:        charge.Handler{Service: cs},
-		Tax:            tax.Handler{Service: ts},
-		Payments:       payment.Handler{Service: ps},
-		Ledger:         ledger.Handler{Service: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
+		Calendar:  calendar.Handler{Service: calendar.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
+		Params:    params.Handler{Service: params.Service{DB: d.API, Now: d.Now}},
+		Audit:     audit.Handler{Service: audit.Service{DB: d.API}},
+		Jobs:      jobs.Handler{DB: d.API, Runner: runner},
+		Billing:   billing.Handler{Service: bs, Runner: runner},
+		Documents: document.Handler{Service: docs},
+		Charges:   charge.Handler{Service: cs},
+		Tax:       tax.Handler{Service: ts},
+		Payments:  payment.Handler{Service: ps},
+		Ledger:    ledger.Handler{Service: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
+		Dashboard: dashboard.Handler{Service: dashboard.Service{DB: d.API, Ledger: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now},
+			Lease: ls, Billing: bs, Portfolio: pf, Tax: ts, Params: params.Repository{}, Now: d.Now}},
 		Loans:          loan.Handler{Service: loan.Service{DB: d.API, Portfolio: pf, Docs: docs, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,

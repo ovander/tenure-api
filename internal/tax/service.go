@@ -249,6 +249,15 @@ func (s Service) compute(ctx context.Context, year int) (computed, error) {
 	return out, nil
 }
 
+// EstimateInTx computes the summary of an income year in the caller's
+// scoped transaction without storing it (the dashboard's tax estimate,
+// RENT-SPEC-016). A year with no 2044 map is the problem
+// tax/line-map-missing.
+func (s Service) EstimateInTx(ctx context.Context, year int) (Summary, error) {
+	c, err := s.compute(ctx, year)
+	return c.summary, err
+}
+
 // View is a tax summary as the API returns it.
 type View struct {
 	ID      uuid.UUID `json:"id"`
