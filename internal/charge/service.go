@@ -247,20 +247,32 @@ func (s Service) CreateCharge(ctx context.Context, p *auth.Principal, requestID 
 	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		if err := s.checkLinks(ctx, in.AssetID, in.DocumentID); err != nil {
-			return err
-		}
-		now := s.now()
-		c := chargeRowFrom(in)
-		c.ID, c.OwnerID, c.Source, c.Version = s.NewID(), sc.OwnerID, "manual", 1
-		c.CreatedAt, c.CreatedBy, c.UpdatedAt, c.UpdatedBy = now, p.Sub, now, p.Sub
-		if err := s.Repo.InsertCharges(ctx, []chargeRow{c}); err != nil {
-			return err
-		}
-		out = chargeView(c)
-		return audit.Record(ctx, "charge.create", audit.Entity{Type: "charge", ID: c.ID.String()}, nil, out)
+		out, err = s.CreateInTx(ctx, sc.OwnerID, p.Sub, "manual", in)
+		return err
 	})
 	return out, err
+}
+
+// CreateInTx records a charge in the caller's scoped transaction, with its
+// audit event (the maintenance module records a repair's invoice this way,
+// RENT-SPEC-015): in is validated, its asset and document checked; source
+// says where it comes from.
+func (s Service) CreateInTx(ctx context.Context, owner uuid.UUID, by, source string, in Input) (View, error) {
+	if f := validateCharge(&in); len(f) > 0 {
+		return View{}, f
+	}
+	if err := s.checkLinks(ctx, in.AssetID, in.DocumentID); err != nil {
+		return View{}, err
+	}
+	now := s.now()
+	c := chargeRowFrom(in)
+	c.ID, c.OwnerID, c.Source, c.Version = s.NewID(), owner, source, 1
+	c.CreatedAt, c.CreatedBy, c.UpdatedAt, c.UpdatedBy = now, by, now, by
+	if err := s.Repo.InsertCharges(ctx, []chargeRow{c}); err != nil {
+		return View{}, err
+	}
+	out := chargeView(c)
+	return out, audit.Record(ctx, "charge.create", audit.Entity{Type: "charge", ID: c.ID.String()}, nil, out)
 }
 
 func chargeRowFrom(in Input) chargeRow {

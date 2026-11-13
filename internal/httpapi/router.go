@@ -37,6 +37,7 @@ import (
 	"github.com/ovander/tenure-api/internal/lease"
 	"github.com/ovander/tenure-api/internal/ledger"
 	"github.com/ovander/tenure-api/internal/loan"
+	"github.com/ovander/tenure-api/internal/maintenance"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
@@ -66,6 +67,7 @@ type Deps struct {
 	Loans          loan.Handler
 	Ledger         ledger.Handler
 	Dashboard      dashboard.Handler
+	Maintenance    maintenance.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -223,6 +225,14 @@ func Routes(d Deps) []Route {
 		{"GET", "/loans/schedule", GuardScopeOwnerW, false, h(d.Loans.Schedule)},
 		{"GET", "/loans/{id}", GuardScopeOwnerW, false, h(d.Loans.Get)},
 		{"PUT", "/loans/{id}", GuardScopeOwnerW, false, h(d.Loans.Update)},
+		{"GET", "/contractors", GuardScopeOwnerW, false, h(d.Maintenance.ListContractors)},
+		{"POST", "/contractors", GuardScopeOwnerW, false, h(d.Maintenance.CreateContractor)},
+		{"PUT", "/contractors/{id}", GuardScopeOwnerW, false, h(d.Maintenance.UpdateContractor)},
+		{"GET", "/incidents", GuardScopeOwnerW, false, h(d.Maintenance.ListIncidents)},
+		{"POST", "/incidents", GuardScopeOwnerW, false, h(d.Maintenance.CreateIncident)},
+		{"GET", "/incidents/{id}", GuardScopeOwnerW, false, h(d.Maintenance.GetIncident)},
+		{"PUT", "/incidents/{id}", GuardScopeOwnerW, false, h(d.Maintenance.UpdateIncident)},
+		{"POST", "/incidents/{id}/transitions", GuardScopeOwnerW, false, h(d.Maintenance.Transition)},
 		{"GET", "/charges", GuardScopeOwnerW, false, h(d.Charges.ListCharges)},
 		{"POST", "/charges", GuardScopeOwnerW, false, h(d.Charges.CreateCharge)},
 		{"POST", "/charges/import/syndic", GuardScopeOwnerW, false, h(d.Charges.ImportSyndic)},

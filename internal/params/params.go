@@ -69,6 +69,9 @@ const (
 	KeyLedgerChart = "ledger.chart"
 	// KeyDashboardAging is how the dashboard ages the arrears (Q-129).
 	KeyDashboardAging = "dashboard.aging"
+	// KeyLedgerCapitalised is the account of the improvements capitalised
+	// on an asset (Q-130).
+	KeyLedgerCapitalised = "ledger.capitalised"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -597,5 +600,19 @@ type DashboardAging struct {
 func (s Set) DashboardAging(asOf period.Date) (DashboardAging, error) {
 	var r DashboardAging
 	err := s.Decode(KeyDashboardAging, asOf, &r)
+	return r, err
+}
+
+// LedgerCapitalised is the account of the owner's journal that receives
+// the improvement works capitalised on an asset, never deducted
+// (RENT-SPEC-015, Q-130).
+type LedgerCapitalised struct {
+	Account LedgerAccount `json:"account"`
+}
+
+// LedgerCapitalised returns the account of improvements effective on asOf.
+func (s Set) LedgerCapitalised(asOf period.Date) (LedgerCapitalised, error) {
+	var r LedgerCapitalised
+	err := s.Decode(KeyLedgerCapitalised, asOf, &r)
 	return r, err
 }

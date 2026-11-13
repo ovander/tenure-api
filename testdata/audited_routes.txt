@@ -77,3 +77,8 @@ POST /bank-lines/auto +
 POST /bank-lines/{id}/charges +
 POST /loans
 PUT /loans/{id}
+POST /contractors
+PUT /contractors/{id}
+POST /incidents
+PUT /incidents/{id}
+POST /incidents/{id}/transitions +

@@ -374,6 +374,18 @@
       },
       "source": "RENT-SPEC-016 : ancienneté des impayés à 30, 60 et 90 jours après l’échéance ; règle de gestion, sans base légale",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "ledger.capitalised",
+      "effective_from": "2024-01-01",
+      "value": {
+        "account": {
+          "code": "213500",
+          "label": "Installations générales, agencements, aménagements des constructions"
+        }
+      },
+      "source": "RENT-SPEC-015 : les travaux d’amélioration sont immobilisés, non déduits ; compte du plan comptable général (règlement ANC n° 2014-03), choix de gestion à valider par l’expert-comptable",
+      "source_url": "https://www.anc.gouv.fr/normes-francaises/plan-comptable-general"
     }
   ]
 }

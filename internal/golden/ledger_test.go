@@ -64,7 +64,7 @@ func TestLedgerGolden(t *testing.T) {
 			ps := loadParams(t, year, nil)
 			out := map[string]any{}
 			for _, s := range c.Steps {
-				chart, err := ps.LedgerChart(s.To)
+				chart, err := ledger.Chart(ps, s.To)
 				if err != nil {
 					t.Fatal(err)
 				}
