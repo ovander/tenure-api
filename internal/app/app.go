@@ -123,7 +123,7 @@ func New(d Deps) (*App, error) {
 		Ledger:    ledger.Handler{Service: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now}},
 		Dashboard: dashboard.Handler{Service: dashboard.Service{DB: d.API, Ledger: ledger.Service{DB: d.API, Params: params.Repository{}, Now: d.Now},
 			Lease: ls, Billing: bs, Portfolio: pf, Tax: ts, Params: params.Repository{}, Now: d.Now}},
-		Maintenance:    maintenance.Handler{Service: maintenance.Service{DB: d.API, Portfolio: pf, Docs: docs, Charges: cs, Now: d.Now, NewID: newID}},
+		Maintenance:    maintenance.Handler{Service: maintenance.Service{DB: d.API, Portfolio: pf, Docs: docs, Charges: cs, Params: params.Repository{}, Now: d.Now, NewID: newID}},
 		Loans:          loan.Handler{Service: loan.Service{DB: d.API, Portfolio: pf, Docs: docs, Now: d.Now, NewID: newID}},
 		Ready:          d.Ready,
 		TrustedProxies: d.TrustedProxies,

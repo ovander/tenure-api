@@ -54,7 +54,8 @@ func dateOf(t *time.Time) *period.Date {
 
 // Facts loads the scope's leases (not drafts), the latest diagnostic of each
 // kind per asset, the issued entries captured in Tenure, and the issued
-// exits with their keys date and where the deposit stands.
+// exits with their keys date and where the deposit stands, and the
+// maintenance contracts with their latest visit.
 func (Repository) Facts(ctx context.Context) (Facts, error) {
 	t, err := db.Tx(ctx)
 	if err != nil {
@@ -97,7 +98,28 @@ func (Repository) Facts(ctx context.Context) (Facts, error) {
 	for _, r := range xs {
 		f.Exits = append(f.Exits, Exit{LeaseID: r.LeaseID, KeysReturnedOn: period.FromTime(r.KeysReturnedOn), Deductions: r.Deductions, Settled: r.Settled})
 	}
+	var ms []maintenanceRow
+	if err := t.Raw(`SELECT c.id::text, c.asset_id::text, c.kind, c.responsible, c.interval_months, c.first_due_on, c.end_on,
+			(SELECT max(v.done_on) FROM maintenance_visits v WHERE v.contract_id = c.id) AS last_done_on
+		FROM maintenance_contracts c ORDER BY c.first_due_on, c.id`).Scan(&ms).Error; err != nil {
+		return Facts{}, err
+	}
+	for _, r := range ms {
+		f.Maintenance = append(f.Maintenance, Maintenance{ID: r.ID, AssetID: r.AssetID, Kind: r.Kind, Responsible: r.Responsible,
+			IntervalMonths: r.IntervalMonths, FirstDueOn: period.FromTime(r.FirstDueOn), EndOn: dateOf(r.EndOn), LastDoneOn: dateOf(r.LastDoneOn)})
+	}
 	return f, nil
+}
+
+type maintenanceRow struct {
+	ID             string     `gorm:"column:id"`
+	AssetID        string     `gorm:"column:asset_id"`
+	Kind           string     `gorm:"column:kind"`
+	Responsible    string     `gorm:"column:responsible"`
+	IntervalMonths int        `gorm:"column:interval_months"`
+	FirstDueOn     time.Time  `gorm:"column:first_due_on"`
+	EndOn          *time.Time `gorm:"column:end_on"`
+	LastDoneOn     *time.Time `gorm:"column:last_done_on"`
 }
 
 func splitIDs(s string) []string {
