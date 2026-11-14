@@ -4410,7 +4410,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "quote (a contractor and the quote's amount, optionally its document), schedule (the day of the works, a contractor), done (the day they ended), invoice (the amount, the treatment, optionally the invoice's document and the day it was paid) or cancel (an optional reason). A repair's invoice creates a confirmed repairs charge, deductible on line 224 of the tax summary; an improvement's is capitalised on the asset and never deducted (Q-130). 409 maintenance/transition from a status that does not allow the action; 409 ledger/period-locked for a repair charged in a closed year.",
+                "description": "quote (a contractor and the quote's amount, optionally its document), schedule (the day of the works, a contractor), done (the day they ended), invoice (the amount, the treatment, optionally the invoice's document and the day it was paid) or cancel (an optional reason). The invoice of a repair, or of an improvement of an asset whose kind tax.improvement_deductible lists (the dwellings), creates a confirmed repairs charge, deductible on line 224 of the tax summary; construction, reconstruction or enlargement, and the improvement of other premises, are capitalised on the asset and never deducted (Q-130). 409 maintenance/transition from a status that does not allow the action; 409 ledger/period-locked for a repair charged in a closed year.",
                 "consumes": [
                     "application/json"
                 ],
