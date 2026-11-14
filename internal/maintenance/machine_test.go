@@ -50,20 +50,23 @@ func TestDeductible(t *testing.T) {
 	rule := params.ImprovementDeductible{AssetKinds: []string{"apartment"}}
 	cases := []struct {
 		treatment, kind string
+		lease           []string
 		want            bool
 	}{
-		{TreatmentRepair, "box", true},
-		{TreatmentRepair, "apartment", true},
-		{TreatmentImprovement, "apartment", true},
-		{TreatmentImprovement, "house", false},
-		{TreatmentImprovement, "box", false},
-		{TreatmentConstruction, "house", false},
-		{TreatmentConstruction, "box", false},
-		{"unknown", "house", false},
+		{TreatmentRepair, "box", nil, true},
+		{TreatmentRepair, "apartment", nil, true},
+		{TreatmentImprovement, "apartment", nil, true},
+		{TreatmentImprovement, "house", nil, false},
+		{TreatmentImprovement, "box", nil, false},
+		{TreatmentImprovement, "box", []string{"apartment"}, true},
+		{TreatmentImprovement, "box", []string{"box", "house"}, false},
+		{TreatmentConstruction, "house", nil, false},
+		{TreatmentConstruction, "box", []string{"apartment"}, false},
+		{"unknown", "house", nil, false},
 	}
 	for _, c := range cases {
-		if got := Deductible(c.treatment, c.kind, rule); got != c.want {
-			t.Errorf("%s on %s: %v", c.treatment, c.kind, got)
+		if got := Deductible(c.treatment, c.kind, c.lease, rule); got != c.want {
+			t.Errorf("%s on %s in %v: %v", c.treatment, c.kind, c.lease, got)
 		}
 	}
 }

@@ -519,8 +519,9 @@ func (s Service) fields(ctx context.Context, r *incidentRow, in TransitionInput)
 }
 
 // deductible says the invoice of r becomes a deductible repairs charge
-// (Deductible), the asset's kind and tax.improvement_deductible as of the
-// day the works were done.
+// (Deductible), from the asset's kind, the kinds of the other assets of the
+// lease that covered it, and tax.improvement_deductible, as of the day the
+// works were done.
 func (s Service) deductible(ctx context.Context, r incidentRow) (bool, error) {
 	if r.Treatment == nil {
 		return false, nil
@@ -537,7 +538,11 @@ func (s Service) deductible(ctx context.Context, r incidentRow) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return Deductible(*r.Treatment, string(a.Kind), rule), nil
+	annex, err := s.Repo.LeaseCompanionKinds(ctx, r.AssetID, *r.DoneOn)
+	if err != nil {
+		return false, err
+	}
+	return Deductible(*r.Treatment, string(a.Kind), annex, rule), nil
 }
 
 // Transition moves an incident (RENT-SPEC-015, Q-130), when version is the

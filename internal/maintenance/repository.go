@@ -203,6 +203,24 @@ func (Repository) SaveIncident(ctx context.Context, r incidentRow, version int) 
 	return nil
 }
 
+// LeaseCompanionKinds returns the kinds of the other assets let in the same
+// lease as asset on day: a lease past its draft whose term covers day (an
+// open end counts). None when the asset is let alone or not let.
+func (Repository) LeaseCompanionKinds(ctx context.Context, asset uuid.UUID, day time.Time) ([]string, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var kinds []string
+	err = t.Raw(`SELECT DISTINCT a.kind::text FROM lease_assets mine
+		JOIN leases l ON l.id = mine.lease_id
+		JOIN lease_assets other ON other.lease_id = l.id AND other.asset_id <> mine.asset_id
+		JOIN assets a ON a.id = other.asset_id
+		WHERE mine.asset_id = ? AND l.state <> 'draft' AND l.start_on <= ? AND (l.end_on IS NULL OR l.end_on >= ?)
+		ORDER BY 1`, asset, day, day).Scan(&kinds).Error
+	return kinds, err
+}
+
 // LeaseOfAsset reports whether a lease of the scope lets the asset.
 func (Repository) LeaseOfAsset(ctx context.Context, lease, asset uuid.UUID) (bool, error) {
 	t, err := tx(ctx)

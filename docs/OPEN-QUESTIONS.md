@@ -1876,12 +1876,18 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
   asset nor depreciation for tax: these accounts are a management classification, useful for a
   future capital gain. They take their full meaning in furnished letting under the réel (BIC),
   which Tenure does not compute.
-- **To the accountant**, with the furnished réel regime:
-  - the threshold under which an expense is a charge;
-  - the split by components (structure to 2131, fittings to 2135);
-  - whether a box let with a dwelling, as its dependency, follows the dwelling.
+- **A box let with a dwelling** (resolved, #178) is a question of law before accounting:
+  - in the same lease, for the same tenant, it is the dwelling's annex and follows its regime:
+    its improvement is deductible like the dwelling's;
+  - under a lease of its own, or not let, it is premises on their own: its improvement is
+    capitalised.
 
-  Until then a box's improvement is capitalised, the cautious reading.
+  Tenure reads it from the leases (`lease_assets`): the other assets of the lease that covers
+  the box on the day the works were done. The accountant only confirms each case's treatment.
+- **To the accountant**, as closed questions with the default retained until answered, for the
+  furnished réel regime (part 18, Q-132):
+  - the threshold under which an expense is a charge: do you validate 500 € HT per item?
+  - the split by components: do you validate the default grid of Q-132?
 - **Not built yet:**
   - depreciation of improvements (the micro and réel regimes of a private landlord do not
     depreciate; an SCI at IS would);
@@ -1923,3 +1929,59 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
   - e-mailing the tenant a reminder and asking for the certificate;
   - the cost of a contract as a charge (the owner records the invoice as a charge, as today);
   - the screen (part 17c).
+
+**Q-132 Furnished letting under the réel regime (LMNP), part 18 — Open (#178).** RENT-SPEC-019
+asks for « LMNP: BIC micro or réel, amortisation of the asset and furniture, 2031/2033
+figures ». Today a furnished asset gives its gross receipts only (OD-01), and its charges are
+set aside. Each point below states the default Tenure retains until the accountant answers; the
+question put to them is closed (« do you validate X? »). None is a value in code: each default
+is a parameter in `legal_params`, or a setting per asset that the owner changes, traced.
+
+- **Regime per owner and year:** micro-BIC or réel.
+  - Micro-BIC applies the abatement and the receipts threshold of `legal_params` to the gross
+    receipts, as today.
+  - The réel computes the result below.
+  - The estimate of both, as the tax screen does for revenus fonciers, is shown.
+- **Expense or fixed asset** (default, to validate):
+  - **Nature decides first.** Upkeep or repair is an expense. Improvement, or an extension of
+    the useful life, is a fixed asset. The kinds of works of Q-130 carry over: repair is an
+    expense; improvement and construction are fixed assets.
+  - **Then the amount.** Small equipment and furniture under the threshold (default 500 € HT
+    per item, the administrative tolerance) are expensed. The threshold is a parameter.
+  - **Manual override.** The owner may force an expense or a fixed asset on any line. The
+    override and its reason are traced in the audit trail.
+- **The component grid per asset** (default, to validate). Each line has a share of the
+  depreciable cost and a duration; the land is not depreciated. Defaults, a parameter:
+
+  | Component | Share | Duration |
+  | --- | --- | --- |
+  | land | 15 % | none |
+  | structure | 40 % | 50 years |
+  | roof | 10 % | 25 years |
+  | façade | 10 % | 25 years |
+  | technical installations | 15 % | 20 years |
+  | fittings | 10 % | 15 years |
+
+  Furniture is not a share of the purchase: each item is its own line, with its cost and a
+  duration (default 7 years; under the threshold it is expensed).
+  - The grid is dated and versioned: a change makes a new version from a date.
+  - The version used by a filed declaration is frozen and never changes. A later change applies
+    from its date only.
+- **Depreciation**, straight-line, prorata temporis by days:
+  - from the day the asset is first let furnished, not from the purchase;
+  - for furniture and works, from the day they are put in service.
+- **Acquisition costs** (notary, agency, default to validate): capitalised and spread over the
+  components by share, never expensed in year one. This never overstates the first year's
+  deduction. Expensing them is an option per asset, traced.
+- **The cap (CGI art. 39 C, II).** Depreciation deducted in a year may not exceed the receipts
+  less the other charges. The excess is not lost: it is carried forward without time limit
+  (amortissements réputés différés) and deducted first in a later year with room.
+- **Out of scope until asked:** the reinstatement of depreciation in the capital gain on sale
+  (loi de finances 2025), the 2031 and 2033 forms themselves (Tenure gives their figures), VAT,
+  the furnished-letting professional status (LMP), and the SCI side of RENT-SPEC-019.
+- **Slices:**
+  - 18a: this reading, and a box annexed to a dwelling's lease follows it (Q-130);
+  - 18b: the grid, the furniture and the pure depreciation engine, with golden files;
+  - 18c: the BIC result (receipts, charges, capped depreciation and its carry-forward, the
+    micro-BIC comparison, the 2033 figures);
+  - 18d: the screen.
