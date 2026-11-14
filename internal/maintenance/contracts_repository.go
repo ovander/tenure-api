@@ -15,6 +15,7 @@ type contractRow struct {
 	OwnerID        uuid.UUID  `gorm:"column:owner_id"`
 	AssetID        uuid.UUID  `gorm:"column:asset_id"`
 	Kind           string     `gorm:"column:kind"`
+	Fuel           *string    `gorm:"column:fuel"`
 	Title          string     `gorm:"column:title"`
 	ContractorID   *uuid.UUID `gorm:"column:contractor_id"`
 	IntervalMonths int        `gorm:"column:interval_months"`
@@ -104,7 +105,7 @@ func (Repository) UpdateContract(ctx context.Context, r contractRow, version int
 		return err
 	}
 	res := t.Model(&contractRow{}).Where("id = ? AND version = ?", r.ID, version).Updates(map[string]any{
-		"kind": r.Kind, "title": r.Title, "contractor_id": r.ContractorID, "interval_months": r.IntervalMonths,
+		"kind": r.Kind, "fuel": r.Fuel, "title": r.Title, "contractor_id": r.ContractorID, "interval_months": r.IntervalMonths,
 		"responsible": r.Responsible, "first_due_on": r.FirstDueOn, "end_on": r.EndOn, "document_id": r.DocumentID,
 		"notes": r.Notes, "updated_at": r.UpdatedAt, "updated_by": r.UpdatedBy, "version": version + 1})
 	if res.Error != nil {

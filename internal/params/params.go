@@ -78,6 +78,8 @@ const (
 	// KeyTaxImprovementDeductible lists the asset kinds whose improvement
 	// works are deductible (CGI art. 31, I-1° b; Q-130).
 	KeyTaxImprovementDeductible = "tax.improvement_deductible"
+	// KeyMaintenanceChimney is the chimney sweeping rhythm by fuel (Q-131).
+	KeyMaintenanceChimney = "maintenance.chimney"
 	// KeyLedgerCapitalisedConstruction is the account of construction,
 	// reconstruction and enlargement works (Q-130).
 	KeyLedgerCapitalisedConstruction = "ledger.capitalised_construction"
@@ -666,5 +668,27 @@ func (s Set) ImprovementDeductible(asOf period.Date) (ImprovementDeductible, err
 func (s Set) LedgerCapitalisedConstruction(asOf period.Date) (LedgerCapitalised, error) {
 	var r LedgerCapitalised
 	err := s.Decode(KeyLedgerCapitalisedConstruction, asOf, &r)
+	return r, err
+}
+
+// MaintenanceChimney is the parameter maintenance.chimney: the months
+// between two sweepings by fuel, and for a fuel it does not list (Q-131).
+type MaintenanceChimney struct {
+	DefaultMonths int            `json:"default_months"`
+	Fuels         map[string]int `json:"fuels"`
+}
+
+// Months is the sweeping rhythm of a fuel.
+func (c MaintenanceChimney) Months(fuel string) int {
+	if m, ok := c.Fuels[fuel]; ok {
+		return m
+	}
+	return c.DefaultMonths
+}
+
+// MaintenanceChimney returns maintenance.chimney in force on asOf.
+func (s Set) MaintenanceChimney(asOf period.Date) (MaintenanceChimney, error) {
+	var r MaintenanceChimney
+	err := s.Decode(KeyMaintenanceChimney, asOf, &r)
 	return r, err
 }

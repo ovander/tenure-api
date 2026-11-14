@@ -428,6 +428,21 @@
       },
       "source": "RENT-SPEC-015 : travaux de construction, de reconstruction ou d’agrandissement, jamais déduits ; compte du plan comptable général (règlement ANC n° 2014-03), classement de gestion à valider par l’expert-comptable (Q-130)",
       "source_url": "https://www.anc.gouv.fr/normes-francaises/plan-comptable-general"
+    },
+    {
+      "key": "maintenance.chimney",
+      "effective_from": "2024-01-01",
+      "value": {
+        "default_months": 12,
+        "fuels": {
+          "gas": 12,
+          "wood": 6,
+          "pellets": 6,
+          "oil": 6
+        }
+      },
+      "source": "Ramonage : au moins une fois tous les 12 mois par l’occupant (décret n° 2023-641 du 20 juillet 2023, en vigueur le 1er octobre 2023) ; le règlement sanitaire départemental peut en exiger davantage selon le combustible. Lecture retenue : 12 mois pour le gaz et par défaut, 6 mois pour le bois, les granulés et le fioul (Q-131)",
+      "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000047867011"
     }
   ]
 }
