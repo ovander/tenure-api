@@ -27,9 +27,10 @@ type incidentView struct {
 // TestMaintenance records a contractor, reports incidents with a photo,
 // takes the first through quote, schedule, done and a repair invoice — a
 // repairs charge, on line 224 of the tax summary — and others to their
-// invoice: an improvement of the apartment, a repairs charge too; an
-// enlargement of it and an improvement of a box, capitalised in the journal
-// and deducted nowhere; another is cancelled. Wrong transitions, stale versions and another owner's
+// invoice: an improvement of the apartment, a repairs charge too, as is
+// that of a box let in the same lease; an enlargement of the apartment and
+// an improvement of a box let alone, capitalised in the journal and
+// deducted nowhere; another is cancelled. Wrong transitions, stale versions and another owner's
 // contractor are refused, and another owner reads none of the rows (Q-130).
 func TestMaintenance(t *testing.T) {
 	tok, tokX := token(t, subWorks), token(t, subWorksX)
@@ -134,6 +135,28 @@ func TestMaintenance(t *testing.T) {
 	var box idv
 	call(t, "POST", "/assets", req{tok: tok, body: map[string]any{"kind": "box", "address": "6 rue T, Lyon, box 3"}}).json(t, &box)
 	door := finish(box.ID, "Porte motorisée du box", "improvement", 180000)
+	// A box let in the same lease as the apartment is its annex and follows
+	// its regime: its improvement is deductible (Q-130).
+	var annex, ten, lease idv
+	call(t, "POST", "/assets", req{tok: tok, body: map[string]any{"kind": "box", "address": "6 rue T, Lyon, box 4", "parent_asset_id": a.ID}}).json(t, &annex)
+	call(t, "POST", "/tenants", req{tok: tok, body: map[string]any{"names": []string{"Zoé Fictivia"}, "email": "travaux@example.test"}}).json(t, &ten)
+	if r := call(t, "POST", "/leases", req{tok: tok, body: map[string]any{"kind": "unfurnished", "asset_ids": []string{a.ID, annex.ID},
+		"tenants": []map[string]any{{"tenant_id": ten.ID}}, "start_on": "2025-01-01", "term_months": 36, "rent_cents": 80000,
+		"provision_cents": 5000, "due_day": 5, "irl_ref_quarter": "2024-Q3", "irl_ref_value": 14451, "revision_month": 9}}); r.Status != 201 {
+		t.Fatalf("lease: %d %s", r.Status, r.Body)
+	} else {
+		r.json(t, &lease)
+	}
+	superExec(t, `UPDATE leases SET state = 'active' WHERE id = $1`, lease.ID)
+	var gate incidentView
+	call(t, "POST", "/incidents", req{tok: tok, body: map[string]any{"asset_id": annex.ID, "reported_on": "2025-04-15", "reported_by": "owner",
+		"channel": "visit", "title": "Porte motorisée du box loué avec l’appartement"}}).json(t, &gate)
+	move(&gate, 200, map[string]any{"action": "schedule", "contractor_id": c.ID, "scheduled_on": "2025-07-01"})
+	move(&gate, 200, map[string]any{"action": "done", "done_on": "2025-07-20"})
+	move(&gate, 200, map[string]any{"action": "invoice", "invoice_cents": 150000, "treatment": "improvement", "paid_on": "2025-08-01"})
+	if gate.ChargeID == nil {
+		t.Errorf("an annexed box's improvement is a repairs charge: %+v", gate)
+	}
 
 	var gone incidentView
 	call(t, "POST", "/incidents", req{tok: tok, body: map[string]any{"asset_id": a.ID, "reported_on": "2025-06-01", "reported_by": "tenant",
@@ -159,18 +182,17 @@ func TestMaintenance(t *testing.T) {
 	// in the journal, debited to their fixed-asset accounts.
 	var draft tax.View
 	call(t, "POST", "/tax/summaries", req{tok: token(t, subWorks, stepUp(time.Minute)), body: map[string]any{"year": 2025}}).json(t, &draft)
-	var on224, deducted int64
+	// The lease of the annexed box now brings rent into the year: line 224
+	// alone tells what was deducted; the capitalised works created no
+	// charge (finish checks it), so they reach no line.
+	var on224 int64
 	for _, x := range draft.Summary.Owners[0].Totals {
-		deducted += int64(x.AmountCents)
 		if x.Line == "224" {
 			on224 = int64(x.AmountCents)
 		}
 	}
-	if on224 != 42000+650000 {
+	if on224 != 42000+650000+150000 {
 		t.Errorf("line 224: %d in %+v", on224, draft.Summary.Owners[0].Totals)
-	}
-	if deducted >= 42000+650000+180000 {
-		t.Errorf("capitalised works were deducted: %+v", draft.Summary.Owners[0].Totals)
 	}
 	var j ledger.View
 	call(t, "GET", "/ledger?year=2025", req{tok: tok}).json(t, &j)

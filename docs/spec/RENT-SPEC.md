@@ -364,6 +364,7 @@ The platform handles owners that are legal entities and furnished rentals under 
 - SCI: entity with associates and shares; income allocated per associate for 2044/2072; entity-level ledger and FEC.
 - LMNP: BIC micro or réel, amortisation of the asset and furniture, 2031/2033 figures; furnished leases already supported by RENT-SPEC-008 produce these.
 - One person can be a private owner, an SCI associate and an LMNP owner at once; reporting consolidates per person.
+- Plan (tenure-api #178, Q-132): LMNP first, each default a parameter the accountant validates: expense or fixed asset by nature, then a 500 € HT threshold, with a traced override; a dated component grid per asset, frozen once a declaration uses it; straight-line depreciation by days from the day first let; acquisition costs capitalised; the art. 39 C cap with the excess carried forward. SCI comes after.
 
 ## RENT-SPEC-020 — Assisted document capture (phase 4)
 

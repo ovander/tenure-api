@@ -58,14 +58,26 @@ const (
 // Deductible says an invoice becomes a deductible repairs charge (line 224
 // of the 2044, CGI art. 31, I-1° b): a repair always; an improvement when
 // the asset's kind is one the parameter tax.improvement_deductible lists
-// (the dwellings); construction, reconstruction and enlargement never.
-// Pure: the caller passes the parameter in force.
-func Deductible(treatment, assetKind string, rule params.ImprovementDeductible) bool {
+// (the dwellings), or when the asset is let in the same lease as such an
+// asset, whose regime it follows (an annex, such as a box let with the
+// apartment: leaseKinds are the kinds of the other assets of the lease that
+// covered it on the day the works were done, Q-130); construction,
+// reconstruction and enlargement never. Pure: the caller passes the
+// parameter in force and the lease's other assets.
+func Deductible(treatment, assetKind string, leaseKinds []string, rule params.ImprovementDeductible) bool {
 	switch treatment {
 	case TreatmentRepair:
 		return true
 	case TreatmentImprovement:
-		return slices.Contains(rule.AssetKinds, assetKind)
+		if slices.Contains(rule.AssetKinds, assetKind) {
+			return true
+		}
+		for _, k := range leaseKinds {
+			if slices.Contains(rule.AssetKinds, k) {
+				return true
+			}
+		}
+		return false
 	default:
 		return false
 	}
