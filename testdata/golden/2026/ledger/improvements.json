@@ -1,6 +1,6 @@
 {
   "case": "improvements",
-  "description": "Works of 2026 (Q-130). A repair invoice is a repairs charge paid from the bank, an expense. An improvement invoice paid in May is capitalised: it debits the fixed-asset account, never an expense. An improvement paid in January 2027 falls outside the year.",
+  "description": "Works of 2026 (Q-130). A repair invoice is a repairs charge paid from the bank, an expense; so is an improvement of a dwelling, which becomes a repairs charge too. An improvement of a box paid in May is capitalised: it debits the fixed-asset account of improvements, never an expense. An enlargement paid in August debits the account of buildings. An improvement paid in January 2027 falls outside the year.",
   "steps": [
     {
       "name": "year 2026",
@@ -22,10 +22,18 @@
           {
             "incident_id": "I1",
             "asset_id": "A1",
-            "title": "Remplacement de la chaudière",
+            "title": "Porte motorisée du box",
             "paid_on": "2026-05-20",
             "amount_cents": 650000,
             "document_id": "D2"
+          },
+          {
+            "incident_id": "I3",
+            "construction": true,
+            "asset_id": "A1",
+            "title": "Extension de la véranda",
+            "paid_on": "2026-08-03",
+            "amount_cents": 1250000
           },
           {
             "incident_id": "I2",
@@ -42,6 +50,13 @@
     "year 2026": {
       "balances": [
         {
+          "account": "213100",
+          "label": "Bâtiments",
+          "debit_cents": 1250000,
+          "credit_cents": 0,
+          "balance_cents": 1250000
+        },
+        {
           "account": "213500",
           "label": "Installations générales, agencements, aménagements des constructions",
           "debit_cents": 650000,
@@ -52,8 +67,8 @@
           "account": "512000",
           "label": "Banque",
           "debit_cents": 0,
-          "credit_cents": 692000,
-          "balance_cents": -692000
+          "credit_cents": 1942000,
+          "balance_cents": -1942000
         },
         {
           "account": "615200",
@@ -92,7 +107,7 @@
           "journal": "BQ",
           "kind": "improvement",
           "source": "I1",
-          "label": "Travaux d’amélioration : Remplacement de la chaudière",
+          "label": "Travaux d’amélioration : Porte motorisée du box",
           "document_id": "D2",
           "asset_id": "A1",
           "lines": [
@@ -107,6 +122,28 @@
               "label": "Banque",
               "debit_cents": 0,
               "credit_cents": 650000
+            }
+          ]
+        },
+        {
+          "date": "2026-08-03",
+          "journal": "BQ",
+          "kind": "improvement",
+          "source": "I3",
+          "label": "Travaux de construction : Extension de la véranda",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "213100",
+              "label": "Bâtiments",
+              "debit_cents": 1250000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 1250000
             }
           ]
         }

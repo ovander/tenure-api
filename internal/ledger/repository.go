@@ -144,22 +144,24 @@ func (Repository) Settlements(ctx context.Context, from, to time.Time) ([]settle
 type improvementRow struct {
 	ID                uuid.UUID  `gorm:"column:id"`
 	AssetID           uuid.UUID  `gorm:"column:asset_id"`
+	Treatment         string     `gorm:"column:treatment"`
 	Title             string     `gorm:"column:title"`
 	PaidOn            time.Time  `gorm:"column:paid_on"`
 	InvoiceCents      int64      `gorm:"column:invoice_cents"`
 	InvoiceDocumentID *uuid.UUID `gorm:"column:invoice_document_id"`
 }
 
-// Improvements returns the improvement works invoiced and paid in [from,
-// to] (Q-130).
+// Improvements returns the works invoiced, paid in [from, to] and
+// capitalised: an improvement or construction that created no charge
+// (Q-130).
 func (Repository) Improvements(ctx context.Context, from, to time.Time) ([]improvementRow, error) {
 	t, err := tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var rows []improvementRow
-	err = t.Table("incidents").Select("id, asset_id, title, paid_on, invoice_cents, invoice_document_id").
-		Where("status = 'invoiced' AND treatment = 'improvement' AND paid_on BETWEEN ? AND ?", from, to).
+	err = t.Table("incidents").Select("id, asset_id, treatment, title, paid_on, invoice_cents, invoice_document_id").
+		Where("status = 'invoiced' AND charge_id IS NULL AND treatment IN ('improvement', 'construction') AND paid_on BETWEEN ? AND ?", from, to).
 		Order("paid_on, id").Scan(&rows).Error
 	return rows, err
 }

@@ -175,7 +175,7 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 		return in, err
 	}
 	for _, x := range ims {
-		in.Improvements = append(in.Improvements, Improvement{IncidentID: x.ID.String(), AssetID: x.AssetID.String(), Title: x.Title,
+		in.Improvements = append(in.Improvements, Improvement{IncidentID: x.ID.String(), Construction: x.Treatment == "construction", AssetID: x.AssetID.String(), Title: x.Title,
 			PaidOn: period.FromTime(x.PaidOn), AmountCents: money.Cents(x.InvoiceCents), DocumentID: idString(x.InvoiceDocumentID)})
 	}
 	return in, nil

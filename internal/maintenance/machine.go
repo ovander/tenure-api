@@ -1,14 +1,18 @@
 // Package maintenance holds the owner's contractors and the incidents of
 // their assets with the works that answer them (RENT-SPEC-015): an incident
-// is reported, quoted, scheduled, done and invoiced, or cancelled; a repair's
-// invoice becomes a deductible repairs charge, an improvement's is
-// capitalised on the asset, never deducted (Q-130). Next is pure.
+// is reported, quoted, scheduled, done and invoiced, or cancelled; the
+// invoice of a repair, or of an improvement of a dwelling, becomes a
+// deductible repairs charge; that of construction, enlargement or an
+// improvement of another asset is capitalised, never deducted (Q-130). Next
+// and Deductible are pure.
 package maintenance
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/problem"
 )
 
@@ -43,11 +47,29 @@ const (
 // Actions lists every action, for the exhaustive tests.
 var Actions = []Action{ActionQuote, ActionSchedule, ActionDone, ActionInvoice, ActionCancel}
 
-// Treatments of an invoice (incidents.treatment).
+// Treatments of an invoice (incidents.treatment, Q-130): a repair or
+// upkeep; an improvement; construction, reconstruction or enlargement.
 const (
-	TreatmentRepair      = "repair"
-	TreatmentImprovement = "improvement"
+	TreatmentRepair       = "repair"
+	TreatmentImprovement  = "improvement"
+	TreatmentConstruction = "construction"
 )
+
+// Deductible says an invoice becomes a deductible repairs charge (line 224
+// of the 2044, CGI art. 31, I-1° b): a repair always; an improvement when
+// the asset's kind is one the parameter tax.improvement_deductible lists
+// (the dwellings); construction, reconstruction and enlargement never.
+// Pure: the caller passes the parameter in force.
+func Deductible(treatment, assetKind string, rule params.ImprovementDeductible) bool {
+	switch treatment {
+	case TreatmentRepair:
+		return true
+	case TreatmentImprovement:
+		return slices.Contains(rule.AssetKinds, assetKind)
+	default:
+		return false
+	}
+}
 
 // Problem types of the maintenance module.
 const (

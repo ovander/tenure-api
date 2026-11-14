@@ -75,6 +75,12 @@ const (
 	// KeyMaintenanceRecurring is, per kind of recurring maintenance, its
 	// interval and who must have it done (RENT-SPEC-015, Q-131).
 	KeyMaintenanceRecurring = "maintenance.recurring"
+	// KeyTaxImprovementDeductible lists the asset kinds whose improvement
+	// works are deductible (CGI art. 31, I-1° b; Q-130).
+	KeyTaxImprovementDeductible = "tax.improvement_deductible"
+	// KeyLedgerCapitalisedConstruction is the account of construction,
+	// reconstruction and enlargement works (Q-130).
+	KeyLedgerCapitalisedConstruction = "ledger.capitalised_construction"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -637,5 +643,28 @@ type MaintenanceRecurring struct {
 func (s Set) MaintenanceRecurring(asOf period.Date) (MaintenanceRecurring, error) {
 	var r MaintenanceRecurring
 	err := s.Decode(KeyMaintenanceRecurring, asOf, &r)
+	return r, err
+}
+
+// ImprovementDeductible is the parameter tax.improvement_deductible: the
+// asset kinds (dwellings) whose improvement works are deductible on line
+// 224 of the 2044 (CGI art. 31, I-1° b; Q-130).
+type ImprovementDeductible struct {
+	AssetKinds []string `json:"asset_kinds"`
+}
+
+// ImprovementDeductible returns tax.improvement_deductible in force on asOf.
+func (s Set) ImprovementDeductible(asOf period.Date) (ImprovementDeductible, error) {
+	var r ImprovementDeductible
+	err := s.Decode(KeyTaxImprovementDeductible, asOf, &r)
+	return r, err
+}
+
+// LedgerCapitalisedConstruction returns ledger.capitalised_construction in
+// force on asOf: the account of construction, reconstruction and
+// enlargement works, never deducted (Q-130).
+func (s Set) LedgerCapitalisedConstruction(asOf period.Date) (LedgerCapitalised, error) {
+	var r LedgerCapitalised
+	err := s.Decode(KeyLedgerCapitalisedConstruction, asOf, &r)
 	return r, err
 }

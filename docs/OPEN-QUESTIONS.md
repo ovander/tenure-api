@@ -1833,7 +1833,7 @@ reading:
   - a trailing twelve months;
   - the screen (part 16b).
 
-**Q-130 Maintenance and incidents, part 17a — Open (#164).** RENT-SPEC-015 tracks tenant
+**Q-130 Maintenance and incidents, part 17a — Open (#164); the treatment of works resolved (#170).** RENT-SPEC-015 tracks tenant
 requests and owner works from report to invoice, « the invoice creates the Charge with category
 repair (deductible) or improvement (not deductible, capitalised) ». Provisional reading:
 
@@ -1860,19 +1860,32 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
   its amount, charged on the day the works were done, paid on the day given, the invoice as its
   document, in the same transaction. It is therefore deductible on line 224, matched to its bank
   debit like any charge, and refused in a closed year (Q-127).
-- **An improvement's invoice creates no charge** — a deviation from the wording « creates the
-  Charge with category improvement ». The charge categories are mapped to 2044 lines and to the
-  journal's accounts by parameters already seeded; adding a category would change seeded values,
-  and an improvement charge would risk being deducted. Instead the amount is capitalised on the
-  incident: when paid, the journal posts it to the fixed-asset account of the parameter
-  `ledger.capitalised` (213500, against the bank), and the tax summary and the dashboard's
-  expenses ignore it. The account is a bookkeeping choice to confirm with the accountant.
+- **The invoice's treatment** (resolved, #170) follows line 224 of the 2044, « dépenses de
+  réparation, d'entretien et d'amélioration » (CGI art. 31, I-1° b):
+  - `repair` (repair or upkeep): a deductible repairs charge;
+  - `improvement`: a deductible repairs charge when the asset's kind is a dwelling, as the
+    parameter `tax.improvement_deductible` lists (house, apartment); for other premises (a
+    box) it is not deductible and is capitalised;
+  - `construction` (construction, reconstruction, enlargement): never deductible, capitalised.
+
+  Part 17a first capitalised every improvement. That understated the owner's deduction on a
+  dwelling, and is corrected.
+- **Capitalised works** create no charge. When paid, the journal posts them to a fixed-asset
+  account against the bank: construction to `ledger.capitalised_construction` (213100), an
+  improvement to `ledger.capitalised` (213500). Under revenus fonciers there is neither fixed
+  asset nor depreciation for tax: these accounts are a management classification, useful for a
+  future capital gain. They take their full meaning in furnished letting under the réel (BIC),
+  which Tenure does not compute.
+- **To the accountant**, with the furnished réel regime:
+  - the threshold under which an expense is a charge;
+  - the split by components (structure to 2131, fittings to 2135);
+  - whether a box let with a dwelling, as its dependency, follows the dwelling.
+
+  Until then a box's improvement is capitalised, the cautious reading.
 - **Not built yet:**
   - depreciation of improvements (the micro and réel regimes of a private landlord do not
     depreciate; an SCI at IS would);
-  - recurring maintenance contracts on the obligations calendar (part 17b);
-  - the tenant reporting through the portal (RENT-SPEC-017);
-  - the screen (part 17c).
+  - the tenant reporting through the portal (RENT-SPEC-017).
 
 **Q-131 Recurring maintenance on the calendar, part 17b — Open (#166).** RENT-SPEC-015 links
 « recurring contracts (boiler, chimney) » to the obligations calendar. Provisional reading:
