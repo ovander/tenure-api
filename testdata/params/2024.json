@@ -404,6 +404,30 @@
       },
       "source": "Chaudière : entretien annuel à la charge de l’occupant (décret n° 2009-649 du 9 juin 2009, arrêté du 15 septembre 2009 ; décret n° 87-712, menues réparations). Ramonage : règlement sanitaire départemental type, art. 31 — une ou deux fois par an selon le combustible et le département ; la lecture prudente retient deux fois par an (Q-131)",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000020722484"
+    },
+    {
+      "key": "tax.improvement_deductible",
+      "effective_from": "2024-01-01",
+      "value": {
+        "asset_kinds": [
+          "house",
+          "apartment"
+        ]
+      },
+      "source": "CGI art. 31, I-1° b : les dépenses d’amélioration afférentes aux locaux d’habitation sont déductibles (ligne 224 de la 2044), à l’exclusion des travaux de construction, de reconstruction ou d’agrandissement ; pour les autres locaux, l’amélioration n’est en principe pas déductible (Q-130)",
+      "source_url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041464101"
+    },
+    {
+      "key": "ledger.capitalised_construction",
+      "effective_from": "2024-01-01",
+      "value": {
+        "account": {
+          "code": "213100",
+          "label": "Bâtiments"
+        }
+      },
+      "source": "RENT-SPEC-015 : travaux de construction, de reconstruction ou d’agrandissement, jamais déduits ; compte du plan comptable général (règlement ANC n° 2014-03), classement de gestion à valider par l’expert-comptable (Q-130)",
+      "source_url": "https://www.anc.gouv.fr/normes-francaises/plan-comptable-general"
     }
   ]
 }

@@ -18137,7 +18137,8 @@
                     "type": "string",
                     "enum": [
                         "repair",
-                        "improvement"
+                        "improvement",
+                        "construction"
                     ]
                 },
                 "urgency": {
@@ -18277,11 +18278,12 @@
                     "format": "date"
                 },
                 "treatment": {
-                    "description": "Treatment of the invoice: repair (a deductible repairs charge) or\nimprovement (capitalised, never deducted).",
+                    "description": "Treatment of the invoice (Q-130): repair (repair or upkeep, a\ndeductible repairs charge), improvement (a deductible repairs charge on\na dwelling, capitalised otherwise) or construction (construction,\nreconstruction or enlargement, capitalised, never deducted).",
                     "type": "string",
                     "enum": [
                         "repair",
-                        "improvement"
+                        "improvement",
+                        "construction"
                     ]
                 }
             }

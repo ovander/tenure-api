@@ -42,10 +42,13 @@ const (
 	RoleLoanInterest   = "loan_interest"
 	RoleLoanInsurance  = "loan_insurance"
 	RolePenalties      = "penalties"
-	// RoleCapitalised is the fixed-asset account of improvement works
-	// (params.LedgerCapitalised, Q-130). It is required only when the
-	// journal has improvements to post.
-	RoleCapitalised = "capitalised"
+	// RoleCapitalised is the fixed-asset account of improvement works not
+	// deducted (params.LedgerCapitalised, Q-130); RoleCapitalisedConstruction
+	// that of construction, reconstruction and enlargement
+	// (params.LedgerCapitalisedConstruction). They are required only when the
+	// journal has such works to post.
+	RoleCapitalised             = "capitalised"
+	RoleCapitalisedConstruction = "capitalised_construction"
 )
 
 var roles = []string{RoleBank, RoleTenants, RoleTenantAdvances, RoleProvisions, RoleRent, RoleOtherIncome,
@@ -132,14 +135,17 @@ type Settlement struct {
 	DocumentID string `json:"document_id,omitempty"`
 }
 
-// Improvement is the invoice of improvement works paid by the owner
-// (Q-130): capitalised on the asset, never a deductible charge.
+// Improvement is the invoice of works paid by the owner and capitalised on
+// the asset, never a deductible charge (Q-130): an improvement of an asset
+// that is no dwelling, or, with Construction, construction, reconstruction
+// or enlargement.
 type Improvement struct {
-	IncidentID  string      `json:"incident_id"`
-	AssetID     string      `json:"asset_id"`
-	Title       string      `json:"title"`
-	PaidOn      period.Date `json:"paid_on"`
-	AmountCents money.Cents `json:"amount_cents"`
+	IncidentID   string      `json:"incident_id"`
+	Construction bool        `json:"construction,omitempty"`
+	AssetID      string      `json:"asset_id"`
+	Title        string      `json:"title"`
+	PaidOn       period.Date `json:"paid_on"`
+	AmountCents  money.Cents `json:"amount_cents"`
 	// DocumentID is its invoice, if uploaded.
 	DocumentID string `json:"document_id,omitempty"`
 }
@@ -237,8 +243,9 @@ func (b *builder) done() (Entry, bool, error) {
 //     regularisation kept, other income with the deductions, and the bank
 //     with what is paid back; what the tenant still owes is debited to the
 //     tenants' account;
-//   - improvement works paid credit the bank and debit the fixed-asset
-//     account (Q-130).
+//   - works capitalised (an improvement not deductible, or construction,
+//     reconstruction, enlargement) credit the bank when paid and debit
+//     their fixed-asset account (Q-130).
 //
 // Entries are ordered by date, kind and source. Balances are by account
 // number.
@@ -346,11 +353,15 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 		if !in2(im.PaidOn) {
 			continue
 		}
-		a, ok := chart.Accounts[RoleCapitalised]
-		if !ok || a.Code == "" {
-			return nil, nil, fmt.Errorf("%w: role %s", ErrChart, RoleCapitalised)
+		role, label := RoleCapitalised, "Travaux d’amélioration : "
+		if im.Construction {
+			role, label = RoleCapitalisedConstruction, "Travaux de construction : "
 		}
-		b := &builder{Entry{Date: im.PaidOn, Journal: JournalBank, Kind: "improvement", Source: im.IncidentID, Label: "Travaux d’amélioration : " + im.Title, DocumentID: im.DocumentID, AssetID: im.AssetID}}
+		a, ok := chart.Accounts[role]
+		if !ok || a.Code == "" {
+			return nil, nil, fmt.Errorf("%w: role %s", ErrChart, role)
+		}
+		b := &builder{Entry{Date: im.PaidOn, Journal: JournalBank, Kind: "improvement", Source: im.IncidentID, Label: label + im.Title, DocumentID: im.DocumentID, AssetID: im.AssetID}}
 		b.add(a, im.AmountCents)
 		b.add(acc[RoleBank], -im.AmountCents)
 		if err := push(b); err != nil {
@@ -397,8 +408,9 @@ func Balances(entries []Entry) []Balance {
 }
 
 // Chart is the chart of accounts in force on asOf: params.LedgerChart with
-// the fixed-asset account of improvement works (params.LedgerCapitalised,
-// Q-130) under RoleCapitalised.
+// the fixed-asset accounts of capitalised works (params.LedgerCapitalised
+// and params.LedgerCapitalisedConstruction, Q-130) under RoleCapitalised and
+// RoleCapitalisedConstruction.
 func Chart(ps params.Set, asOf period.Date) (params.LedgerChart, error) {
 	chart, err := ps.LedgerChart(asOf)
 	if err != nil {
@@ -408,11 +420,16 @@ func Chart(ps params.Set, asOf period.Date) (params.LedgerChart, error) {
 	if err != nil {
 		return chart, err
 	}
-	accounts := make(map[string]params.LedgerAccount, len(chart.Accounts)+1)
+	cons, err := ps.LedgerCapitalisedConstruction(asOf)
+	if err != nil {
+		return chart, err
+	}
+	accounts := make(map[string]params.LedgerAccount, len(chart.Accounts)+2)
 	for k, v := range chart.Accounts {
 		accounts[k] = v
 	}
 	accounts[RoleCapitalised] = capd.Account
+	accounts[RoleCapitalisedConstruction] = cons.Account
 	chart.Accounts = accounts
 	return chart, nil
 }

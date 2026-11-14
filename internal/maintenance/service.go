@@ -177,9 +177,11 @@ type TransitionInput struct {
 	DoneOn            *period.Date `json:"done_on,omitempty" swaggertype:"string" format:"date"`
 	InvoiceCents      *money.Cents `json:"invoice_cents,omitempty"`
 	InvoiceDocumentID *uuid.UUID   `json:"invoice_document_id,omitempty"`
-	// Treatment of the invoice: repair (a deductible repairs charge) or
-	// improvement (capitalised, never deducted).
-	Treatment string       `json:"treatment,omitempty" enums:"repair,improvement"`
+	// Treatment of the invoice (Q-130): repair (repair or upkeep, a
+	// deductible repairs charge), improvement (a deductible repairs charge on
+	// a dwelling, capitalised otherwise) or construction (construction,
+	// reconstruction or enlargement, capitalised, never deducted).
+	Treatment string       `json:"treatment,omitempty" enums:"repair,improvement,construction"`
 	PaidOn    *period.Date `json:"paid_on,omitempty" swaggertype:"string" format:"date"`
 	Reason    string       `json:"reason,omitempty"`
 }
@@ -196,7 +198,7 @@ type Incident struct {
 	DoneOn            *period.Date `json:"done_on" swaggertype:"string" format:"date"`
 	InvoiceCents      *money.Cents `json:"invoice_cents"`
 	InvoiceDocumentID *uuid.UUID   `json:"invoice_document_id"`
-	Treatment         *string      `json:"treatment" enums:"repair,improvement"`
+	Treatment         *string      `json:"treatment" enums:"repair,improvement,construction"`
 	PaidOn            *period.Date `json:"paid_on" swaggertype:"string" format:"date"`
 	// ChargeID is the repairs charge a repair's invoice created.
 	ChargeID     *uuid.UUID `json:"charge_id"`
@@ -472,8 +474,8 @@ func (s Service) fields(ctx context.Context, r *incidentRow, in TransitionInput)
 		if in.InvoiceCents == nil || *in.InvoiceCents <= 0 {
 			f.Add("invoice_cents", "Le montant de la facture doit être positif.")
 		}
-		if !oneOf(in.Treatment, TreatmentRepair, TreatmentImprovement) {
-			f.Add("treatment", "Attendu : repair (réparation, déductible) ou improvement (amélioration, immobilisée).")
+		if !oneOf(in.Treatment, TreatmentRepair, TreatmentImprovement, TreatmentConstruction) {
+			f.Add("treatment", "Attendu : repair (réparation, entretien), improvement (amélioration) ou construction (construction, reconstruction, agrandissement).")
 		}
 	case ActionCancel:
 		if len(in.Reason) > 500 {
@@ -516,13 +518,37 @@ func (s Service) fields(ctx context.Context, r *incidentRow, in TransitionInput)
 	return nil
 }
 
+// deductible says the invoice of r becomes a deductible repairs charge
+// (Deductible), the asset's kind and tax.improvement_deductible as of the
+// day the works were done.
+func (s Service) deductible(ctx context.Context, r incidentRow) (bool, error) {
+	if r.Treatment == nil {
+		return false, nil
+	}
+	a, err := s.Portfolio.AssetInTx(ctx, r.AssetID)
+	if err != nil {
+		return false, err
+	}
+	ps, err := s.Params.Load(ctx)
+	if err != nil {
+		return false, err
+	}
+	rule, err := ps.ImprovementDeductible(period.FromTime(*r.DoneOn))
+	if err != nil {
+		return false, err
+	}
+	return Deductible(*r.Treatment, string(a.Kind), rule), nil
+}
+
 // Transition moves an incident (RENT-SPEC-015, Q-130), when version is the
-// one read. A repair's invoice creates a confirmed repairs charge of its
-// amount, charged on the day the works were done, paid on paid_on, with the
-// invoice as its document: deductible on line 224, matched to its bank
-// debit like any charge, refused in a closed year (Q-127). An improvement's
-// invoice creates no charge: it is capitalised on the asset, never
-// deducted, and the owner's journal posts it when paid.
+// one read. The invoice of a repair, or of an improvement of a dwelling,
+// creates a confirmed repairs charge of its amount, charged on the day the
+// works were done, paid on paid_on, with the invoice as its document:
+// deductible on line 224, matched to its bank debit like any charge,
+// refused in a closed year (Q-127). The invoice of construction,
+// reconstruction or enlargement, or of an improvement of another asset,
+// creates no charge: it is capitalised on the asset, never deducted, and
+// the owner's journal posts it when paid.
 func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID string, id uuid.UUID, version int, in TransitionInput) (Incident, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
@@ -545,7 +571,14 @@ func (s Service) Transition(ctx context.Context, p *auth.Principal, requestID st
 		if err := s.fields(ctx, &r, in); err != nil {
 			return err
 		}
-		if in.Action == ActionInvoice && in.Treatment == TreatmentRepair {
+		deductible := false
+		if in.Action == ActionInvoice {
+			deductible, err = s.deductible(ctx, r)
+			if err != nil {
+				return err
+			}
+		}
+		if deductible {
 			doc := r.InvoiceDocumentID
 			c, err := s.Charges.CreateInTx(ctx, sc.OwnerID, p.Sub, "invoice", charge.Input{AssetID: r.AssetID, ChargedOn: period.FromTime(*r.DoneOn),
 				PaidOn: date(r.PaidOn), Category: charge.CategoryRepairs, Label: "Travaux : " + r.Title, AmountCents: *r.InvoiceCents,

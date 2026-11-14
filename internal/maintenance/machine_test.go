@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/params"
 )
 
 // TestNextExhaustive checks every status against every action.
@@ -40,6 +41,29 @@ func TestEditable(t *testing.T) {
 		want := s == StatusNew || s == StatusQuoted || s == StatusScheduled
 		if Editable(s) != want {
 			t.Errorf("Editable(%s) = %v", s, !want)
+		}
+	}
+}
+
+func TestDeductible(t *testing.T) {
+	// A made-up rule: the kinds come from the parameter, not the code.
+	rule := params.ImprovementDeductible{AssetKinds: []string{"apartment"}}
+	cases := []struct {
+		treatment, kind string
+		want            bool
+	}{
+		{TreatmentRepair, "box", true},
+		{TreatmentRepair, "apartment", true},
+		{TreatmentImprovement, "apartment", true},
+		{TreatmentImprovement, "house", false},
+		{TreatmentImprovement, "box", false},
+		{TreatmentConstruction, "house", false},
+		{TreatmentConstruction, "box", false},
+		{"unknown", "house", false},
+	}
+	for _, c := range cases {
+		if got := Deductible(c.treatment, c.kind, rule); got != c.want {
+			t.Errorf("%s on %s: %v", c.treatment, c.kind, got)
 		}
 	}
 }
