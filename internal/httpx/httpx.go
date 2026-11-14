@@ -95,6 +95,17 @@ func IfMatch(w http.ResponseWriter, r *http.Request) (int, bool) {
 	return v, true
 }
 
+// IfMatchOrZero is IfMatch for a resource that may not exist yet: it also
+// accepts version 0, the version GET serves while there is none, for the
+// write that creates it.
+func IfMatchOrZero(w http.ResponseWriter, r *http.Request) (int, bool) {
+	h := strings.TrimSpace(r.Header.Get("If-Match"))
+	if strings.Trim(strings.TrimPrefix(h, "W/"), `"`) == "0" {
+		return 0, true
+	}
+	return IfMatch(w, r)
+}
+
 // Page is a page request: ?page= (from 1) and ?size= (1 to 100, default 20).
 type Page struct {
 	Number int

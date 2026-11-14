@@ -1979,6 +1979,35 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
 - **Out of scope until asked:** the reinstatement of depreciation in the capital gain on sale
   (loi de finances 2025), the 2031 and 2033 forms themselves (Tenure gives their figures), VAT,
   the furnished-letting professional status (LMP), and the SCI side of RENT-SPEC-019.
+- **Built in 18b** (#180), module `bic`:
+  - **The grid of an asset** is versioned: each `PUT /assets/{id}/bic-grid` records the next
+    version (If-Match: the version read, 0 for the first). A version is never changed, and a
+    change after the first needs its reason. The basis is the price plus the acquisition costs,
+    unless they are expensed (an option per version). While none is recorded, `GET` proposes the
+    default: the lines of `bic.components`, the asset's acquisition price, the start of its first
+    furnished or mobility lease, and the costs as `bic.acquisition_costs` says.
+  - **Furniture and works** (`/assets/{id}/fixed-assets`, `/fixed-assets/{id}`):
+    - each item has a cost, a day put in service, months and, for works, their nature;
+    - works of repair are an expense; improvement and construction works are fixed assets
+      whatever their cost;
+    - the threshold `bic.small_equipment` applies to furniture only;
+    - furniture takes `bic.furniture`'s months unless given;
+    - a treatment forced against the rule needs its reason, and the audit trail keeps it;
+    - an item disposed of stops on that day.
+  - **The pure engine `bic.Depreciation`**:
+    - the basis is spread over the lines by share, to the cent half-up, the last line taking
+      what rounding leaves;
+    - each line is depreciated straight-line by days: the accumulated amount at a year's end is
+      the base times the days elapsed over the days of life, to the cent half-up, so the year is
+      the difference and the last day closes the line;
+    - a line of 0 months is not depreciated.
+
+    `GET /assets/{id}/depreciation?year=` gives the rows, their total and the cost of the items
+    expensed that year. Golden files under `testdata/golden/<year>/bic/`.
+  - **Still to come in 18c:**
+    - freezing a version once a declaration uses it (`frozen_at`), with a later version applying
+      from its date only;
+    - the plan revised over the remaining life.
 - **Slices:**
   - 18a: this reading, and a box annexed to a dwelling's lease follows it (Q-130);
   - 18b: the grid, the furniture and the pure depreciation engine, with golden files;

@@ -443,6 +443,73 @@
       },
       "source": "Ramonage : au moins une fois tous les 12 mois par l’occupant (décret n° 2023-641 du 20 juillet 2023, en vigueur le 1er octobre 2023) ; le règlement sanitaire départemental peut en exiger davantage selon le combustible. Lecture retenue : 12 mois pour le gaz et par défaut, 6 mois pour le bois, les granulés et le fioul (Q-131)",
       "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000047867011"
+    },
+    {
+      "key": "bic.components",
+      "effective_from": "2024-01-01",
+      "value": {
+        "lines": [
+          {
+            "component": "land",
+            "share_bp": 1500,
+            "months": 0
+          },
+          {
+            "component": "structure",
+            "share_bp": 4000,
+            "months": 600
+          },
+          {
+            "component": "roof",
+            "share_bp": 1000,
+            "months": 300
+          },
+          {
+            "component": "facade",
+            "share_bp": 1000,
+            "months": 300
+          },
+          {
+            "component": "technical",
+            "share_bp": 1500,
+            "months": 240
+          },
+          {
+            "component": "fittings",
+            "share_bp": 1000,
+            "months": 180
+          }
+        ]
+      },
+      "source": "RENT-SPEC-019, Q-132 : valeur par défaut retenue en attendant la validation de l’expert-comptable (BIC, location meublée au réel ; CGI art. 39 et 39 C, PCG art. 214-9 sur l’approche par composants) ; grille de composants : quote-part et durée, terrain non amorti",
+      "source_url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044986768"
+    },
+    {
+      "key": "bic.furniture",
+      "effective_from": "2024-01-01",
+      "value": {
+        "months": 84
+      },
+      "source": "RENT-SPEC-019, Q-132 : valeur par défaut retenue en attendant la validation de l’expert-comptable (BIC, location meublée au réel ; CGI art. 39 et 39 C, PCG art. 214-9 sur l’approche par composants) ; durée d’amortissement du mobilier",
+      "source_url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044986768"
+    },
+    {
+      "key": "bic.small_equipment",
+      "effective_from": "2024-01-01",
+      "value": {
+        "threshold_cents": 50000
+      },
+      "source": "Tolérance administrative : petit matériel et mobilier de faible valeur passés en charge sous 500 € HT par élément (BOI-BIC-CHG-20-30-10) ; Q-132",
+      "source_url": "https://bofip.impots.gouv.fr/bofip/2101-PGP.html"
+    },
+    {
+      "key": "bic.acquisition_costs",
+      "effective_from": "2024-01-01",
+      "value": {
+        "capitalise": true
+      },
+      "source": "RENT-SPEC-019, Q-132 : valeur par défaut retenue en attendant la validation de l’expert-comptable (BIC, location meublée au réel ; CGI art. 39 et 39 C, PCG art. 214-9 sur l’approche par composants) ; frais d’acquisition immobilisés par défaut (option de déduction immédiate, CGI art. 38 quinquies)",
+      "source_url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006303638"
     }
   ]
 }

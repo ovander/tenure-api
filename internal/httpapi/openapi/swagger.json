@@ -309,6 +309,252 @@
                 }
             }
         },
+        "/assets/{id}/bic-grid": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The latest version of the asset's grid for furnished letting under the réel; while it has none, the default proposal (version 0, proposed): the lines of bic.components, the acquisition price, the start of its first furnished lease, the acquisition costs as bic.acquisition_costs says (RENT-SPEC-019, Q-132).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "An asset's component grid",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bic.GridView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records the next version (If-Match: the version read, 0 for the first). The shares add up to 100 % (10 000 basis points); a line of 0 months is not depreciated (the land). The basis is the price with the acquisition costs unless they are expensed. A version is never changed; a change after the first needs its reason.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "Record a version of an asset's component grid",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version (0 for none)",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "grid",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bic.GridInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bic.GridView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets/{id}/depreciation": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Straight-line by days from the day first let furnished (an item: put in service), each line closed on its last day, cents half-up (Q-132): one row per component of the latest grid, then per capitalised item; with the cost of the items expensed that year.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "An asset's depreciation for a year",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bic.DepreciationView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/assets/{id}/diagnostics": {
             "get": {
                 "security": [
@@ -442,6 +688,158 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets/{id}/fixed-assets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "An asset's furniture and works",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/bic.ItemView"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Expense or fixed asset (Q-132): works of repair are an expense; improvement and construction works are fixed assets; furniture under bic.small_equipment is expensed. A treatment forced against the rule needs its reason, traced. Furniture takes bic.furniture's months unless given; works need theirs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "Record furniture or works on an asset",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "item",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bic.ItemInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/bic.ItemView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -3678,6 +4076,113 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/fixed-assets/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces it, checked as for POST /assets/{id}/fixed-assets; set disposed_on when it leaves the asset.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "Change furniture or works",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "item id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "item",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bic.ItemInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bic.ItemView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
                         "schema": {
                             "$ref": "#/definitions/problem.Body"
                         }
@@ -12395,6 +12900,291 @@
                 },
                 "role": {
                     "$ref": "#/definitions/auth.Role"
+                }
+            }
+        },
+        "bic.DepreciationView": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "expensed_cents": {
+                    "description": "ExpensedCents is the cost of the items expensed, put in service in the\nyear.",
+                    "type": "integer"
+                },
+                "grid_version": {
+                    "description": "GridVersion is the grid used, 0 when the asset has none yet (only its\nitems are depreciated).",
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.Row"
+                    }
+                },
+                "total_cents": {
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.GridInput": {
+            "type": "object",
+            "properties": {
+                "acquisition_costs_cents": {
+                    "type": "integer"
+                },
+                "costs_expensed": {
+                    "description": "CostsExpensed expenses the acquisition costs in the first year rather\nthan spreading them over the components (an option, traced).",
+                    "type": "boolean"
+                },
+                "in_service_on": {
+                    "description": "InServiceOn is the day the asset was first let furnished.",
+                    "type": "string",
+                    "format": "date"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.Line"
+                    }
+                },
+                "price_cents": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "description": "Reason says why a version changes the one before.",
+                    "type": "string"
+                }
+            }
+        },
+        "bic.GridView": {
+            "type": "object",
+            "properties": {
+                "acquisition_costs_cents": {
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "bases": {
+                    "description": "Bases is each line's share of the basis, in the lines' order.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "basis_cents": {
+                    "type": "integer"
+                },
+                "costs_expensed": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "frozen": {
+                    "type": "boolean"
+                },
+                "in_service_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.Line"
+                    }
+                },
+                "price_cents": {
+                    "type": "integer"
+                },
+                "proposed": {
+                    "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.ItemInput": {
+            "type": "object",
+            "properties": {
+                "cost_cents": {
+                    "type": "integer"
+                },
+                "disposed_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "in_service_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "furniture",
+                        "works"
+                    ]
+                },
+                "label": {
+                    "type": "string"
+                },
+                "months": {
+                    "description": "Months defaults to bic.furniture for furniture; required for works.",
+                    "type": "integer"
+                },
+                "override_reason": {
+                    "type": "string"
+                },
+                "treatment": {
+                    "description": "Treatment forces asset or expense against the rule (Q-132); the\nreason is then required and traced.",
+                    "type": "string",
+                    "enum": [
+                        "asset",
+                        "expense"
+                    ]
+                },
+                "works": {
+                    "description": "Works is the nature of works: repair, improvement or construction.",
+                    "type": "string",
+                    "enum": [
+                        "repair",
+                        "improvement",
+                        "construction"
+                    ]
+                }
+            }
+        },
+        "bic.ItemView": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "cost_cents": {
+                    "type": "integer"
+                },
+                "disposed_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "in_service_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "furniture",
+                        "works"
+                    ]
+                },
+                "label": {
+                    "type": "string"
+                },
+                "months": {
+                    "type": "integer"
+                },
+                "overridden": {
+                    "type": "boolean"
+                },
+                "override_reason": {
+                    "type": "string"
+                },
+                "suggested": {
+                    "description": "Suggested is what the rule gives without an override.",
+                    "type": "string",
+                    "enum": [
+                        "asset",
+                        "expense"
+                    ]
+                },
+                "treatment": {
+                    "type": "string",
+                    "enum": [
+                        "asset",
+                        "expense"
+                    ]
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "works": {
+                    "type": "string",
+                    "enum": [
+                        "repair",
+                        "improvement",
+                        "construction"
+                    ]
+                }
+            }
+        },
+        "bic.Line": {
+            "type": "object",
+            "properties": {
+                "component": {
+                    "type": "string"
+                },
+                "months": {
+                    "type": "integer"
+                },
+                "share_bp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.Row": {
+            "type": "object",
+            "properties": {
+                "base_cents": {
+                    "type": "integer"
+                },
+                "depreciable": {
+                    "type": "boolean"
+                },
+                "end_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "months": {
+                    "type": "integer"
+                },
+                "net_cents": {
+                    "type": "integer"
+                },
+                "prior_cents": {
+                    "type": "integer"
+                },
+                "ref": {
+                    "description": "Ref is the component, or the item's id.",
+                    "type": "string"
+                },
+                "start_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "year_cents": {
+                    "type": "integer"
                 }
             }
         },
