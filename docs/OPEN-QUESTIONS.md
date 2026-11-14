@@ -1887,7 +1887,7 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
     depreciate; an SCI at IS would);
   - the tenant reporting through the portal (RENT-SPEC-017).
 
-**Q-131 Recurring maintenance on the calendar, part 17b — Open (#166).** RENT-SPEC-015 links
+**Q-131 Recurring maintenance on the calendar, part 17b — Open (#166); the chimney rhythm resolved (#172).** RENT-SPEC-015 links
 « recurring contracts (boiler, chimney) » to the obligations calendar. Provisional reading:
 
 - **A maintenance contract** is on one asset: a kind (`boiler`, `chimney`, `other`), a title,
@@ -1896,13 +1896,20 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
 - **The legal rhythm** lives in the parameter `maintenance.recurring`, by kind:
   - boiler: every 12 months, by the occupant (décret n° 2009-649, arrêté du 15 septembre 2009;
     décret n° 87-712, menues réparations);
-  - chimney: every 6 months, by the occupant. The règlement sanitaire départemental asks once or
-    twice a year depending on the fuel and the département; the cautious reading takes twice,
-    so a reminder is never late. A département that asks once can be entered as 12 months only
-    after this parameter says so for it — not built.
+  - chimney, by the occupant, at the rhythm of its fuel (resolved, #172), from the parameter
+    `maintenance.chimney`: every 12 months by default and for gas, every 6 months for wood,
+    pellets and oil. The national floor is one sweeping a year (décret n° 2023-641, in force
+    1 October 2023); the règlement sanitaire départemental may ask for more, often twice a year
+    for solid or liquid fuels. Six months for those is the cautious reading the owner chose: a
+    reminder is never late. A chimney contract requires its fuel. A contract recorded before
+    keeps its interval and gives its fuel when next changed. The 6 months of
+    `maintenance.recurring` for a chimney, seeded first, are no longer read (who is responsible
+    still is).
 
   For these two kinds the interval and who is responsible default to the parameter, and a longer
-  interval is refused; a shorter one is allowed. `other` has no legal rhythm: both are required.
+  interval is refused; a shorter one is allowed. That is the override per asset: where the
+  département asks more (to check with the préfecture or a local sweep), the owner sets a
+  shorter interval on the contract. `other` has no legal rhythm: both are required.
 - **Who is responsible** is shown, not enforced: the owner tracks a tenant's obligation (and
   asks for the certificate) as well as their own.
 - **A visit** records the day it was done (not in the future), the certificate as a document

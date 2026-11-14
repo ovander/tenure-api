@@ -172,3 +172,11 @@ func TestLeaseTerm(t *testing.T) {
 		t.Error("a date before every entry has a lease term")
 	}
 }
+
+func TestMaintenanceChimneyMonths(t *testing.T) {
+	// Made-up values: the rhythm comes from the parameter, not the code.
+	c := MaintenanceChimney{DefaultMonths: 9, Fuels: map[string]int{"wood": 3}}
+	if c.Months("wood") != 3 || c.Months("gas") != 9 || c.Months("") != 9 {
+		t.Errorf("months %d %d %d", c.Months("wood"), c.Months("gas"), c.Months(""))
+	}
+}

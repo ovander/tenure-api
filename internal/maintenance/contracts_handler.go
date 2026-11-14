@@ -69,7 +69,7 @@ func (h Handler) GetContract(w http.ResponseWriter, r *http.Request) {
 // CreateContract godoc
 //
 //	@Summary		Record a maintenance contract
-//	@Description	A recurring maintenance of an asset. For a boiler or a chimney, the interval and who must have it done default to the legal rhythm in legal_params (maintenance.recurring), and a longer interval is refused; for other, both are required. The first visit is due on first_due_on, each next one its interval after the latest visit; the obligations calendar shows it (maintenance_due).
+//	@Description	A recurring maintenance of an asset. For a boiler or a chimney, the interval and who must have it done default to the legal rhythm in legal_params (maintenance.recurring; for a chimney, by its fuel, required, maintenance.chimney), and a longer interval is refused; for other, both are required. The first visit is due on first_due_on, each next one its interval after the latest visit; the obligations calendar shows it (maintenance_due).
 //	@Tags			maintenance
 //	@Accept			json
 //	@Produce		json

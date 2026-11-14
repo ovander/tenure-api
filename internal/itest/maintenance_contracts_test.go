@@ -57,6 +57,24 @@ func TestMaintenanceContracts(t *testing.T) {
 	if r := call(t, "POST", "/maintenance-contracts", req{tok: tokX, body: boiler}); r.Status != 422 {
 		t.Errorf("another owner's asset: %d %s", r.Status, r.Body)
 	}
+	// A chimney's rhythm depends on its fuel (Q-131), which it requires.
+	chimney := func(fuel string) map[string]any {
+		return map[string]any{"asset_id": a.ID, "kind": "chimney", "title": "Ramonage", "first_due_on": first, "fuel": fuel}
+	}
+	if r := call(t, "POST", "/maintenance-contracts", req{tok: tok, body: chimney("")}); r.Status != 422 {
+		t.Errorf("a chimney without its fuel: %d %s", r.Status, r.Body)
+	}
+	var wood, gas contractView
+	call(t, "POST", "/maintenance-contracts", req{tok: tok, body: chimney("wood")}).json(t, &wood)
+	call(t, "POST", "/maintenance-contracts", req{tok: tok, body: chimney("gas")}).json(t, &gas)
+	if wood.IntervalMonths != 6 || gas.IntervalMonths != 12 || wood.Responsible != "tenant" {
+		t.Errorf("chimneys: wood %+v gas %+v", wood, gas)
+	}
+	longWood := chimney("wood")
+	longWood["interval_months"] = 12
+	if r := call(t, "POST", "/maintenance-contracts", req{tok: tok, body: longWood}); r.Status != 422 {
+		t.Errorf("a wood chimney swept yearly: %d %s", r.Status, r.Body)
+	}
 	boiler["responsible"] = "owner"
 	boiler["notes"] = "Chaudière gaz, contrat annuel."
 	audited(t, seen, "PUT /maintenance-contracts/{id}", 200, func() resp {
@@ -74,8 +92,12 @@ func TestMaintenanceContracts(t *testing.T) {
 		}
 		return out
 	}
-	if items := due(); len(items) != 1 || items[0].On.String() != first || items[0].ContractID != c.ID || items[0].Responsible != "owner" {
-		t.Errorf("calendar %+v", items)
+	byContract := map[string]calendar.Item{}
+	for _, it := range due() {
+		byContract[it.ContractID] = it
+	}
+	if it := byContract[c.ID]; len(byContract) != 3 || it.On.String() != first || it.Responsible != "owner" || byContract[wood.ID].Ref != "chimney" {
+		t.Errorf("calendar %+v", byContract)
 	}
 
 	var cert docView
@@ -93,12 +115,23 @@ func TestMaintenanceContracts(t *testing.T) {
 	if r := call(t, "POST", "/maintenance-contracts/"+c.ID+"/visits", req{tok: tok, ifMatch: etag(1), body: map[string]any{"done_on": today().String()}}); r.Status != 412 {
 		t.Errorf("stale version: %d %s", r.Status, r.Body)
 	}
-	if items := due(); len(items) != 0 {
-		t.Errorf("the next visit is a year away, beyond the 90 days: %+v", items)
+	for _, it := range due() {
+		if it.ContractID == c.ID {
+			t.Errorf("the boiler's next visit is a year away, beyond the 90 days: %+v", it)
+		}
 	}
 	var list []contractView
 	call(t, "GET", "/maintenance-contracts?asset_id="+a.ID, req{tok: tok}).json(t, &list)
-	if len(list) != 1 || list[0].NextDueOn == nil || *list[0].NextDueOn != next {
+	if len(list) != 3 {
+		t.Fatalf("list %+v", list)
+	}
+	var listed contractView
+	for _, x := range list {
+		if x.ID == c.ID {
+			listed = x
+		}
+	}
+	if listed.NextDueOn == nil || *listed.NextDueOn != next {
 		t.Errorf("list %+v", list)
 	}
 	if r := call(t, "GET", "/maintenance-contracts/"+c.ID, req{tok: tokX}); r.Status != 404 {

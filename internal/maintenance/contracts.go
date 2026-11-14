@@ -20,12 +20,15 @@ import (
 type ContractInput struct {
 	AssetID uuid.UUID `json:"asset_id"`
 	// Kind is boiler (yearly servicing), chimney (sweeping) or other.
-	Kind         string     `json:"kind" enums:"boiler,chimney,other"`
+	Kind string `json:"kind" enums:"boiler,chimney,other"`
+	// Fuel of a chimney, required for one: its sweeping rhythm depends on
+	// it (maintenance.chimney, Q-131).
+	Fuel         string     `json:"fuel,omitempty" enums:"gas,wood,pellets,oil,other"`
 	Title        string     `json:"title" example:"Entretien de la chaudière"`
 	ContractorID *uuid.UUID `json:"contractor_id,omitempty"`
-	// IntervalMonths defaults to the legal rhythm of a boiler or a chimney
-	// (maintenance.recurring) and may not exceed it; it is required for
-	// other.
+	// IntervalMonths defaults to the legal rhythm of a boiler
+	// (maintenance.recurring) or of a chimney's fuel (maintenance.chimney)
+	// and may not exceed it; it is required for other.
 	IntervalMonths *int `json:"interval_months,omitempty"`
 	// Responsible is who must have it done, tenant or owner; it defaults to
 	// the kind's (maintenance.recurring) and is required for other.
@@ -58,6 +61,7 @@ type Contract struct {
 	ID             uuid.UUID    `json:"id"`
 	AssetID        uuid.UUID    `json:"asset_id"`
 	Kind           string       `json:"kind" enums:"boiler,chimney,other"`
+	Fuel           *string      `json:"fuel" enums:"gas,wood,pellets,oil,other"`
 	Title          string       `json:"title"`
 	ContractorID   *uuid.UUID   `json:"contractor_id"`
 	IntervalMonths int          `json:"interval_months"`
@@ -77,7 +81,7 @@ type Contract struct {
 }
 
 func contractView(r contractRow) Contract {
-	v := Contract{ID: r.ID, AssetID: r.AssetID, Kind: r.Kind, Title: r.Title, ContractorID: r.ContractorID, IntervalMonths: r.IntervalMonths,
+	v := Contract{ID: r.ID, AssetID: r.AssetID, Kind: r.Kind, Fuel: r.Fuel, Title: r.Title, ContractorID: r.ContractorID, IntervalMonths: r.IntervalMonths,
 		Responsible: r.Responsible, FirstDueOn: period.FromTime(r.FirstDueOn), EndOn: date(r.EndOn), DocumentID: r.DocumentID, Notes: r.Notes,
 		LastDoneOn: date(r.LastDoneOn), Version: r.Version}
 	if next, ok := NextDue(v.FirstDueOn, v.LastDoneOn, v.IntervalMonths, v.EndOn); ok {
@@ -106,6 +110,14 @@ func (s Service) resolve(ctx context.Context, in ContractInput) (int, string, er
 	if in.EndOn != nil && !in.FirstDueOn.IsZero() && in.EndOn.Before(in.FirstDueOn) {
 		f.Add("end_on", "La fin ne peut précéder la première visite.")
 	}
+	switch {
+	case in.Kind == KindChimney && in.Fuel == "":
+		f.Add("fuel", "Le combustible est obligatoire pour un ramonage.")
+	case in.Kind == KindChimney && !oneOf(in.Fuel, "gas", "wood", "pellets", "oil", "other"):
+		f.Add("fuel", "Attendu : gas, wood, pellets, oil ou other.")
+	case in.Kind != KindChimney && in.Fuel != "":
+		f.Add("fuel", "Le combustible ne vaut que pour un ramonage.")
+	}
 	if in.Responsible != "" && !oneOf(in.Responsible, "tenant", "owner") {
 		f.Add("responsible", "Attendu : tenant ou owner.")
 	}
@@ -131,6 +143,15 @@ func (s Service) resolve(ctx context.Context, in ContractInput) (int, string, er
 		rule, ok := rec.Kinds[in.Kind]
 		if !ok || rule.IntervalMonths <= 0 {
 			return 0, "", errors.New("maintenance: no legal rhythm for " + in.Kind)
+		}
+		if in.Kind == KindChimney {
+			ch, err := ps.MaintenanceChimney(in.FirstDueOn)
+			if err != nil {
+				return 0, "", err
+			}
+			if rule.IntervalMonths = ch.Months(in.Fuel); rule.IntervalMonths <= 0 {
+				return 0, "", errors.New("maintenance: no sweeping rhythm for " + in.Fuel)
+			}
 		}
 		if interval == 0 {
 			interval = rule.IntervalMonths
@@ -174,6 +195,11 @@ func (s Service) resolve(ctx context.Context, in ContractInput) (int, string, er
 
 func applyContract(r *contractRow, in ContractInput, interval int, responsible string) {
 	r.AssetID, r.Kind, r.Title, r.ContractorID = in.AssetID, in.Kind, strings.TrimSpace(in.Title), in.ContractorID
+	r.Fuel = nil
+	if in.Fuel != "" {
+		fuel := in.Fuel
+		r.Fuel = &fuel
+	}
 	r.IntervalMonths, r.Responsible, r.FirstDueOn, r.EndOn = interval, responsible, in.FirstDueOn.Time(), timeOf(in.EndOn)
 	r.DocumentID, r.Notes = in.DocumentID, in.Notes
 }
