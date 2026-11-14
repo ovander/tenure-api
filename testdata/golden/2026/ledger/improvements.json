@@ -1,0 +1,116 @@
+{
+  "case": "improvements",
+  "description": "Works of 2026 (Q-130). A repair invoice is a repairs charge paid from the bank, an expense. An improvement invoice paid in May is capitalised: it debits the fixed-asset account, never an expense. An improvement paid in January 2027 falls outside the year.",
+  "steps": [
+    {
+      "name": "year 2026",
+      "from": "2026-01-01",
+      "to": "2026-12-31",
+      "inputs": {
+        "charges": [
+          {
+            "id": "C1",
+            "asset_id": "A1",
+            "category": "repairs",
+            "paid_on": "2026-03-10",
+            "amount_cents": 42000,
+            "recoverable_cents": 0,
+            "document_id": "D1"
+          }
+        ],
+        "improvements": [
+          {
+            "incident_id": "I1",
+            "asset_id": "A1",
+            "title": "Remplacement de la chaudière",
+            "paid_on": "2026-05-20",
+            "amount_cents": 650000,
+            "document_id": "D2"
+          },
+          {
+            "incident_id": "I2",
+            "asset_id": "A1",
+            "title": "Pose d’une cuisine équipée",
+            "paid_on": "2027-01-15",
+            "amount_cents": 800000
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "year 2026": {
+      "balances": [
+        {
+          "account": "213500",
+          "label": "Installations générales, agencements, aménagements des constructions",
+          "debit_cents": 650000,
+          "credit_cents": 0,
+          "balance_cents": 650000
+        },
+        {
+          "account": "512000",
+          "label": "Banque",
+          "debit_cents": 0,
+          "credit_cents": 692000,
+          "balance_cents": -692000
+        },
+        {
+          "account": "615200",
+          "label": "Entretien et réparations sur biens immobiliers",
+          "debit_cents": 42000,
+          "credit_cents": 0,
+          "balance_cents": 42000
+        }
+      ],
+      "entries": [
+        {
+          "date": "2026-03-10",
+          "journal": "BQ",
+          "kind": "charge",
+          "source": "C1",
+          "label": "Entretien et réparations sur biens immobiliers",
+          "document_id": "D1",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "615200",
+              "label": "Entretien et réparations sur biens immobiliers",
+              "debit_cents": 42000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 42000
+            }
+          ]
+        },
+        {
+          "date": "2026-05-20",
+          "journal": "BQ",
+          "kind": "improvement",
+          "source": "I1",
+          "label": "Travaux d’amélioration : Remplacement de la chaudière",
+          "document_id": "D2",
+          "asset_id": "A1",
+          "lines": [
+            {
+              "account": "213500",
+              "label": "Installations générales, agencements, aménagements des constructions",
+              "debit_cents": 650000,
+              "credit_cents": 0
+            },
+            {
+              "account": "512000",
+              "label": "Banque",
+              "debit_cents": 0,
+              "credit_cents": 650000
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

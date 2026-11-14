@@ -42,6 +42,10 @@ const (
 	RoleLoanInterest   = "loan_interest"
 	RoleLoanInsurance  = "loan_insurance"
 	RolePenalties      = "penalties"
+	// RoleCapitalised is the fixed-asset account of improvement works
+	// (params.LedgerCapitalised, Q-130). It is required only when the
+	// journal has improvements to post.
+	RoleCapitalised = "capitalised"
 )
 
 var roles = []string{RoleBank, RoleTenants, RoleTenantAdvances, RoleProvisions, RoleRent, RoleOtherIncome,
@@ -128,13 +132,26 @@ type Settlement struct {
 	DocumentID string `json:"document_id,omitempty"`
 }
 
+// Improvement is the invoice of improvement works paid by the owner
+// (Q-130): capitalised on the asset, never a deductible charge.
+type Improvement struct {
+	IncidentID  string      `json:"incident_id"`
+	AssetID     string      `json:"asset_id"`
+	Title       string      `json:"title"`
+	PaidOn      period.Date `json:"paid_on"`
+	AmountCents money.Cents `json:"amount_cents"`
+	// DocumentID is its invoice, if uploaded.
+	DocumentID string `json:"document_id,omitempty"`
+}
+
 // Inputs are the movements the journal posts.
 type Inputs struct {
-	Payments    []Payment    `json:"payments,omitempty"`
-	Charges     []Charge     `json:"charges,omitempty"`
-	Instalments []Instalment `json:"instalments,omitempty"`
-	Deposits    []Deposit    `json:"deposits,omitempty"`
-	Settlements []Settlement `json:"settlements,omitempty"`
+	Payments     []Payment     `json:"payments,omitempty"`
+	Charges      []Charge      `json:"charges,omitempty"`
+	Instalments  []Instalment  `json:"instalments,omitempty"`
+	Deposits     []Deposit     `json:"deposits,omitempty"`
+	Settlements  []Settlement  `json:"settlements,omitempty"`
+	Improvements []Improvement `json:"improvements,omitempty"`
 }
 
 // Line is one side of an entry on one account. Exactly one of debit and
@@ -152,7 +169,7 @@ type Line struct {
 type Entry struct {
 	Date    period.Date `json:"date" swaggertype:"string" format:"date"`
 	Journal string      `json:"journal" enums:"BQ,OD"`
-	Kind    string      `json:"kind" enums:"payment,charge,instalment,deposit,settlement"`
+	Kind    string      `json:"kind" enums:"payment,charge,instalment,deposit,settlement,improvement"`
 	Source  string      `json:"source"`
 	Label   string      `json:"label"`
 	// DocumentID is the supporting document archived for it, if any.
@@ -219,7 +236,9 @@ func (b *builder) done() (Entry, bool, error) {
 //     credits rent with the arrears kept, the provisions with the
 //     regularisation kept, other income with the deductions, and the bank
 //     with what is paid back; what the tenant still owes is debited to the
-//     tenants' account.
+//     tenants' account;
+//   - improvement works paid credit the bank and debit the fixed-asset
+//     account (Q-130).
 //
 // Entries are ordered by date, kind and source. Balances are by account
 // number.
@@ -323,7 +342,22 @@ func Journal(in Inputs, chart params.LedgerChart, from, to period.Date) ([]Entry
 			return nil, nil, err
 		}
 	}
-	order := map[string]int{"deposit": 0, "payment": 1, "charge": 2, "instalment": 3, "settlement": 4}
+	for _, im := range in.Improvements {
+		if !in2(im.PaidOn) {
+			continue
+		}
+		a, ok := chart.Accounts[RoleCapitalised]
+		if !ok || a.Code == "" {
+			return nil, nil, fmt.Errorf("%w: role %s", ErrChart, RoleCapitalised)
+		}
+		b := &builder{Entry{Date: im.PaidOn, Journal: JournalBank, Kind: "improvement", Source: im.IncidentID, Label: "Travaux d’amélioration : " + im.Title, DocumentID: im.DocumentID, AssetID: im.AssetID}}
+		b.add(a, im.AmountCents)
+		b.add(acc[RoleBank], -im.AmountCents)
+		if err := push(b); err != nil {
+			return nil, nil, err
+		}
+	}
+	order := map[string]int{"deposit": 0, "payment": 1, "charge": 2, "instalment": 3, "improvement": 4, "settlement": 5}
 	sort.SliceStable(out, func(a, b int) bool {
 		if c := out[a].Date.Compare(out[b].Date); c != 0 {
 			return c < 0
@@ -360,4 +394,25 @@ func Balances(entries []Entry) []Balance {
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Account < out[b].Account })
 	return out
+}
+
+// Chart is the chart of accounts in force on asOf: params.LedgerChart with
+// the fixed-asset account of improvement works (params.LedgerCapitalised,
+// Q-130) under RoleCapitalised.
+func Chart(ps params.Set, asOf period.Date) (params.LedgerChart, error) {
+	chart, err := ps.LedgerChart(asOf)
+	if err != nil {
+		return chart, err
+	}
+	capd, err := ps.LedgerCapitalised(asOf)
+	if err != nil {
+		return chart, err
+	}
+	accounts := make(map[string]params.LedgerAccount, len(chart.Accounts)+1)
+	for k, v := range chart.Accounts {
+		accounts[k] = v
+	}
+	accounts[RoleCapitalised] = capd.Account
+	chart.Accounts = accounts
+	return chart, nil
 }

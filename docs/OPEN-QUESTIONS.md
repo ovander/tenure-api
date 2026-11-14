@@ -1832,3 +1832,44 @@ reading:
   - the yield on a co-owner's share;
   - a trailing twelve months;
   - the screen (part 16b).
+
+**Q-130 Maintenance and incidents, part 17a — Open (#164).** RENT-SPEC-015 tracks tenant
+requests and owner works from report to invoice, « the invoice creates the Charge with category
+repair (deductible) or improvement (not deductible, capitalised) ». Provisional reading:
+
+- **Contractors** are a per-owner directory (name, trade, e-mail, phone, notes), changed with
+  If-Match, never deleted: an incident keeps the contractor it named.
+- **An incident** is on one asset, optionally under one of its leases. It records:
+  - who reported it (`tenant`, or `owner` for works the owner starts) and how (`email`,
+    `phone`, `letter`, `portal`, `visit`);
+  - the reporter's name, a title, a description and an urgency (`low`, `normal`, `urgent`);
+  - photos uploaded beforehand as documents of the scope.
+
+  Its report changes while the works are not done (new, quoted, scheduled); not its asset.
+- **The cycle**, one transition at a time with If-Match, each audited:
+  - new → quoted (`quote`: a contractor and the quote's amount, optionally its document);
+  - new or quoted → scheduled (`schedule`: the day of the works, a contractor);
+  - quoted again, or rescheduled, before the works are done;
+  - scheduled → done (`done`: the day they ended, not before the report);
+  - done → invoiced (`invoice`: the amount, the treatment, optionally the invoice and the day it
+    was paid);
+  - new, quoted or scheduled → cancelled (`cancel`, an optional reason).
+
+  Any other move is a 409 `maintenance/transition`.
+- **A repair's invoice** creates a confirmed charge of category `repairs`, source `invoice`:
+  its amount, charged on the day the works were done, paid on the day given, the invoice as its
+  document, in the same transaction. It is therefore deductible on line 224, matched to its bank
+  debit like any charge, and refused in a closed year (Q-127).
+- **An improvement's invoice creates no charge** — a deviation from the wording « creates the
+  Charge with category improvement ». The charge categories are mapped to 2044 lines and to the
+  journal's accounts by parameters already seeded; adding a category would change seeded values,
+  and an improvement charge would risk being deducted. Instead the amount is capitalised on the
+  incident: when paid, the journal posts it to the fixed-asset account of the parameter
+  `ledger.capitalised` (213500, against the bank), and the tax summary and the dashboard's
+  expenses ignore it. The account is a bookkeeping choice to confirm with the accountant.
+- **Not built yet:**
+  - depreciation of improvements (the micro and réel regimes of a private landlord do not
+    depreciate; an SCI at IS would);
+  - recurring maintenance contracts on the obligations calendar (part 17b);
+  - the tenant reporting through the portal (RENT-SPEC-017);
+  - the screen (part 17c).

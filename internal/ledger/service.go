@@ -170,6 +170,14 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 			ReleasedCents: f.DepositCents - f.HoldbackCents, DeductionsCents: f.DeductionsCents, ArrearsCents: f.ArrearsCents,
 			RegularisationCents: f.RegularisationCents, PenaltyCents: f.PenaltyCents, TotalCents: f.TotalCents, DocumentID: x.DocumentID.String()})
 	}
+	ims, err := s.Repo.Improvements(ctx, from, to)
+	if err != nil {
+		return in, err
+	}
+	for _, x := range ims {
+		in.Improvements = append(in.Improvements, Improvement{IncidentID: x.ID.String(), AssetID: x.AssetID.String(), Title: x.Title,
+			PaidOn: period.FromTime(x.PaidOn), AmountCents: money.Cents(x.InvoiceCents), DocumentID: idString(x.InvoiceDocumentID)})
+	}
 	return in, nil
 }
 
@@ -232,7 +240,7 @@ func (s Service) year(ctx context.Context, year int) (yearData, error) {
 	if err != nil {
 		return out, err
 	}
-	chart, err := ps.LedgerChart(to)
+	chart, err := Chart(ps, to)
 	if err != nil {
 		return out, err
 	}

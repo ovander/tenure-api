@@ -1,0 +1,91 @@
+// Package maintenance holds the owner's contractors and the incidents of
+// their assets with the works that answer them (RENT-SPEC-015): an incident
+// is reported, quoted, scheduled, done and invoiced, or cancelled; a repair's
+// invoice becomes a deductible repairs charge, an improvement's is
+// capitalised on the asset, never deducted (Q-130). Next is pure.
+package maintenance
+
+import (
+	"fmt"
+
+	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/problem"
+)
+
+// Status of an incident (incidents.status).
+type Status string
+
+// Statuses.
+const (
+	StatusNew       Status = "new"
+	StatusQuoted    Status = "quoted"
+	StatusScheduled Status = "scheduled"
+	StatusDone      Status = "done"
+	StatusInvoiced  Status = "invoiced"
+	StatusCancelled Status = "cancelled"
+)
+
+// Statuses lists every status, for the exhaustive tests.
+var Statuses = []Status{StatusNew, StatusQuoted, StatusScheduled, StatusDone, StatusInvoiced, StatusCancelled}
+
+// Action moves an incident.
+type Action string
+
+// Actions.
+const (
+	ActionQuote    Action = "quote"
+	ActionSchedule Action = "schedule"
+	ActionDone     Action = "done"
+	ActionInvoice  Action = "invoice"
+	ActionCancel   Action = "cancel"
+)
+
+// Actions lists every action, for the exhaustive tests.
+var Actions = []Action{ActionQuote, ActionSchedule, ActionDone, ActionInvoice, ActionCancel}
+
+// Treatments of an invoice (incidents.treatment).
+const (
+	TreatmentRepair      = "repair"
+	TreatmentImprovement = "improvement"
+)
+
+// Problem types of the maintenance module.
+const (
+	TypeTransition = "maintenance/transition"
+	TypeContractor = "maintenance/contractor-unknown"
+)
+
+func init() {
+	problem.Register(map[string]problem.Message{
+		TypeTransition: problem.M(409, "Cet incident n’en est pas à cette étape.", "This incident is not at this step."),
+		TypeContractor: problem.M(422, "Cet artisan n’existe pas dans ce portefeuille.", "This contractor does not exist in this portfolio."),
+	})
+}
+
+var transitions = map[Status]map[Action]Status{
+	StatusNew:       {ActionQuote: StatusQuoted, ActionSchedule: StatusScheduled, ActionCancel: StatusCancelled},
+	StatusQuoted:    {ActionQuote: StatusQuoted, ActionSchedule: StatusScheduled, ActionCancel: StatusCancelled},
+	StatusScheduled: {ActionSchedule: StatusScheduled, ActionDone: StatusDone, ActionCancel: StatusCancelled},
+	StatusDone:      {ActionInvoice: StatusInvoiced},
+}
+
+// Next returns the status an action moves an incident to (Q-130):
+//   - new: quoted (a contractor's quote), scheduled straight away (a small
+//     job without a quote), or cancelled;
+//   - quoted: quoted again (another quote replaces it), scheduled, or
+//     cancelled;
+//   - scheduled: rescheduled, done, or cancelled;
+//   - done: invoiced, once; a job done is no longer cancelled;
+//   - invoiced and cancelled are final.
+func Next(s Status, a Action) (Status, error) {
+	if to, ok := transitions[s][a]; ok {
+		return to, nil
+	}
+	return "", invariant.New(TypeTransition, fmt.Sprintf("%s from %s", a, s))
+}
+
+// Editable says whether an incident's report (title, description, urgency,
+// photos) may still change: until the works are done.
+func Editable(s Status) bool {
+	return s == StatusNew || s == StatusQuoted || s == StatusScheduled
+}
