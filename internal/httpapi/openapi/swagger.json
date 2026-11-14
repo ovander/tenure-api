@@ -9667,6 +9667,420 @@
                 }
             }
         },
+        "/maintenance-contracts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The scope's recurring maintenance (boiler, chimney, other), of one asset with asset_id, each with its latest visit and the next one due (RENT-SPEC-015, Q-131).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "Maintenance contracts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "asset",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maintenance.Contract"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A recurring maintenance of an asset. For a boiler or a chimney, the interval and who must have it done default to the legal rhythm in legal_params (maintenance.recurring), and a longer interval is refused; for other, both are required. The first visit is due on first_due_on, each next one its interval after the latest visit; the obligations calendar shows it (maintenance_due).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "Record a maintenance contract",
+                "parameters": [
+                    {
+                        "description": "contract",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.ContractInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.Contract"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/maintenance-contracts/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "A maintenance contract and its visits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contract id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.Contract"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces it, not its asset, checked as for POST /maintenance-contracts; set end_on to end it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "Change a maintenance contract",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contract id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "contract",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.ContractInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.Contract"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/maintenance-contracts/{id}/visits": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A visit done (not in the future), with the certificate the contractor gave, uploaded beforehand as a document. The next visit is due its interval after the latest one. A visit is never changed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "Record a maintenance visit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contract id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "contract's current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "visit",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.VisitInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maintenance.Contract"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/me": {
             "get": {
                 "security": [
@@ -12739,6 +13153,10 @@
                 "asset_id": {
                     "type": "string"
                 },
+                "contract_id": {
+                    "description": "ContractID is the maintenance contract of a maintenance_due item.",
+                    "type": "string"
+                },
                 "kind": {
                     "type": "string",
                     "enum": [
@@ -12748,7 +13166,8 @@
                         "term_end",
                         "insurance_certificate",
                         "completion_window",
-                        "deposit_deadline"
+                        "deposit_deadline",
+                        "maintenance_due"
                     ]
                 },
                 "lease_id": {
@@ -12759,8 +13178,16 @@
                     "format": "date"
                 },
                 "ref": {
-                    "description": "Ref is what the item is about within its kind: the diagnostic kind,\nor the completion window (ten_day, heating).",
+                    "description": "Ref is what the item is about within its kind: the diagnostic kind,\nthe completion window (ten_day, heating), or the maintenance kind\n(boiler, chimney, other).",
                     "type": "string"
+                },
+                "responsible": {
+                    "description": "Responsible is who must have a maintenance_due visit done: tenant or\nowner.",
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "owner"
+                    ]
                 },
                 "status": {
                     "type": "string",
@@ -17434,6 +17861,125 @@
                 "ActionCancel"
             ]
         },
+        "maintenance.Contract": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "contractor_id": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "end_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "first_due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interval_months": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "boiler",
+                        "chimney",
+                        "other"
+                    ]
+                },
+                "last_done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "next_due_on": {
+                    "description": "NextDueOn is the next visit's day; null once the contract has ended\nbefore it.",
+                    "type": "string",
+                    "format": "date"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "responsible": {
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "owner"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "visits": {
+                    "description": "Visits are the visits, the latest first (GET /maintenance-contracts/{id}\nonly).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maintenance.Visit"
+                    }
+                }
+            }
+        },
+        "maintenance.ContractInput": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "contractor_id": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "description": "DocumentID is the contract signed with the contractor, if any.",
+                    "type": "string"
+                },
+                "end_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "first_due_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "interval_months": {
+                    "description": "IntervalMonths defaults to the legal rhythm of a boiler or a chimney\n(maintenance.recurring) and may not exceed it; it is required for\nother.",
+                    "type": "integer"
+                },
+                "kind": {
+                    "description": "Kind is boiler (yearly servicing), chimney (sweeping) or other.",
+                    "type": "string",
+                    "enum": [
+                        "boiler",
+                        "chimney",
+                        "other"
+                    ]
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "responsible": {
+                    "description": "Responsible is who must have it done, tenant or owner; it defaults to\nthe kind's (maintenance.recurring) and is required for other.",
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "owner"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Entretien de la chaudière"
+                }
+            }
+        },
         "maintenance.Contractor": {
             "type": "object",
             "properties": {
@@ -17737,6 +18283,40 @@
                         "repair",
                         "improvement"
                     ]
+                }
+            }
+        },
+        "maintenance.Visit": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "maintenance.VisitInput": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "description": "DocumentID is the certificate the contractor gave (attestation).",
+                    "type": "string"
+                },
+                "done_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "notes": {
+                    "type": "string"
                 }
             }
         },

@@ -82,3 +82,6 @@ PUT /contractors/{id}
 POST /incidents
 PUT /incidents/{id}
 POST /incidents/{id}/transitions +
+POST /maintenance-contracts
+PUT /maintenance-contracts/{id}
+POST /maintenance-contracts/{id}/visits

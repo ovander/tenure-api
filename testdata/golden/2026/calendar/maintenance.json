@@ -1,0 +1,71 @@
+{
+  "case": "maintenance",
+  "description": "Recurring maintenance (Q-131). A boiler serviced in November 2025, due again twelve months later, within the range; a chimney never swept since its first due day in September, overdue; a contract ended before its next visit, left out; a check due beyond the range, left out.",
+  "today": "2026-11-07",
+  "from": "2026-11-07",
+  "to": "2027-02-05",
+  "facts": {
+    "leases": [],
+    "diagnostics": [],
+    "entries": [],
+    "exits": [],
+    "maintenance": [
+      {
+        "id": "m1",
+        "asset_id": "a1",
+        "kind": "boiler",
+        "responsible": "tenant",
+        "interval_months": 12,
+        "first_due_on": "2025-01-15",
+        "last_done_on": "2025-11-20"
+      },
+      {
+        "id": "m2",
+        "asset_id": "a1",
+        "kind": "chimney",
+        "responsible": "tenant",
+        "interval_months": 6,
+        "first_due_on": "2026-09-30"
+      },
+      {
+        "id": "m3",
+        "asset_id": "a2",
+        "kind": "boiler",
+        "responsible": "owner",
+        "interval_months": 12,
+        "first_due_on": "2025-03-01",
+        "end_on": "2026-06-30",
+        "last_done_on": "2025-12-01"
+      },
+      {
+        "id": "m4",
+        "asset_id": "a2",
+        "kind": "other",
+        "responsible": "owner",
+        "interval_months": 24,
+        "first_due_on": "2025-06-01",
+        "last_done_on": "2025-06-01"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "on": "2026-09-30",
+      "kind": "maintenance_due",
+      "status": "overdue",
+      "asset_id": "a1",
+      "ref": "chimney",
+      "contract_id": "m2",
+      "responsible": "tenant"
+    },
+    {
+      "on": "2026-11-20",
+      "kind": "maintenance_due",
+      "status": "upcoming",
+      "asset_id": "a1",
+      "ref": "boiler",
+      "contract_id": "m1",
+      "responsible": "tenant"
+    }
+  ]
+}

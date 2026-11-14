@@ -15,6 +15,7 @@ import (
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/money"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/portfolio"
 )
@@ -26,6 +27,7 @@ type Service struct {
 	Portfolio portfolio.Service
 	Docs      document.Service
 	Charges   charge.Service
+	Params    params.Repository
 	Now       func() time.Time
 	NewID     func() uuid.UUID
 }

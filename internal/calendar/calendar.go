@@ -11,6 +11,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/inventory"
 	"github.com/ovander/tenure-api/internal/lease"
+	"github.com/ovander/tenure-api/internal/maintenance"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/portfolio"
@@ -25,6 +26,7 @@ const (
 	KindInsurance        = "insurance_certificate"
 	KindCompletionWindow = "completion_window"
 	KindDepositDeadline  = "deposit_deadline"
+	KindMaintenanceDue   = "maintenance_due"
 )
 
 // Statuses of an item: due on or after today, or past and still to do.
@@ -71,31 +73,52 @@ type Exit struct {
 	Settled bool `json:"settled"`
 }
 
+// Maintenance is a recurring maintenance contract of an asset and its
+// latest visit (RENT-SPEC-015, Q-131).
+type Maintenance struct {
+	ID             string       `json:"id"`
+	AssetID        string       `json:"asset_id"`
+	Kind           string       `json:"kind"`
+	Responsible    string       `json:"responsible"`
+	IntervalMonths int          `json:"interval_months"`
+	FirstDueOn     period.Date  `json:"first_due_on"`
+	EndOn          *period.Date `json:"end_on,omitempty"`
+	LastDoneOn     *period.Date `json:"last_done_on,omitempty"`
+}
+
 // Facts is what Build reads.
 type Facts struct {
-	Leases      []Lease      `json:"leases"`
-	Diagnostics []Diagnostic `json:"diagnostics"`
-	Entries     []Entry      `json:"entries"`
-	Exits       []Exit       `json:"exits"`
+	Leases      []Lease       `json:"leases"`
+	Diagnostics []Diagnostic  `json:"diagnostics"`
+	Entries     []Entry       `json:"entries"`
+	Exits       []Exit        `json:"exits"`
+	Maintenance []Maintenance `json:"maintenance,omitempty"`
 }
 
 // Item is one dated obligation.
 type Item struct {
 	On      period.Date `json:"on" swaggertype:"string" format:"date"`
-	Kind    string      `json:"kind" enums:"diagnostic_expiry,irl_revision,notice_end,term_end,insurance_certificate,completion_window,deposit_deadline"`
+	Kind    string      `json:"kind" enums:"diagnostic_expiry,irl_revision,notice_end,term_end,insurance_certificate,completion_window,deposit_deadline,maintenance_due"`
 	Status  string      `json:"status" enums:"upcoming,overdue"`
 	AssetID string      `json:"asset_id,omitempty"`
 	LeaseID string      `json:"lease_id,omitempty"`
 	// Ref is what the item is about within its kind: the diagnostic kind,
-	// or the completion window (ten_day, heating).
+	// the completion window (ten_day, heating), or the maintenance kind
+	// (boiler, chimney, other).
 	Ref string `json:"ref,omitempty"`
+	// ContractID is the maintenance contract of a maintenance_due item.
+	ContractID string `json:"contract_id,omitempty"`
+	// Responsible is who must have a maintenance_due visit done: tenant or
+	// owner.
+	Responsible string `json:"responsible,omitempty" enums:"tenant,owner"`
 }
 
 func running(l Lease) bool { return l.State == "active" || l.State == "notice" }
 
 // Build lists the obligations due from from to to (both included), soonest
 // first, and the past ones still to do whatever their date: an expired
-// diagnostic, a deposit deadline passed without its RD statement. A past
+// diagnostic, a deposit deadline passed without its RD statement, a
+// maintenance visit not recorded. A past
 // date that needs nothing more is left out.
 func Build(f Facts, from, to, today period.Date, ps params.Set) ([]Item, error) {
 	var out []Item
@@ -178,6 +201,11 @@ func Build(f Facts, from, to, today period.Date, ps params.Set) ([]Item, error) 
 		}
 		add(Item{On: on, Kind: KindDepositDeadline, AssetID: first(byLease[x.LeaseID].AssetIDs), LeaseID: x.LeaseID}, true)
 	}
+	for _, m := range f.Maintenance {
+		if on, ok := maintenance.NextDue(m.FirstDueOn, m.LastDoneOn, m.IntervalMonths, m.EndOn); ok {
+			add(Item{On: on, Kind: KindMaintenanceDue, AssetID: m.AssetID, Ref: m.Kind, ContractID: m.ID, Responsible: m.Responsible}, true)
+		}
+	}
 	sort.SliceStable(out, func(i, j int) bool {
 		if c := out[i].On.Compare(out[j].On); c != 0 {
 			return c < 0
@@ -185,7 +213,7 @@ func Build(f Facts, from, to, today period.Date, ps params.Set) ([]Item, error) 
 		if out[i].Kind != out[j].Kind {
 			return out[i].Kind < out[j].Kind
 		}
-		return out[i].LeaseID+out[i].AssetID+out[i].Ref < out[j].LeaseID+out[j].AssetID+out[j].Ref
+		return out[i].LeaseID+out[i].AssetID+out[i].Ref+out[i].ContractID < out[j].LeaseID+out[j].AssetID+out[j].Ref+out[j].ContractID
 	})
 	if out == nil {
 		out = []Item{}

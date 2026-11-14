@@ -1873,3 +1873,33 @@ repair (deductible) or improvement (not deductible, capitalised) ». Provisional
   - recurring maintenance contracts on the obligations calendar (part 17b);
   - the tenant reporting through the portal (RENT-SPEC-017);
   - the screen (part 17c).
+
+**Q-131 Recurring maintenance on the calendar, part 17b — Open (#166).** RENT-SPEC-015 links
+« recurring contracts (boiler, chimney) » to the obligations calendar. Provisional reading:
+
+- **A maintenance contract** is on one asset: a kind (`boiler`, `chimney`, `other`), a title,
+  optionally a contractor and the signed contract, an interval in months, who must have it done
+  (`tenant` or `owner`), the day the first visit is due, and optionally an end.
+- **The legal rhythm** lives in the parameter `maintenance.recurring`, by kind:
+  - boiler: every 12 months, by the occupant (décret n° 2009-649, arrêté du 15 septembre 2009;
+    décret n° 87-712, menues réparations);
+  - chimney: every 6 months, by the occupant. The règlement sanitaire départemental asks once or
+    twice a year depending on the fuel and the département; the cautious reading takes twice,
+    so a reminder is never late. A département that asks once can be entered as 12 months only
+    after this parameter says so for it — not built.
+
+  For these two kinds the interval and who is responsible default to the parameter, and a longer
+  interval is refused; a shorter one is allowed. `other` has no legal rhythm: both are required.
+- **Who is responsible** is shown, not enforced: the owner tracks a tenant's obligation (and
+  asks for the certificate) as well as their own.
+- **A visit** records the day it was done (not in the future), the certificate as a document
+  and notes. It is never changed or deleted: the certificate is evidence. The next visit is due
+  its interval after the latest one, on the same day of the month or the month's last day; with
+  no visit, on the first due day.
+- **The calendar** shows each contract's next visit as `maintenance_due`, with the contract, its
+  kind and who is responsible; it stays listed, overdue, until a visit is recorded. A contract
+  ended before its next visit shows none.
+- **Not built yet:**
+  - e-mailing the tenant a reminder and asking for the certificate;
+  - the cost of a contract as a charge (the owner records the invoice as a charge, as today);
+  - the screen (part 17c).

@@ -72,6 +72,9 @@ const (
 	// KeyLedgerCapitalised is the account of the improvements capitalised
 	// on an asset (Q-130).
 	KeyLedgerCapitalised = "ledger.capitalised"
+	// KeyMaintenanceRecurring is, per kind of recurring maintenance, its
+	// interval and who must have it done (RENT-SPEC-015, Q-131).
+	KeyMaintenanceRecurring = "maintenance.recurring"
 )
 
 // ErrNotFound is returned when no entry of a key is effective at the date
@@ -614,5 +617,25 @@ type LedgerCapitalised struct {
 func (s Set) LedgerCapitalised(asOf period.Date) (LedgerCapitalised, error) {
 	var r LedgerCapitalised
 	err := s.Decode(KeyLedgerCapitalised, asOf, &r)
+	return r, err
+}
+
+// MaintenanceKind is the legal rhythm of a kind of recurring maintenance
+// and who must have it done: tenant or owner.
+type MaintenanceKind struct {
+	IntervalMonths int    `json:"interval_months"`
+	Responsible    string `json:"responsible"`
+}
+
+// MaintenanceRecurring is the parameter maintenance.recurring, by kind
+// (RENT-SPEC-015, Q-131).
+type MaintenanceRecurring struct {
+	Kinds map[string]MaintenanceKind `json:"kinds"`
+}
+
+// MaintenanceRecurring returns maintenance.recurring in force on asOf.
+func (s Set) MaintenanceRecurring(asOf period.Date) (MaintenanceRecurring, error) {
+	var r MaintenanceRecurring
+	err := s.Decode(KeyMaintenanceRecurring, asOf, &r)
 	return r, err
 }
