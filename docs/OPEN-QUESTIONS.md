@@ -2053,3 +2053,74 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
   - 18d: the regime chosen per year, the declaration issued (its figures stored, the grid
     versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.
+
+**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188).**
+RENT-SPEC-019 asks for « SCI: entity with associates and shares; income allocated per associate
+for 2044/2072; entity-level ledger and FEC », and for reporting that consolidates per person
+when one person is a private owner, an SCI associate and an LMNP owner at once. Today an owner
+is a person (`owners.socrate_sub`), and co-ownership of an asset is a share between owners.
+Each point below states the default Tenure retains until the accountant answers, as a closed
+question (« do you validate X? »). None is a value in code: a rule is a parameter in
+`legal_params`, or a setting of the SCI that the manager changes, traced.
+
+- **Scope: the SCI at the income tax only** (transparent, CGI art. 8). An SCI under corporate
+  tax (IS) is refused, never computed as if it were transparent: it needs a balance sheet,
+  depreciation and the 2065, which are out of scope.
+- **The SCI is an owner scope of its own**, so its assets, leases, rent calls, charges, loans,
+  journal and FEC are the existing ones, isolated by RLS like any owner's. Default, to validate:
+  - an owner has a kind: `person` (today's rows) or `sci`, with its legal form, SIREN and
+    the day its tax regime starts;
+  - an SCI has no Socrate subject: no one logs in as the SCI. It is created by a person, who
+    becomes its first manager (gérant);
+  - a manager holds a new grant role `manager`, with the rights of the scope's owner (writes,
+    step-up actions, grants); an SCI keeps at least one live manager. Co-owner and accountant
+    grants work as today;
+  - `X-Owner-Scope` selects the SCI, as it selects a granted scope today.
+- **Associates and their holdings** (default, to validate):
+  - the SCI's register lists its associates: a Tenure person (an owner of kind `person`,
+    linked) or a name only (someone who does not use Tenure);
+  - the share capital is a number of parts; each holding is dated. A transfer, a gift or a
+    succession closes one holding and opens another on its day; a holding is never edited
+    after a 2072 has used it;
+  - full ownership only. Dismembered parts (usufruct and bare ownership) are refused until
+    asked.
+- **The 2072, computed at the entity level:**
+  - the result of the year is computed with the rules of the 2044 réel (`tax.Lines`), from the
+    SCI's own receipts, charges and loan interest. The micro-foncier does not exist at the
+    entity level;
+  - the result, a profit or a deficit, is split between the associates by the parts they hold on
+    31 December (default, to validate). A split prorata temporis agreed between associates is
+    not opposable to the administration, so it is not offered. The intermediate result of
+    CGI art. 93 B on a transfer is not built;
+  - the split is to the cent half-up, the last associate by register order taking what rounding
+    leaves, so the shares add up to the result;
+  - the 2072 of a year is issued once, behind the step-up, stored and immutable, like the tax
+    summary. Its figures go to the form's lines through `legal_params`, never through numbers
+    in code.
+  - An SCI with furnished receipts in the year (a furnished or mobility lease): the 2072 is
+    refused (409) rather than computed. A commercial activity may make the SCI liable to the
+    IS; the accountant decides.
+- **The associate's side** (default, to validate):
+  - an associate who uses Tenure reads, in their own scope, the share of each issued 2072 that
+    names them. Read-only: RLS lets an associate read the allocation rows that carry their
+    owner id, and nothing else of the SCI;
+  - their tax summary adds that share to their own revenus fonciers, on the lines of
+    `legal_params`. The deficit it carries follows their own deficit rules (the global income
+    cap, the carry-forward);
+  - micro-foncier: open to an associate only if they also let a property unfurnished directly,
+    and if their gross receipts, their own plus their SCI shares, stay under the threshold of
+    `legal_params`. An associate who holds SCI parts only is on the réel;
+  - the interest of a loan the associate took personally to buy their parts is deductible on
+    their own 2044. It is recorded as a loan of the associate, of kind `parts`, not in the SCI.
+- **Consolidation per person:** the dashboard of a person adds their SCI shares (the issued
+  2072s) and their LMNP result to their own figures, each line saying where it comes from. A
+  share not yet issued is shown as an estimate, never added to a declared total.
+- **Out of scope until asked:** the SCI at the IS, dismembered parts, CGI art. 93 B, the
+  capital gain on the sale of parts or of an SCI asset, the SCI's general meeting and accounts
+  approval, and the 2072 form itself (Tenure gives its figures).
+- **Slices:**
+  - 19b: SCI scopes and the `manager` role, the register of associates and dated holdings;
+  - 19c: the 2072 (the entity result, the split on 31 December, issued and stored);
+  - 19d: the associate's side (their shares in their tax summary, the micro rule, the loan of
+    kind `parts`) and the consolidation per person;
+  - 19e: the screens.
