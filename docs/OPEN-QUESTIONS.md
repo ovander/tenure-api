@@ -2004,10 +2004,9 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
 
     `GET /assets/{id}/depreciation?year=` gives the rows, their total and the cost of the items
     expensed that year. Golden files under `testdata/golden/<year>/bic/`.
-  - **Still to come in 18d:**
-    - freezing a version once a declaration uses it (`frozen_at`), with a later version applying
-      from its date only;
-    - the plan revised over the remaining life.
+  - **Freezing** (built in 18d): a version a declaration used is frozen, and a frozen grid takes
+    no new version (409 `bic/grid-frozen`). Revising the plan over the remaining life is not built:
+    the change is refused rather than recomputing years already declared.
 - **Built in 18c** (#182): `GET /bic/result?year=`, for the scope's owner, their share of each
   asset applied, on a cash basis like the journal (Q-127):
   - **Receipts:** rent, provisions and regularisation paid, the income categories of charges, and
@@ -2028,11 +2027,29 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     computed beside, and the lower regime is named. The chain assumes the réel every year: a year
     under the micro carries no depreciation, and choosing the regime per year is not built.
   - The pure `bic.Results`, with golden files under `testdata/golden/<year>/bicresult/`.
+- **Built in 18d** (#184): the declaration of a year.
+  - `POST /bic/declarations` (step_up, audited) issues a year under the regime chosen. Its
+    figures are stored as they are, by asset too, with the grid versions they used, which are
+    frozen. A year is declared once (409 `bic/declared`), after the years before it (409
+    `bic/declaration-order`). The micro is open up to its receipts threshold (422
+    `bic/micro-closed`).
+  - **The chain** takes a declared year as stored: its carry and its open deficits go on. Years
+    not declared are computed under the réel.
+  - **A micro year** carries no depreciation of its own and passes the earlier carry on; the
+    open deficits are not used on it, the cautious reading, and keep ageing.
+  - **Deficits** of the réel (from the charges only) are carried on later réel results, the
+    oldest first, for the years of `bic.deficit_years` (10, CGI art. 156, I-1° ter). The taxable
+    result is the réel result less the deficits used, never below zero.
+  - **The 2033 forms:** the declaration gives their figures by nature (receipts, charges,
+    depreciation deducted, carry, result, deficits). The 2033 line numbers stay out of the code
+    until the accountant validates the mapping; it will then be a parameter, as the 2044 map is
+    (Q-21). Do you validate placing receipts, charges, depreciation and the deferred
+    depreciation on the 2033-B, 2033-C and 2033-D as your firm does?
 - **Slices:**
   - 18a: this reading, and a box annexed to a dwelling's lease follows it (Q-130);
   - 18b: the grid, the furniture and the pure depreciation engine, with golden files;
   - 18c: the BIC result (receipts, charges, capped depreciation and its carry-forward, the
     micro-BIC comparison);
   - 18d: the regime chosen per year, the declaration issued (its figures stored, the grid
-    versions frozen), the 2033 figures;
+    versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.

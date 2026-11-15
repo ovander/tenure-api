@@ -218,6 +218,9 @@ func (s Service) SaveGrid(ctx context.Context, p *auth.Principal, requestID stri
 		if old.Version != version {
 			return invariant.ErrStale
 		}
+		if old.Frozen {
+			return invariant.New(TypeGridFrozen, "")
+		}
 		lines, err := json.Marshal(in.Lines)
 		if err != nil {
 			return err

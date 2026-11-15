@@ -4,6 +4,7 @@ package itest
 
 import (
 	"testing"
+	"time"
 )
 
 const (
@@ -181,5 +182,56 @@ func TestBIC(t *testing.T) {
 		t.Errorf("another owner's result: %+v", none)
 	}
 
-	rlsZeroRows(t, owner.ID, other.ID, subBIC, subBICX, a.ID, map[string]string{"bic_grids": "owner_id = $1", "bic_fixed_assets": "owner_id = $1"})
+	// Part 18d: 2025 declared under the micro, behind a recent strong
+	// sign-in; its grid frozen; the year declared once, in order; 2026
+	// chains it as declared.
+	decl := map[string]any{"year": 2025, "regime": "micro"}
+	if r := call(t, "POST", "/bic/declarations", req{tok: tok, body: decl}); r.Status != 401 {
+		t.Errorf("a declaration without step-up: %d", r.Status)
+	}
+	var d struct {
+		Year   int    `json:"year"`
+		Regime string `json:"regime"`
+		Result struct {
+			Declared        bool  `json:"declared"`
+			CarriedOutCents int64 `json:"carried_out_cents"`
+			TaxableCents    int64 `json:"taxable_cents"`
+		} `json:"result"`
+		Grids []struct {
+			Version int `json:"version"`
+		} `json:"grids"`
+	}
+	audited(t, seen, "POST /bic/declarations", 201, func() resp {
+		return call(t, "POST", "/bic/declarations", req{tok: token(t, subBIC, stepUp(time.Minute)), body: decl})
+	}).json(t, &d)
+	if d.Year != 2025 || d.Regime != "micro" || !d.Result.Declared || d.Result.CarriedOutCents != 0 || len(d.Grids) != 1 || d.Grids[0].Version != 2 {
+		t.Errorf("declaration %+v", d)
+	}
+	if r := call(t, "POST", "/bic/declarations", req{tok: token(t, subBIC, stepUp(time.Minute)), body: decl}); r.problemType(t) != "bic/declared" {
+		t.Errorf("declared twice: %d %s", r.Status, r.Body)
+	}
+	if r := call(t, "POST", "/bic/declarations", req{tok: token(t, subBIC, stepUp(time.Minute)), body: map[string]any{"year": 2024, "regime": "reel"}}); r.problemType(t) != "bic/declaration-order" {
+		t.Errorf("an earlier year after a later one: %d %s", r.Status, r.Body)
+	}
+	if r := call(t, "PUT", "/assets/"+a.ID+"/bic-grid", req{tok: tok, ifMatch: etag(2), body: body}); r.problemType(t) != "bic/grid-frozen" {
+		t.Errorf("a frozen grid changed: %d %s", r.Status, r.Body)
+	}
+	var chained struct {
+		Chain []struct {
+			Year     int  `json:"year"`
+			Declared bool `json:"declared"`
+		} `json:"chain"`
+	}
+	call(t, "GET", "/bic/result?year=2026", req{tok: tok}).json(t, &chained)
+	if len(chained.Chain) != 2 || !chained.Chain[0].Declared || chained.Chain[1].Declared {
+		t.Errorf("2026 after 2025 declared %+v", chained)
+	}
+	var list []map[string]any
+	call(t, "GET", "/bic/declarations", req{tok: tok}).json(t, &list)
+	if len(list) != 1 {
+		t.Errorf("declarations %v", list)
+	}
+
+	rlsZeroRows(t, owner.ID, other.ID, subBIC, subBICX, a.ID, map[string]string{"bic_grids": "owner_id = $1", "bic_fixed_assets": "owner_id = $1",
+		"bic_declarations": "owner_id = $1"})
 }

@@ -144,10 +144,70 @@ func (s Service) firstYear(ctx context.Context, year int) (int, error) {
 	return first.Year(), nil
 }
 
+// resultInTx chains the years from the first one in service to year: a
+// declared year as stored, the others computed, year under regime (reel
+// unless given), the years before it not declared under the réel.
+func (s Service) resultInTx(ctx context.Context, owner uuid.UUID, year int, regime string, done map[int]Declaration) (ResultView, error) {
+	out := ResultView{Year: year}
+	ps, err := s.Params.Load(ctx)
+	if err != nil {
+		return out, err
+	}
+	first, err := s.firstYear(ctx, year)
+	if err != nil {
+		return out, err
+	}
+	for y := range done {
+		first = min(first, y)
+	}
+	var years []YearInput
+	for y := first; y <= year; y++ {
+		if d, ok := done[y]; ok {
+			r := d.Result
+			years = append(years, YearInput{Year: y, Stored: &r})
+			if y == year {
+				out.Assets = d.Assets
+			}
+			continue
+		}
+		in, assets, err := s.yearFigures(ctx, owner, y, ps)
+		if err != nil {
+			return out, err
+		}
+		if y == year {
+			in.Regime = regime
+			out.Assets = assets
+		}
+		years = append(years, in)
+	}
+	var microErr error
+	micro := func(y int) params.BICMicro {
+		m, err := ps.BICMicro(period.NewDate(y, time.December, 31))
+		if err != nil && microErr == nil {
+			microErr = err
+		}
+		return m
+	}
+	deficit, err := ps.BICDeficitYears(period.NewDate(year, time.December, 31))
+	if err != nil {
+		return out, err
+	}
+	out.Chain = Results(years, micro, deficit.Years)
+	if microErr != nil {
+		return out, microErr
+	}
+	out.Result = out.Chain[len(out.Chain)-1]
+	if out.Assets == nil {
+		out.Assets = []AssetYear{}
+	}
+	return out, nil
+}
+
 // Result computes the BIC result of the scope's owner for a year
 // (RENT-SPEC-019, Q-132): each year from the first one in service is
-// chained, so the depreciation the cap set aside reaches the year asked.
-// The year is computed under the réel; the micro figure is given beside.
+// chained, the declared ones as they were issued, so the depreciation the
+// cap set aside and the deficits reach the year asked. A year not declared
+// is computed under the réel; the micro figure is given beside.
 func (s Service) Result(ctx context.Context, p *auth.Principal, requestID string, year int) (ResultView, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
@@ -156,41 +216,14 @@ func (s Service) Result(ctx context.Context, p *auth.Principal, requestID string
 	if year < 1970 || year > 9999 {
 		return ResultView{}, fields("year", "Une année sur quatre chiffres est attendue.")
 	}
-	out := ResultView{Year: year}
+	var out ResultView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		ps, err := s.Params.Load(ctx)
+		done, err := s.declarationsInTx(ctx)
 		if err != nil {
 			return err
 		}
-		first, err := s.firstYear(ctx, year)
-		if err != nil {
-			return err
-		}
-		var years []YearInput
-		for y := first; y <= year; y++ {
-			in, assets, err := s.yearFigures(ctx, sc.OwnerID, y, ps)
-			if err != nil {
-				return err
-			}
-			years = append(years, in)
-			if y == year {
-				out.Assets = assets
-			}
-		}
-		var microErr error
-		micro := func(y int) params.BICMicro {
-			m, err := ps.BICMicro(period.NewDate(y, time.December, 31))
-			if err != nil && microErr == nil {
-				microErr = err
-			}
-			return m
-		}
-		out.Chain = Results(years, micro)
-		if microErr != nil {
-			return microErr
-		}
-		out.Result = out.Chain[len(out.Chain)-1]
-		return nil
+		out, err = s.resultInTx(ctx, sc.OwnerID, year, RegimeReel, done)
+		return err
 	})
 	return out, err
 }

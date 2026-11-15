@@ -2114,6 +2114,133 @@
                 }
             }
         },
+        "/bic/declarations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The scope's owner's declarations of furnished letting, by year, with their figures as issued (Q-132).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "The BIC declarations issued",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/bic.Declaration"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Issues the year under the regime chosen (step_up): its figures, computed from the declarations before it, are stored as they are, and the grid versions they used are frozen; a frozen grid takes no new version (409 bic/grid-frozen). A year is declared once (409 bic/declared), after the years before it (409 bic/declaration-order); the micro is open up to its receipts threshold (422 bic/micro-closed). Under the micro, the year carries no depreciation of its own and passes the earlier carry on (Q-132).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "Issue a year's BIC declaration",
+                "parameters": [
+                    {
+                        "description": "year and regime",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bic.DeclarationInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/bic.Declaration"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/bic/result": {
             "get": {
                 "security": [
@@ -12998,6 +13125,68 @@
                 }
             }
         },
+        "bic.Declaration": {
+            "type": "object",
+            "properties": {
+                "assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.AssetYear"
+                    }
+                },
+                "grids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.GridUse"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "issued_at": {
+                    "type": "string"
+                },
+                "regime": {
+                    "type": "string",
+                    "enum": [
+                        "reel",
+                        "micro"
+                    ]
+                },
+                "result": {
+                    "$ref": "#/definitions/bic.YearResult"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.DeclarationInput": {
+            "type": "object",
+            "properties": {
+                "regime": {
+                    "type": "string",
+                    "enum": [
+                        "reel",
+                        "micro"
+                    ]
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.Deficit": {
+            "type": "object",
+            "properties": {
+                "remaining_cents": {
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
         "bic.DepreciationView": {
             "type": "object",
             "properties": {
@@ -13053,6 +13242,20 @@
                 "reason": {
                     "description": "Reason says why a version changes the one before.",
                     "type": "string"
+                }
+            }
+        },
+        "bic.GridUse": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "grid_id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
                 }
             }
         },
@@ -13334,8 +13537,23 @@
                     "description": "ChargesCents is the charges paid (the recoverable part included, the\nprovisions being receipts), the loan interest and insurance, and the\nfurniture expensed.",
                     "type": "integer"
                 },
+                "declared": {
+                    "description": "Declared says the year comes from an issued declaration.",
+                    "type": "boolean"
+                },
                 "deducted_cents": {
                     "type": "integer"
+                },
+                "deficit_used_cents": {
+                    "description": "DeficitUsedCents is the earlier deficits set against a positive réel\nresult, the oldest first.",
+                    "type": "integer"
+                },
+                "deficits": {
+                    "description": "Deficits are the deficits still open after the year.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.Deficit"
+                    }
                 },
                 "depreciation_cents": {
                     "type": "integer"
@@ -13355,12 +13573,32 @@
                     "description": "ReceiptsCents is rent, provisions, regularisation and what a deposit\nstatement kept.",
                     "type": "integer"
                 },
+                "regime": {
+                    "description": "Regime is the regime of the year: reel (the default) or micro.",
+                    "type": "string",
+                    "enum": [
+                        "reel",
+                        "micro"
+                    ]
+                },
                 "result_cents": {
-                    "description": "ResultCents is receipts − charges − depreciation deducted; negative only\nthrough the other charges (a deficit).",
+                    "description": "ResultCents is the réel result: receipts − charges − depreciation\ndeducted; negative only through the other charges (a deficit).",
                     "type": "integer"
                 },
                 "room_cents": {
                     "description": "RoomCents is what the depreciation may take: receipts less the other\ncharges, never below zero (CGI art. 39 C, II).",
+                    "type": "integer"
+                },
+                "stored": {
+                    "description": "Stored is the result of a year already declared.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/bic.YearResult"
+                        }
+                    ]
+                },
+                "taxable_cents": {
+                    "description": "TaxableCents is the year's taxable result under its regime: the réel\nresult less the deficits used (never below zero), or the micro figure.",
                     "type": "integer"
                 },
                 "year": {

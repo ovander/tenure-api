@@ -16,7 +16,8 @@ import (
 
 // The BIC result cases (RENT-SPEC-019, Q-132) live under
 // testdata/golden/<year>/bicresult/ and chain bic.Results over the years
-// given, the micro parameter of each year from the fixtures.
+// given, the micro parameter of each year and the deficit lifetime from the
+// fixtures.
 type bicResultCase struct {
 	Case        string          `json:"case"`
 	Description string          `json:"description"`
@@ -54,7 +55,11 @@ func TestBICResultGolden(t *testing.T) {
 				}
 				return m
 			}
-			got, err := json.MarshalIndent(bic.Results(c.Years, micro), "  ", "  ")
+			deficit, err := ps.BICDeficitYears(period.NewDate(year, 12, 31))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := json.MarshalIndent(bic.Results(c.Years, micro, deficit.Years), "  ", "  ")
 			if err != nil {
 				t.Fatal(err)
 			}

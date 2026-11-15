@@ -85,6 +85,7 @@ POST /incidents/{id}/transitions +
 PUT /assets/{id}/bic-grid
 POST /assets/{id}/fixed-assets
 PUT /fixed-assets/{id}
+POST /bic/declarations
 POST /maintenance-contracts
 PUT /maintenance-contracts/{id}
 POST /maintenance-contracts/{id}/visits
