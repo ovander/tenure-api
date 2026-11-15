@@ -166,3 +166,18 @@ func (Repository) UpdateItem(ctx context.Context, r itemRow, version int) error 
 	}
 	return nil
 }
+
+// FirstInService returns the earliest day a grid or an item of the scope
+// was put in service; zero when there is none.
+func (Repository) FirstInService(ctx context.Context) (time.Time, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	var days []*time.Time
+	err = t.Raw(`SELECT least((SELECT min(in_service_on) FROM bic_grids), (SELECT min(in_service_on) FROM bic_fixed_assets))`).Scan(&days).Error
+	if err != nil || len(days) == 0 || days[0] == nil {
+		return time.Time{}, err
+	}
+	return *days[0], nil
+}

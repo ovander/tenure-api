@@ -1,0 +1,77 @@
+{
+  "case": "carry",
+  "description": "A furnished apartment first let in March 2026 (the depreciation of testdata/golden/2026/bic/apartment.json). 2026: 9 months of rent, the acquisition year's charges, depreciation above the room: capped, the excess carried. 2027: a full year deducts the carry first. 2028: heavy works expensed leave a deficit, all depreciation carried. Micro-BIC beside each year with the fixtures' parameter.",
+  "years": [
+    {
+      "year": 2026,
+      "receipts_cents": 855000,
+      "charges_cents": 420000,
+      "depreciation_cents": 613745
+    },
+    {
+      "year": 2027,
+      "receipts_cents": 1152000,
+      "charges_cents": 310000,
+      "depreciation_cents": 829396
+    },
+    {
+      "year": 2028,
+      "receipts_cents": 1180000,
+      "charges_cents": 1350000,
+      "depreciation_cents": 829396
+    }
+  ],
+  "expected": [
+    {
+      "year": 2026,
+      "receipts_cents": 855000,
+      "charges_cents": 420000,
+      "depreciation_cents": 613745,
+      "carried_in_cents": 0,
+      "room_cents": 435000,
+      "deducted_cents": 435000,
+      "carried_out_cents": 178745,
+      "result_cents": 0,
+      "micro": {
+        "eligible": true,
+        "abatement_cents": 427500,
+        "taxable_cents": 427500
+      },
+      "lower": "reel"
+    },
+    {
+      "year": 2027,
+      "receipts_cents": 1152000,
+      "charges_cents": 310000,
+      "depreciation_cents": 829396,
+      "carried_in_cents": 178745,
+      "room_cents": 842000,
+      "deducted_cents": 842000,
+      "carried_out_cents": 166141,
+      "result_cents": 0,
+      "micro": {
+        "eligible": true,
+        "abatement_cents": 576000,
+        "taxable_cents": 576000
+      },
+      "lower": "reel"
+    },
+    {
+      "year": 2028,
+      "receipts_cents": 1180000,
+      "charges_cents": 1350000,
+      "depreciation_cents": 829396,
+      "carried_in_cents": 166141,
+      "room_cents": 0,
+      "deducted_cents": 0,
+      "carried_out_cents": 995537,
+      "result_cents": -170000,
+      "micro": {
+        "eligible": true,
+        "abatement_cents": 590000,
+        "taxable_cents": 590000
+      },
+      "lower": "reel"
+    }
+  ]
+}

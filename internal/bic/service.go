@@ -520,11 +520,21 @@ func (s Service) Depreciation(ctx context.Context, p *auth.Principal, requestID 
 	if year < 1970 || year > 9999 {
 		return DepreciationView{}, fields("year", "Une année sur quatre chiffres est attendue.")
 	}
-	out := DepreciationView{AssetID: asset, Year: year}
+	var out DepreciationView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		if _, err := s.Portfolio.AssetInTx(ctx, asset); err != nil {
 			return err
 		}
+		var err error
+		out, err = s.depreciationInTx(ctx, asset, year)
+		return err
+	})
+	return out, err
+}
+
+func (s Service) depreciationInTx(ctx context.Context, asset uuid.UUID, year int) (DepreciationView, error) {
+	out := DepreciationView{AssetID: asset, Year: year}
+	err := func() error {
 		var g *Grid
 		gr, found, err := s.Repo.Grid(ctx, asset)
 		if err != nil {
@@ -560,6 +570,6 @@ func (s Service) Depreciation(ctx context.Context, p *auth.Principal, requestID 
 		out.Rows, err = Depreciation(g, items, year)
 		out.TotalCents = Total(out.Rows)
 		return err
-	})
+	}()
 	return out, err
 }

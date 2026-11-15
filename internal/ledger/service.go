@@ -181,6 +181,12 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 	return in, nil
 }
 
+// InputsInTx returns the movements of [from, to] the journal posts, in the
+// caller's scoped transaction (the BIC result reads them, Q-132).
+func (s Service) InputsInTx(ctx context.Context, from, to time.Time) (Inputs, error) {
+	return s.inputs(ctx, from, to)
+}
+
 func idString(id *uuid.UUID) string {
 	if id == nil {
 		return ""

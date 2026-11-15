@@ -139,5 +139,47 @@ func TestBIC(t *testing.T) {
 		t.Errorf("bad year: %d", r.Status)
 	}
 
+	// The year's BIC result (part 18c): no rent yet in this scenario, so no
+	// room: nothing deducted, the whole depreciation carried; the property
+	// tax and the lamp expensed make a deficit. 2026 chains 2025's carry.
+	if r := call(t, "POST", "/charges", req{tok: tok, body: map[string]any{"asset_id": a.ID, "charged_on": "2025-10-15", "paid_on": "2025-10-15",
+		"category": "property_tax", "amount_cents": 120000, "recoverable_cents": 0}}); r.Status != 201 {
+		t.Fatalf("charge: %d %s", r.Status, r.Body)
+	}
+	type yearResult struct {
+		Year              int   `json:"year"`
+		ReceiptsCents     int64 `json:"receipts_cents"`
+		ChargesCents      int64 `json:"charges_cents"`
+		DepreciationCents int64 `json:"depreciation_cents"`
+		CarriedInCents    int64 `json:"carried_in_cents"`
+		DeductedCents     int64 `json:"deducted_cents"`
+		CarriedOutCents   int64 `json:"carried_out_cents"`
+		ResultCents       int64 `json:"result_cents"`
+	}
+	var res struct {
+		Result yearResult   `json:"result"`
+		Chain  []yearResult `json:"chain"`
+		Assets []struct {
+			AssetID string `json:"asset_id"`
+			ShareBP int64  `json:"share_bp"`
+		} `json:"assets"`
+	}
+	call(t, "GET", "/bic/result?year=2025", req{tok: tok}).json(t, &res)
+	if r := res.Result; r.ChargesCents != 120000+3000 || r.DepreciationCents != dep.TotalCents || r.DeductedCents != 0 ||
+		r.CarriedOutCents != dep.TotalCents || r.ResultCents != -123000 || len(res.Assets) != 1 || res.Assets[0].ShareBP <= 0 {
+		t.Errorf("result 2025 %+v", res)
+	}
+	call(t, "GET", "/bic/result?year=2026", req{tok: tok}).json(t, &res)
+	if len(res.Chain) != 2 || res.Result.CarriedInCents != dep.TotalCents {
+		t.Errorf("result 2026 %+v", res)
+	}
+	var none struct {
+		Assets []any `json:"assets"`
+	}
+	call(t, "GET", "/bic/result?year=2025", req{tok: tokX}).json(t, &none)
+	if len(none.Assets) != 0 {
+		t.Errorf("another owner's result: %+v", none)
+	}
+
 	rlsZeroRows(t, owner.ID, other.ID, subBIC, subBICX, a.ID, map[string]string{"bic_grids": "owner_id = $1", "bic_fixed_assets": "owner_id = $1"})
 }
