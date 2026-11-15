@@ -2114,6 +2114,70 @@
                 }
             }
         },
+        "/bic/result": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The scope's owner's furnished letting under the réel (RENT-SPEC-019, Q-132), their shares applied. Receipts are rent, provisions, regularisation and what a deposit statement kept. Charges are the other charges paid (recoverable included), the loan interest and insurance, and the furniture expensed. The depreciation deducted is capped at receipts less those charges (CGI art. 39 C, II); the excess is carried to the next years without time limit. The years from the first one in service are chained to carry it. The micro-BIC figure (bic.micro) and the lower regime are given beside.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bic"
+                ],
+                "summary": "The BIC result of furnished letting for a year",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "calendar year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bic.ResultView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/billing/documents": {
             "get": {
                 "security": [
@@ -12903,6 +12967,37 @@
                 }
             }
         },
+        "bic.AssetYear": {
+            "type": "object",
+            "properties": {
+                "asset_id": {
+                    "type": "string"
+                },
+                "charges_cents": {
+                    "type": "integer"
+                },
+                "depreciation_cents": {
+                    "type": "integer"
+                },
+                "expensed_cents": {
+                    "type": "integer"
+                },
+                "grid_version": {
+                    "description": "GridVersion is the asset's grid, 0 while it has none (its building is\nthen not depreciated).",
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "receipts_cents": {
+                    "type": "integer"
+                },
+                "share_bp": {
+                    "description": "ShareBP is the owner's share of the asset.",
+                    "type": "integer"
+                }
+            }
+        },
         "bic.DepreciationView": {
             "type": "object",
             "properties": {
@@ -13150,6 +13245,43 @@
                 }
             }
         },
+        "bic.Micro": {
+            "type": "object",
+            "properties": {
+                "abatement_cents": {
+                    "type": "integer"
+                },
+                "eligible": {
+                    "type": "boolean"
+                },
+                "taxable_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.ResultView": {
+            "type": "object",
+            "properties": {
+                "assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.AssetYear"
+                    }
+                },
+                "chain": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bic.YearResult"
+                    }
+                },
+                "result": {
+                    "$ref": "#/definitions/bic.YearResult"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
         "bic.Row": {
             "type": "object",
             "properties": {
@@ -13184,6 +13316,54 @@
                     "format": "date"
                 },
                 "year_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bic.YearResult": {
+            "type": "object",
+            "properties": {
+                "carried_in_cents": {
+                    "description": "CarriedInCents is the depreciation carried from earlier years.",
+                    "type": "integer"
+                },
+                "carried_out_cents": {
+                    "type": "integer"
+                },
+                "charges_cents": {
+                    "description": "ChargesCents is the charges paid (the recoverable part included, the\nprovisions being receipts), the loan interest and insurance, and the\nfurniture expensed.",
+                    "type": "integer"
+                },
+                "deducted_cents": {
+                    "type": "integer"
+                },
+                "depreciation_cents": {
+                    "type": "integer"
+                },
+                "lower": {
+                    "description": "Lower is the regime with the lower taxable result: micro or reel; reel\nwhen micro is not open.",
+                    "type": "string",
+                    "enum": [
+                        "micro",
+                        "reel"
+                    ]
+                },
+                "micro": {
+                    "$ref": "#/definitions/bic.Micro"
+                },
+                "receipts_cents": {
+                    "description": "ReceiptsCents is rent, provisions, regularisation and what a deposit\nstatement kept.",
+                    "type": "integer"
+                },
+                "result_cents": {
+                    "description": "ResultCents is receipts − charges − depreciation deducted; negative only\nthrough the other charges (a deficit).",
+                    "type": "integer"
+                },
+                "room_cents": {
+                    "description": "RoomCents is what the depreciation may take: receipts less the other\ncharges, never below zero (CGI art. 39 C, II).",
+                    "type": "integer"
+                },
+                "year": {
                     "type": "integer"
                 }
             }

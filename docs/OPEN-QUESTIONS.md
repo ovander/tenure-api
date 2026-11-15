@@ -2004,13 +2004,35 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
 
     `GET /assets/{id}/depreciation?year=` gives the rows, their total and the cost of the items
     expensed that year. Golden files under `testdata/golden/<year>/bic/`.
-  - **Still to come in 18c:**
+  - **Still to come in 18d:**
     - freezing a version once a declaration uses it (`frozen_at`), with a later version applying
       from its date only;
     - the plan revised over the remaining life.
+- **Built in 18c** (#182): `GET /bic/result?year=`, for the scope's owner, their share of each
+  asset applied, on a cash basis like the journal (Q-127):
+  - **Receipts:** rent, provisions and regularisation paid, the income categories of charges, and
+    what a deposit statement kept (arrears, regularisation, deductions).
+  - **Charges:**
+    - the other charges paid, the recoverable part included, since the provisions are receipts;
+    - the penalty of a statement;
+    - the loan interest and insurance;
+    - the furniture expensed.
+
+    Works expensed are recorded as charges, not added a second time.
+  - **The cap (CGI art. 39 C, II)** applies to the owner's activity as a whole. The
+    depreciation available is the year's plus what earlier years carried. It is deducted up to
+    receipts less the other charges, and the rest is carried without time limit. The years are
+    chained from the first one in service, so the carry reaches the year asked. A deficit can
+    only come from the other charges; carrying it to later years is not built.
+  - **Micro-BIC** (`bic.micro`: abatement 50 %, minimum 305 €, receipts up to 77 700 €) is
+    computed beside, and the lower regime is named. The chain assumes the réel every year: a year
+    under the micro carries no depreciation, and choosing the regime per year is not built.
+  - The pure `bic.Results`, with golden files under `testdata/golden/<year>/bicresult/`.
 - **Slices:**
   - 18a: this reading, and a box annexed to a dwelling's lease follows it (Q-130);
   - 18b: the grid, the furniture and the pure depreciation engine, with golden files;
   - 18c: the BIC result (receipts, charges, capped depreciation and its carry-forward, the
-    micro-BIC comparison, the 2033 figures);
-  - 18d: the screen.
+    micro-BIC comparison);
+  - 18d: the regime chosen per year, the declaration issued (its figures stored, the grid
+    versions frozen), the 2033 figures;
+  - 18e: the screen.

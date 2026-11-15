@@ -89,6 +89,9 @@ const (
 	KeyBICFurniture        = "bic.furniture"
 	KeyBICSmallEquipment   = "bic.small_equipment"
 	KeyBICAcquisitionCosts = "bic.acquisition_costs"
+	// KeyBICMicro is the micro-BIC regime of long-term furnished letting:
+	// its abatement, minimum and receipts threshold (Q-132).
+	KeyBICMicro = "bic.micro"
 	// KeyLedgerCapitalisedConstruction is the account of construction,
 	// reconstruction and enlargement works (Q-130).
 	KeyLedgerCapitalisedConstruction = "ledger.capitalised_construction"
@@ -759,5 +762,20 @@ type BICAcquisitionCosts struct {
 func (s Set) BICAcquisitionCosts(asOf period.Date) (BICAcquisitionCosts, error) {
 	var r BICAcquisitionCosts
 	err := s.Decode(KeyBICAcquisitionCosts, asOf, &r)
+	return r, err
+}
+
+// BICMicro is the parameter bic.micro: the abatement in basis points, its
+// minimum, and the receipts up to which the micro regime applies (Q-132).
+type BICMicro struct {
+	AbatementBP           int64 `json:"abatement_bp"`
+	MinimumAbatementCents int64 `json:"minimum_abatement_cents"`
+	ThresholdCents        int64 `json:"threshold_cents"`
+}
+
+// BICMicro returns bic.micro in force on asOf.
+func (s Set) BICMicro(asOf period.Date) (BICMicro, error) {
+	var r BICMicro
+	err := s.Decode(KeyBICMicro, asOf, &r)
 	return r, err
 }

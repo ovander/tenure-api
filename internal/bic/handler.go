@@ -196,3 +196,25 @@ func (h Handler) GetDepreciation(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, v)
 }
+
+// GetResult godoc
+//
+//	@Summary		The BIC result of furnished letting for a year
+//	@Description	The scope's owner's furnished letting under the réel (RENT-SPEC-019, Q-132), their shares applied. Receipts are rent, provisions, regularisation and what a deposit statement kept. Charges are the other charges paid (recoverable included), the loan interest and insurance, and the furniture expensed. The depreciation deducted is capped at receipts less those charges (CGI art. 39 C, II); the excess is carried to the next years without time limit. The years from the first one in service are chained to carry it. The micro-BIC figure (bic.micro) and the lower regime are given beside.
+//	@Tags			bic
+//	@Produce		json
+//	@Param			year			query		int		true	"calendar year"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	ResultView
+//	@Failure		400,401,403,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bic/result [get]
+func (h Handler) GetResult(w http.ResponseWriter, r *http.Request) {
+	year, _ := strconv.Atoi(r.URL.Query().Get("year"))
+	v, err := h.Service.Result(r.Context(), caller(r), httpx.RequestID(r), year)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
