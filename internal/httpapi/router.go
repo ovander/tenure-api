@@ -43,6 +43,7 @@ import (
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
+	"github.com/ovander/tenure-api/internal/sci"
 	"github.com/ovander/tenure-api/internal/tax"
 	"github.com/ovander/tenure-api/internal/version"
 )
@@ -70,6 +71,7 @@ type Deps struct {
 	Dashboard      dashboard.Handler
 	Maintenance    maintenance.Handler
 	BIC            bic.Handler
+	SCI            sci.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -126,6 +128,14 @@ func Routes(d Deps) []Route {
 		{"GET", "/grants", GuardScopeOwnerW, false, h(d.Portfolio.ListGrants)},
 		{"POST", "/grants", GuardScopeOwnerW, true, h(d.Portfolio.CreateGrant)},
 		{"DELETE", "/grants/{id}", GuardScopeOwnerW, true, h(d.Portfolio.RevokeGrant)},
+		{"POST", "/entities", GuardAuthenticated, true, h(d.Portfolio.CreateEntity)},
+		{"GET", "/entity", GuardScopeOwnerW, false, h(d.Portfolio.GetEntity)},
+		{"PUT", "/entity", GuardScopeOwnerW, false, h(d.Portfolio.UpdateEntity)},
+		{"GET", "/associates", GuardScopeOwnerW, false, h(d.SCI.GetRegister)},
+		{"POST", "/associates", GuardScopeOwnerW, false, h(d.SCI.CreateAssociate)},
+		{"PUT", "/associates/{id}", GuardScopeOwnerW, false, h(d.SCI.UpdateAssociate)},
+		{"GET", "/sci/movements", GuardScopeOwnerW, false, h(d.SCI.ListMovements)},
+		{"POST", "/sci/movements", GuardScopeOwnerW, false, h(d.SCI.RecordMovement)},
 		{"GET", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.ListAssets)},
 		{"POST", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.CreateAsset)},
 		{"GET", "/assets/{id}", GuardScopeOwnerW, false, h(d.Portfolio.GetAsset)},

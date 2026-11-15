@@ -26,25 +26,36 @@ func (r Repository) Resolve(ctx context.Context, sub string) ([]Scope, string, e
 			ID        uuid.UUID
 			LegalName string
 			Language  string
+			Kind      string
 		}
-		if err := tx.Raw("SELECT id, legal_name, language FROM owners WHERE socrate_sub = ?", sub).Scan(&own).Error; err != nil {
+		if err := tx.Raw("SELECT id, legal_name, language, kind FROM owners WHERE socrate_sub = ?", sub).Scan(&own).Error; err != nil {
 			return err
 		}
 		for _, o := range own {
-			scopes = append(scopes, Scope{OwnerID: o.ID, Role: RoleOwner, LegalName: o.LegalName})
+			scopes = append(scopes, Scope{OwnerID: o.ID, Role: RoleOwner, LegalName: o.LegalName, Kind: o.Kind})
 			lang = o.Language
 		}
 		var granted []struct {
 			OwnerID   uuid.UUID
 			Role      string
 			LegalName string
+			Kind      string
 		}
-		if err := tx.Raw(`SELECT g.owner_id, g.role, o.legal_name FROM owner_grants g JOIN owners o ON o.id = g.owner_id
+		if err := tx.Raw(`SELECT g.owner_id, g.role, o.legal_name, o.kind FROM owner_grants g JOIN owners o ON o.id = g.owner_id
 			WHERE g.grantee_sub = ? AND g.revoked_at IS NULL ORDER BY o.legal_name, g.owner_id`, sub).Scan(&granted).Error; err != nil {
 			return err
 		}
 		for _, g := range granted {
-			scopes = append(scopes, Scope{OwnerID: g.OwnerID, Role: Role(g.Role), LegalName: g.LegalName})
+			sc := Scope{OwnerID: g.OwnerID, Role: Role(g.Role), LegalName: g.LegalName, Kind: g.Kind}
+			// A manager has the owner's rights, in an SCI only (Q-133);
+			// tenure_scope_role answers the same in the database.
+			if sc.Role == RoleManager {
+				if sc.Kind != KindSCI {
+					continue
+				}
+				sc.Role, sc.Manager = RoleOwner, true
+			}
+			scopes = append(scopes, sc)
 		}
 		return nil
 	})

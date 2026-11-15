@@ -11,6 +11,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/problem"
+	"github.com/ovander/tenure-api/internal/tax"
 )
 
 // Problem types of the bic module.
@@ -126,6 +127,9 @@ func (s Service) Issue(ctx context.Context, p *auth.Principal, requestID string,
 	}
 	if in.Regime != RegimeReel && in.Regime != RegimeMicro {
 		return Declaration{}, fields("regime", "Attendu : reel ou micro.")
+	}
+	if p.Active.IsSCI() {
+		return Declaration{}, invariant.New(tax.TypePersonOnly, "")
 	}
 	var out Declaration
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {

@@ -1180,6 +1180,261 @@
                 }
             }
         },
+        "/associates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Its capital in parts, the parts held on the day asked (today by default, Europe/Paris) and its associates with their holdings, in register order (Q-133). 409 entity/not-sci in a person's scope.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "The SCI's register",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "day (YYYY-MM-DD)",
+                        "name": "on",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sci.Register"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A name only, or a Tenure person: link self (the caller) or the grant_id of a live grant of the SCI (422 sci/link-grant otherwise; 409 sci/associate-linked when that person is already an associate). Parts come by movements.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "Add an associate",
+                "parameters": [
+                    {
+                        "description": "associate",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sci.AssociateInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sci.AssociateView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/associates/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Their name or link; their holdings change only by movements.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "Change an associate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "associate id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "associate",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sci.AssociateInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sci.AssociateView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/audit/events": {
             "get": {
                 "security": [
@@ -4274,6 +4529,218 @@
                 }
             }
         },
+        "/entities": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An SCI at the income tax (Q-133), an owner scope of its own with no Socrate subject; the caller becomes its first manager (a grant of role manager). An SCI at the IS is refused (422 entity/is-unsupported). Its capital in parts is set here and does not change. A step-up route.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Create an SCI",
+                "parameters": [
+                    {
+                        "description": "SCI",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.EntityInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.EntityView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/entity": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "In an SCI's scope; 409 entity/not-sci in a person's.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "The SCI's profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.EntityView"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Its name, address, SIREN, language and the day its tax regime starts; the regime and the capital in parts do not change.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolio"
+                ],
+                "summary": "Change the SCI's profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "current version",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "SCI",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.EntityInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.EntityView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/fixed-assets/{id}": {
             "put": {
                 "security": [
@@ -4434,7 +4901,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "As co-owner (reads everything) or accountant (financial data, no tenant contact data). A step-up route.",
+                "description": "As co-owner (reads everything) or accountant (financial data, no tenant contact data), or, in an SCI's scope only, as manager (gérant), with the owner's rights (Q-133; 422 grant/manager-sci-only elsewhere). A step-up route.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4515,7 +4982,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sets revoked_at; the grantee's next request no longer reaches the scope. A step-up route.",
+                "description": "Sets revoked_at; the grantee's next request no longer reaches the scope. An SCI's last live manager is not revoked (409 grant/last-manager). A step-up route.",
                 "produces": [
                     "application/json"
                 ],
@@ -12129,6 +12596,145 @@
                 }
             }
         },
+        "/sci/movements": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Oldest first, each with the holdings it opened and closed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "The SCI's movements of parts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/sci.MovementView"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A subscription gives new parts within the capital (422 sci/capital-exceeded beyond it). A transfer, a gift or a succession moves parts of an open holding to another associate on its day: the holding closes that day, the receiver's opens that day, and what the giver keeps opens again that day (409 sci/holding-closed, 422 sci/holding-parts, 422 sci/same-associate). A movement is not undone (Q-133).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "Record a movement of parts",
+                "parameters": [
+                    {
+                        "description": "movement",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sci.MovementInput"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sci.MovementView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/tax/summaries": {
             "get": {
                 "security": [
@@ -13072,19 +13678,33 @@
             "enum": [
                 "owner",
                 "co_owner",
-                "accountant"
+                "accountant",
+                "manager"
             ],
             "x-enum-varnames": [
                 "RoleOwner",
                 "RoleCoOwner",
-                "RoleAccountant"
+                "RoleAccountant",
+                "RoleManager"
             ]
         },
         "auth.Scope": {
             "type": "object",
             "properties": {
+                "kind": {
+                    "description": "Kind is the owner's kind: KindPerson, or KindSCI for an SCI (Q-133).",
+                    "type": "string",
+                    "enum": [
+                        "person",
+                        "sci"
+                    ]
+                },
                 "legal_name": {
                     "type": "string"
+                },
+                "manager": {
+                    "description": "Manager is true when the caller holds the scope as an SCI's manager:\ntheir role is then RoleOwner.",
+                    "type": "boolean"
                 },
                 "owner_id": {
                     "type": "string"
@@ -20368,6 +20988,92 @@
                 }
             }
         },
+        "portfolio.EntityInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "capital_parts": {
+                    "type": "integer"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "legal_name": {
+                    "type": "string"
+                },
+                "regime_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "siren": {
+                    "type": "string"
+                },
+                "tax_regime": {
+                    "type": "string",
+                    "enum": [
+                        "ir"
+                    ]
+                }
+            }
+        },
+        "portfolio.EntityView": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "capital_parts": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "sci"
+                    ]
+                },
+                "language": {
+                    "type": "string",
+                    "enum": [
+                        "fr",
+                        "en"
+                    ]
+                },
+                "legal_name": {
+                    "type": "string"
+                },
+                "regime_from": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "siren": {
+                    "type": "string"
+                },
+                "tax_regime": {
+                    "type": "string",
+                    "enum": [
+                        "ir"
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "portfolio.GrantInput": {
             "type": "object",
             "properties": {
@@ -20378,7 +21084,8 @@
                     "type": "string",
                     "enum": [
                         "co_owner",
-                        "accountant"
+                        "accountant",
+                        "manager"
                     ]
                 }
             }
@@ -20405,7 +21112,8 @@
                     "type": "string",
                     "enum": [
                         "co_owner",
-                        "accountant"
+                        "accountant",
+                        "manager"
                     ]
                 }
             }
@@ -20634,6 +21342,176 @@
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "sci.AssociateInput": {
+            "type": "object",
+            "properties": {
+                "grant_id": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string",
+                    "enum": [
+                        "self"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "sci.AssociateView": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "holdings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sci.HoldingView"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "me": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parts_on": {
+                    "type": "integer"
+                },
+                "person_sub": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sci.HoldingView": {
+            "type": "object",
+            "properties": {
+                "closed_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "from_on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "parts": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sci.MovementInput": {
+            "type": "object",
+            "properties": {
+                "from_holding_id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "on_date": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "parts": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string",
+                    "enum": [
+                        "subscription",
+                        "transfer",
+                        "gift",
+                        "succession"
+                    ]
+                },
+                "to_associate_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "sci.MovementView": {
+            "type": "object",
+            "properties": {
+                "closed": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "from_holding_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "on_date": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "opened": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sci.HoldingView"
+                    }
+                },
+                "parts": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string",
+                    "enum": [
+                        "subscription",
+                        "transfer",
+                        "gift",
+                        "succession"
+                    ]
+                },
+                "to_associate_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "sci.Register": {
+            "type": "object",
+            "properties": {
+                "associates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sci.AssociateView"
+                    }
+                },
+                "capital_parts": {
+                    "type": "integer"
+                },
+                "held_parts": {
+                    "type": "integer"
+                },
+                "on": {
+                    "type": "string",
+                    "format": "date"
                 }
             }
         },

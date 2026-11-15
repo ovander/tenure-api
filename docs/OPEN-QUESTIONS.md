@@ -2054,7 +2054,7 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.
 
-**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188).**
+**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190).**
 RENT-SPEC-019 asks for « SCI: entity with associates and shares; income allocated per associate
 for 2044/2072; entity-level ledger and FEC », and for reporting that consolidates per person
 when one person is a private owner, an SCI associate and an LMNP owner at once. Today an owner
@@ -2124,3 +2124,34 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
   - 19d: the associate's side (their shares in their tax summary, the micro rule, the loan of
     kind `parts`) and the consolidation per person;
   - 19e: the screens.
+- **Built in 19b** (#190):
+  - **The SCI scope.** `POST /entities` (step_up) creates an owner of kind `sci`, with no Socrate
+    subject, its SIREN (nine digits), its tax regime (`ir` only: `is` answers 422
+    `entity/is-unsupported`), the day the regime starts and its capital in parts. The same
+    transaction records a `manager` grant to its creator, and both events go to the SCI's own
+    audit chain. `GET/PUT /entity` reads and changes the profile in the SCI's scope (409
+    `entity/not-sci` in a person's). The capital does not change there: an increase or a
+    reduction of capital is not built.
+  - **The manager.** In the database `tenure_scope_role` answers `owner` for a live manager grant
+    on an SCI, so every existing policy applies as is; `/me` lists the scope with `kind: sci`,
+    `role: owner`, `manager: true`. A manager is appointed by `POST /grants` in the SCI's scope
+    only (422 `grant/manager-sci-only` elsewhere). Nobody revokes their own grant (422
+    `grant/self-revoke`): another manager does, so the revocation's event is recorded by
+    someone who keeps access. Two revocations at once cannot remove the last manager (409
+    `grant/last-manager`, the live manager grants locked). While an SCI has no grant at all,
+    its creator is its owner: that is the founding transaction only.
+  - **The register** (module `sci`): `GET /associates?on=` gives the capital, the parts held on
+    the day (today in Europe/Paris by default) and each associate with their holdings.
+    `POST/PUT /associates` record an associate: a name, linked to the caller (`link: self`) or
+    to the person of a live grant of the SCI (`grant_id`), or a name only (422
+    `sci/link-grant`, 409 `sci/associate-linked`).
+  - **Movements** (`GET/POST /sci/movements`), one audited write each:
+    - a subscription opens a holding within the capital, on any day from its own on (422
+      `sci/capital-exceeded`);
+    - a transfer, a gift or a succession closes an open holding on its day, opens the receiver's
+      that day, and what the giver keeps that day (409 `sci/holding-closed`, 422
+      `sci/holding-parts`, 422 `sci/same-associate`);
+    - a holding covers its first day up to the day before it closes; it is never edited, and
+      a movement is not undone. Locking holdings once a 2072 has used them comes with 19c.
+  - **Refused in an SCI's scope until 19c:** issuing a tax summary (2044) and a BIC declaration
+    (409 `tax/person-only`); drafts stay estimates.

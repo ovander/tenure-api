@@ -409,7 +409,7 @@ func (h Handler) ListGrants(w http.ResponseWriter, r *http.Request) {
 // CreateGrant godoc
 //
 //	@Summary		Give a Socrate subject read access to the portfolio
-//	@Description	As co-owner (reads everything) or accountant (financial data, no tenant contact data). A step-up route.
+//	@Description	As co-owner (reads everything) or accountant (financial data, no tenant contact data), or, in an SCI's scope only, as manager (gérant), with the owner's rights (Q-133; 422 grant/manager-sci-only elsewhere). A step-up route.
 //	@Tags			portfolio
 //	@Accept			json
 //	@Produce		json
@@ -435,7 +435,7 @@ func (h Handler) CreateGrant(w http.ResponseWriter, r *http.Request) {
 // RevokeGrant godoc
 //
 //	@Summary		Revoke a grant
-//	@Description	Sets revoked_at; the grantee's next request no longer reaches the scope. A step-up route.
+//	@Description	Sets revoked_at; the grantee's next request no longer reaches the scope. An SCI's last live manager is not revoked (409 grant/last-manager). A step-up route.
 //	@Tags			portfolio
 //	@Produce		json
 //	@Param			id				path		string	true	"grant id"
@@ -475,4 +475,80 @@ func (h Handler) ExportMe(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Disposition", `attachment; filename="tenure-mes-donnees.json"`)
 	httpx.JSON(w, http.StatusOK, v)
+}
+
+// CreateEntity godoc
+//
+//	@Summary		Create an SCI
+//	@Description	An SCI at the income tax (Q-133), an owner scope of its own with no Socrate subject; the caller becomes its first manager (a grant of role manager). An SCI at the IS is refused (422 entity/is-unsupported). Its capital in parts is set here and does not change. A step-up route.
+//	@Tags			portfolio
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		EntityInput	true	"SCI"
+//	@Success		201		{object}	EntityView
+//	@Failure		400,401,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/entities [post]
+func (h Handler) CreateEntity(w http.ResponseWriter, r *http.Request) {
+	var in EntityInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.CreateEntity(r.Context(), caller(r), httpx.RequestID(r), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.Resource(w, http.StatusCreated, v.Version, v)
+}
+
+// GetEntity godoc
+//
+//	@Summary		The SCI's profile
+//	@Description	In an SCI's scope; 409 entity/not-sci in a person's.
+//	@Tags			portfolio
+//	@Produce		json
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	EntityView
+//	@Failure		401,403,409		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/entity [get]
+func (h Handler) GetEntity(w http.ResponseWriter, r *http.Request) {
+	v, err := h.Service.Entity(r.Context(), caller(r), httpx.RequestID(r))
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.Resource(w, http.StatusOK, v.Version, v)
+}
+
+// UpdateEntity godoc
+//
+//	@Summary		Change the SCI's profile
+//	@Description	Its name, address, SIREN, language and the day its tax regime starts; the regime and the capital in parts do not change.
+//	@Tags			portfolio
+//	@Accept			json
+//	@Produce		json
+//	@Param			If-Match		header		string		true	"current version"
+//	@Param			body			body		EntityInput	true	"SCI"
+//	@Param			X-Owner-Scope	header		string		false	"owner scope"
+//	@Success		200				{object}	EntityView
+//	@Failure		400,401,403,409,412,415,422,428	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/entity [put]
+func (h Handler) UpdateEntity(w http.ResponseWriter, r *http.Request) {
+	version, ok := httpx.IfMatch(w, r)
+	if !ok {
+		return
+	}
+	var in EntityInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.UpdateEntity(r.Context(), caller(r), httpx.RequestID(r), version, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.Resource(w, http.StatusOK, v.Version, v)
 }
