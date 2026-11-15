@@ -19,6 +19,18 @@ type SCIShare struct {
 	NetCents           money.Cents `json:"net_cents"`
 }
 
+// PartsLoan is a loan the owner took to buy parts of an SCI (Q-133): the
+// interest and insurance of its instalments due in the year, deducted with
+// the owner's SCI shares.
+type PartsLoan struct {
+	LoanID         string      `json:"loan_id"`
+	Label          string      `json:"label"`
+	SCIName        string      `json:"sci_name"`
+	InterestCents  money.Cents `json:"interest_cents"`
+	InsuranceCents money.Cents `json:"insurance_cents"`
+	DocumentID     string      `json:"document_id,omitempty"`
+}
+
 // Flag kinds of an associate's summary.
 const (
 	// FlagSCIPending points at an SCI the owner is a linked associate of,
@@ -36,13 +48,15 @@ const (
 //   - the micro-foncier counts the shares' income in the gross receipts, and
 //     is open to an owner with shares only if they also let a property
 //     unfurnished directly;
-//   - an owner with shares and no asset of their own gets a summary of their
-//     own.
+//   - the interest and insurance of the owner's loans for SCI parts join
+//     the réel's interest, as a loan's do on line 250;
+//   - an owner with shares or such loans and no asset of their own gets a
+//     summary of their own.
 //
 // The 2044 lines of the shares are not mapped: their figures are given by
 // nature, the form's line for them waiting for the accountant (Q-133).
-func WithShares(sum Summary, owner string, shares []SCIShare, year int, ps params.Set, prior map[string][]Deficit) (Summary, error) {
-	if len(shares) == 0 {
+func WithShares(sum Summary, owner string, shares []SCIShare, loans []PartsLoan, year int, ps params.Set, prior map[string][]Deficit) (Summary, error) {
+	if len(shares) == 0 && len(loans) == 0 {
 		return sum, nil
 	}
 	asOf := params.TaxYearEnd(year)
@@ -74,7 +88,7 @@ func WithShares(sum Summary, owner string, shares []SCIShare, year int, ps param
 		i = len(sum.Owners) - 1
 	}
 	o := &sum.Owners[i]
-	direct := false
+	direct := len(shares) == 0
 	for _, a := range o.Assets {
 		if !a.Furnished {
 			direct = true
@@ -86,12 +100,15 @@ func WithShares(sum Summary, owner string, shares []SCIShare, year int, ps param
 		r.InterestCents += s.InterestCents
 		r.OtherExpensesCents += s.OtherExpensesCents
 	}
+	for _, l := range loans {
+		r.InterestCents += l.InterestCents + l.InsuranceCents
+	}
 	r.NetCents = r.IncomeCents - r.InterestCents - r.OtherExpensesCents
 	if err := applyDeficits(&r, prior[owner], year, int(carryYears), money.Cents(globalCap)); err != nil {
 		return sum, err
 	}
 	o.Reel = r
-	o.SCIShares = shares
+	o.SCIShares, o.PartsLoans = shares, loans
 	taxable, err := money.MulDivHalfUp(r.IncomeCents, 100-allowancePct, 100)
 	if err != nil {
 		return sum, err

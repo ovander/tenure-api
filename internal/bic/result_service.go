@@ -227,3 +227,18 @@ func (s Service) Result(ctx context.Context, p *auth.Principal, requestID string
 	})
 	return out, err
 }
+
+// ResultInTx is Result in the caller's scoped transaction, for the scope's
+// owner (the dashboard's consolidation per person, Q-133). ok is false when
+// the owner has no furnished letting that year.
+func (s Service) ResultInTx(ctx context.Context, owner uuid.UUID, year int) (ResultView, bool, error) {
+	done, err := s.declarationsInTx(ctx)
+	if err != nil {
+		return ResultView{}, false, err
+	}
+	out, err := s.resultInTx(ctx, owner, year, RegimeReel, done)
+	if err != nil {
+		return out, false, err
+	}
+	return out, len(out.Assets) > 0, nil
+}

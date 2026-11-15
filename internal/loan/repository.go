@@ -20,7 +20,9 @@ func tx(ctx context.Context) (*gorm.DB, error) { return db.Tx(ctx) }
 type loanRow struct {
 	ID             uuid.UUID  `gorm:"column:id;primaryKey"`
 	OwnerID        uuid.UUID  `gorm:"column:owner_id"`
-	AssetID        uuid.UUID  `gorm:"column:asset_id"`
+	AssetID        *uuid.UUID `gorm:"column:asset_id"`
+	Kind           string     `gorm:"column:kind"`
+	SCIName        string     `gorm:"column:sci_name"`
 	Label          string     `gorm:"column:label"`
 	Lender         string     `gorm:"column:lender"`
 	PrincipalCents int64      `gorm:"column:principal_cents"`
@@ -120,7 +122,7 @@ func (Repository) UpdateLoan(ctx context.Context, r loanRow, version int) error 
 		return err
 	}
 	res := t.Model(&loanRow{}).Where("id = ? AND version = ?", r.ID, version).Updates(map[string]any{
-		"asset_id": r.AssetID, "label": r.Label, "lender": r.Lender, "principal_cents": r.PrincipalCents,
+		"asset_id": r.AssetID, "kind": r.Kind, "sci_name": r.SCIName, "label": r.Label, "lender": r.Lender, "principal_cents": r.PrincipalCents,
 		"annual_rate_ppm": r.AnnualRatePPM, "term_months": r.TermMonths, "first_due_on": r.FirstDueOn,
 		"insurance_cents": r.InsuranceCents, "source": r.Source, "document_id": r.DocumentID,
 		"updated_at": r.UpdatedAt, "updated_by": r.UpdatedBy, "version": version + 1,

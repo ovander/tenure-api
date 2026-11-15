@@ -93,7 +93,9 @@ func (Repository) Instalments(ctx context.Context, from, to time.Time) ([]instal
 	var rows []instalmentRow
 	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
 		Select("i.loan_id, l.asset_id, i.seq, i.due_on, i.principal_cents, i.interest_cents, i.insurance_cents, l.document_id").
-		Where("i.due_on BETWEEN ? AND ?", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
+		// A loan for SCI parts finances no asset of the scope: it is not in
+		// the journal of the scope's letting (Q-133).
+		Where("i.due_on BETWEEN ? AND ? AND l.kind = 'asset'", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
 	return rows, err
 }
 

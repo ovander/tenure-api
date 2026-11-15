@@ -15936,6 +15936,36 @@
                 }
             }
         },
+        "dashboard.BICEstimate": {
+            "type": "object",
+            "properties": {
+                "declared": {
+                    "type": "boolean"
+                },
+                "micro_eligible": {
+                    "type": "boolean"
+                },
+                "micro_taxable_cents": {
+                    "type": "integer"
+                },
+                "receipts_cents": {
+                    "type": "integer"
+                },
+                "regime": {
+                    "type": "string",
+                    "enum": [
+                        "reel",
+                        "micro"
+                    ]
+                },
+                "result_cents": {
+                    "type": "integer"
+                },
+                "taxable_cents": {
+                    "type": "integer"
+                }
+            }
+        },
         "dashboard.Bucket": {
             "type": "object",
             "properties": {
@@ -16039,6 +16069,9 @@
                 "available": {
                     "type": "boolean"
                 },
+                "bic": {
+                    "$ref": "#/definitions/dashboard.BICEstimate"
+                },
                 "flags": {
                     "type": "integer"
                 },
@@ -16058,11 +16091,27 @@
                 "owner_id": {
                     "type": "string"
                 },
+                "parts_loans": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.PartsLoan"
+                    }
+                },
                 "reason": {
                     "type": "string"
                 },
                 "reel": {
                     "$ref": "#/definitions/tax.Reel"
+                },
+                "sci_pending": {
+                    "type": "integer"
+                },
+                "sci_shares": {
+                    "description": "The consolidation per person (Q-133), each with where it comes from:\nthe shares of SCIs' issued 2072s and the loans for SCI parts, already\nin Micro and Reel; the SCIs whose 2072 does not name the owner yet;\nand the owner's furnished letting, a BIC result beside the revenus\nfonciers, never added to them.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.SCIShare"
+                    }
                 }
             }
         },
@@ -19787,6 +19836,14 @@
                     "type": "integer",
                     "example": 2500
                 },
+                "kind": {
+                    "description": "Kind is asset (the default: a loan financing an asset of the scope)\nor parts (a loan that financed the owner's parts of an SCI, Q-133:\nno asset, the SCI's name instead).",
+                    "type": "string",
+                    "enum": [
+                        "asset",
+                        "parts"
+                    ]
+                },
                 "label": {
                     "type": "string",
                     "example": "Prêt bancaire"
@@ -19798,6 +19855,9 @@
                 "principal_cents": {
                     "type": "integer",
                     "example": 15000000
+                },
+                "sci_name": {
+                    "type": "string"
                 },
                 "term_months": {
                     "type": "integer",
@@ -19881,6 +19941,13 @@
                 "interest_cents": {
                     "type": "integer"
                 },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "asset",
+                        "parts"
+                    ]
+                },
                 "label": {
                     "type": "string"
                 },
@@ -19893,6 +19960,9 @@
                 },
                 "principal_cents": {
                     "type": "integer"
+                },
+                "sci_name": {
+                    "type": "string"
                 },
                 "source": {
                     "type": "string",
@@ -22053,6 +22123,13 @@
                 "owner_id": {
                     "type": "string"
                 },
+                "parts_loans": {
+                    "description": "PartsLoans are the owner's loans for SCI parts, their interest and\ninsurance counted in Reel (WithShares, Q-133).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.PartsLoan"
+                    }
+                },
                 "reel": {
                     "$ref": "#/definitions/tax.Reel"
                 },
@@ -22068,6 +22145,29 @@
                     "items": {
                         "$ref": "#/definitions/tax.LineAmount"
                     }
+                }
+            }
+        },
+        "tax.PartsLoan": {
+            "type": "object",
+            "properties": {
+                "document_id": {
+                    "type": "string"
+                },
+                "insurance_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "loan_id": {
+                    "type": "string"
+                },
+                "sci_name": {
+                    "type": "string"
                 }
             }
         },

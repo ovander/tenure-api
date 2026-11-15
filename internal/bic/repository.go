@@ -174,12 +174,15 @@ func (Repository) FirstInService(ctx context.Context) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	var days []*time.Time
-	err = t.Raw(`SELECT least((SELECT min(in_service_on) FROM bic_grids), (SELECT min(in_service_on) FROM bic_fixed_assets))`).Scan(&days).Error
-	if err != nil || len(days) == 0 || days[0] == nil {
+	// A scope with neither a grid nor an item has no first day: NULL.
+	var rows []struct {
+		Day *time.Time `gorm:"column:day"`
+	}
+	err = t.Raw(`SELECT least((SELECT min(in_service_on) FROM bic_grids), (SELECT min(in_service_on) FROM bic_fixed_assets)) AS day`).Scan(&rows).Error
+	if err != nil || len(rows) == 0 || rows[0].Day == nil {
 		return time.Time{}, err
 	}
-	return *days[0], nil
+	return *rows[0].Day, nil
 }
 
 type declarationRow struct {

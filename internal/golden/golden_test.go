@@ -95,6 +95,8 @@ type taxStep struct {
 	// SCIShares are owners' shares of SCIs' issued 2072s, added after the
 	// lines (tax.WithShares, Q-133).
 	SCIShares map[string][]tax.SCIShare `json:"sci_shares,omitempty"`
+	// PartsLoans are owners' loans for SCI parts (Q-133).
+	PartsLoans map[string][]tax.PartsLoan `json:"parts_loans,omitempty"`
 }
 
 func loadParams(t *testing.T, year int, override []params.Entry) params.Set {
@@ -256,16 +258,23 @@ func runStep(s *step, leases map[string]lease.Lease, c caseFile, ps params.Set) 
 	case s.Tax != nil:
 		charges, flags := tax.WithLoans(c.Charges, c.Loans, s.Tax.Year)
 		sum, err := tax.Lines(c.Payments, charges, c.Assets, s.Tax.Year, ps, s.Tax.Prior)
-		owners := make([]string, 0, len(s.Tax.SCIShares))
+		seen := map[string]bool{}
+		owners := []string{}
 		for o := range s.Tax.SCIShares {
+			seen[o] = true
 			owners = append(owners, o)
+		}
+		for o := range s.Tax.PartsLoans {
+			if !seen[o] {
+				owners = append(owners, o)
+			}
 		}
 		sort.Strings(owners)
 		for _, o := range owners {
 			if err != nil {
 				break
 			}
-			sum, err = tax.WithShares(sum, o, s.Tax.SCIShares[o], s.Tax.Year, ps, s.Tax.Prior)
+			sum, err = tax.WithShares(sum, o, s.Tax.SCIShares[o], s.Tax.PartsLoans[o], s.Tax.Year, ps, s.Tax.Prior)
 		}
 		sum.Flags = append(sum.Flags, flags...)
 		return sum, err

@@ -95,6 +95,9 @@ type OwnerSummary struct {
 	// SCIShares are the owner's shares of SCIs' issued 2072s, counted in
 	// Reel and Micro (WithShares, Q-133).
 	SCIShares []SCIShare `json:"sci_shares,omitempty"`
+	// PartsLoans are the owner's loans for SCI parts, their interest and
+	// insurance counted in Reel (WithShares, Q-133).
+	PartsLoans []PartsLoan `json:"parts_loans,omitempty"`
 }
 
 // Flag kinds: figures counted but needing the owner's attention.
