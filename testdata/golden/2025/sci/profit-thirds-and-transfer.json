@@ -1,0 +1,49 @@
+{
+  "case": "A profit of 7 000,00 € split between three associates holding 400, 400 and 200 parts on 31 December, after a transfer in July; the rounding cents by largest remainder",
+  "figures": {
+    "income_cents": 1800001,
+    "interest_cents": 300000,
+    "other_expenses_cents": 800001,
+    "net_cents": 700000
+  },
+  "holders": [
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a001",
+      "parts": 400
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a002",
+      "parts": 400
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a003",
+      "parts": 200
+    }
+  ],
+  "expected": [
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a001",
+      "parts": 400,
+      "income_cents": 720001,
+      "interest_cents": 120000,
+      "other_expenses_cents": 320001,
+      "net_cents": 280000
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a002",
+      "parts": 400,
+      "income_cents": 720000,
+      "interest_cents": 120000,
+      "other_expenses_cents": 320000,
+      "net_cents": 280000
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000a003",
+      "parts": 200,
+      "income_cents": 360000,
+      "interest_cents": 60000,
+      "other_expenses_cents": 160000,
+      "net_cents": 140000
+    }
+  ]
+}

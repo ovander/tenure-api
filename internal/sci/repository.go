@@ -233,3 +233,70 @@ func (Repository) LiveGrantee(ctx context.Context, owner, grant uuid.UUID) (stri
 	}
 	return subs[0], true, nil
 }
+
+// Declaration returns the scope's 2072 of a year, if issued.
+func (Repository) Declaration(ctx context.Context, year int) (declarationRow, bool, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return declarationRow{}, false, err
+	}
+	var rows []declarationRow
+	if err := t.Where("tax_year = ?", year).Limit(1).Find(&rows).Error; err != nil {
+		return declarationRow{}, false, err
+	}
+	if len(rows) == 0 {
+		return declarationRow{}, false, nil
+	}
+	return rows[0], true, nil
+}
+
+// DeclaredYears lists the years of the scope's issued 2072s, latest first.
+func (Repository) DeclaredYears(ctx context.Context) ([]int, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var years []int
+	err = t.Model(&declarationRow{}).Order("tax_year DESC").Pluck("tax_year", &years).Error
+	return years, err
+}
+
+// LastDeclaredYear is the latest year of an issued 2072, if any.
+func (r Repository) LastDeclaredYear(ctx context.Context) (int, bool, error) {
+	years, err := r.DeclaredYears(ctx)
+	if err != nil || len(years) == 0 {
+		return 0, false, err
+	}
+	return years[0], true, nil
+}
+
+// Allocations returns a declaration's shares, in register order.
+func (Repository) Allocations(ctx context.Context, declaration uuid.UUID) ([]allocationRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []allocationRow
+	err = t.Table("sci_allocations AS al").Select("al.*").
+		Joins("JOIN sci_associates a ON a.id = al.associate_id").
+		Where("al.declaration_id = ?", declaration).Order("a.created_at, a.id").Find(&rows).Error
+	return rows, err
+}
+
+// InsertDeclaration records a 2072.
+func (Repository) InsertDeclaration(ctx context.Context, d declarationRow) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&d).Error
+}
+
+// InsertAllocation records an associate's share of a 2072.
+func (Repository) InsertAllocation(ctx context.Context, a allocationRow) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&a).Error
+}

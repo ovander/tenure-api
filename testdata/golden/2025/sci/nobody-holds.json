@@ -1,0 +1,18 @@
+{
+  "case": "Nobody holds a part on 31 December: no split",
+  "figures": {
+    "income_cents": 100000,
+    "interest_cents": 0,
+    "other_expenses_cents": 0,
+    "net_cents": 100000
+  },
+  "holders": [
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000c001",
+      "parts": 0
+    }
+  ],
+  "expected": {
+    "error": "sci: no part held on the day of the split"
+  }
+}

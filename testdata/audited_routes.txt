@@ -11,6 +11,7 @@ PUT /entity
 POST /associates
 PUT /associates/{id}
 POST /sci/movements
+POST /sci/declarations
 POST /assets
 PUT /assets/{id}
 POST /assets/{id}/diagnostics

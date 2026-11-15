@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/period"
 )
 
@@ -82,5 +83,51 @@ func TestMaxHeldFrom(t *testing.T) {
 	}
 	if got := MaxHeldFrom(nil, d("2024-01-01")); got != 0 {
 		t.Errorf("none: %d", got)
+	}
+}
+
+func TestAllocate(t *testing.T) {
+	a, b, c := uuid.New(), uuid.New(), uuid.New()
+	cases := []struct {
+		name    string
+		f       Figures
+		holders []Holder
+		want    [][4]money.Cents // income, interest, other, net per holder
+	}{
+		{"thirds, a profit", Figures{IncomeCents: 1000000, InterestCents: 100000, OtherExpensesCents: 200001, NetCents: 699999},
+			[]Holder{{a, 1}, {b, 1}, {c, 1}},
+			[][4]money.Cents{{333334, 33334, 66667, 233333}, {333333, 33333, 66667, 233333}, {333333, 33333, 66667, 233333}}},
+		{"60/40, a deficit", Figures{IncomeCents: 500000, InterestCents: 300000, OtherExpensesCents: 400001, NetCents: -200001},
+			[]Holder{{a, 600}, {b, 400}},
+			[][4]money.Cents{{300000, 180000, 240001, -120001}, {200000, 120000, 160000, -80000}}},
+		{"a holder with no part is left out", Figures{IncomeCents: 100, NetCents: 100},
+			[]Holder{{a, 0}, {b, 3}},
+			[][4]money.Cents{{100, 0, 0, 100}}},
+		{"a negative figure (a refund) is split as its opposite", Figures{IncomeCents: 0, OtherExpensesCents: -101, NetCents: 101},
+			[]Holder{{a, 1}, {b, 1}},
+			[][4]money.Cents{{0, 0, -51, 51}, {0, 0, -50, 50}}},
+	}
+	for _, tc := range cases {
+		got, err := Allocate(tc.f, tc.holders)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if len(got) != len(tc.want) {
+			t.Fatalf("%s: %d allocations", tc.name, len(got))
+		}
+		var net money.Cents
+		for i, g := range got {
+			w := tc.want[i]
+			if g.IncomeCents != w[0] || g.InterestCents != w[1] || g.OtherExpensesCents != w[2] || g.NetCents != w[3] {
+				t.Errorf("%s: holder %d %+v, want %v", tc.name, i, g.Figures, w)
+			}
+			net += g.NetCents
+		}
+		if net != tc.f.NetCents {
+			t.Errorf("%s: nets add up to %d, not %d", tc.name, net, tc.f.NetCents)
+		}
+	}
+	if _, err := Allocate(Figures{IncomeCents: 1}, []Holder{{a, 0}}); err != ErrNoParts {
+		t.Errorf("nobody holds a part: %v", err)
 	}
 }

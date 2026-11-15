@@ -15,6 +15,7 @@ import (
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/portfolio"
 	"github.com/ovander/tenure-api/internal/problem"
+	"github.com/ovander/tenure-api/internal/tax"
 )
 
 // Problem types of the register.
@@ -51,6 +52,7 @@ const (
 type Service struct {
 	DB    *db.DB
 	Repo  Repository
+	Tax   tax.Service
 	Now   func() time.Time
 	NewID func() uuid.UUID
 }
@@ -371,7 +373,8 @@ func validMovement(in *MovementInput) error {
 
 // RecordMovement records a movement of parts (POST /sci/movements) and the
 // holdings it opens and closes, in one audited write. A holding is never
-// edited afterwards; a movement is not undone (Q-133).
+// edited afterwards; a movement is not undone, and none is dated in a year
+// whose 2072 is issued (409 sci/year-declared, Q-133).
 func (s Service) RecordMovement(ctx context.Context, p *auth.Principal, requestID string, in MovementInput) (MovementView, error) {
 	sc, err := scope(p, requestID)
 	if err != nil {
@@ -383,6 +386,9 @@ func (s Service) RecordMovement(ctx context.Context, p *auth.Principal, requestI
 	var out MovementView
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		if err := s.Repo.LockRegister(ctx, sc.OwnerID); err != nil {
+			return err
+		}
+		if err := s.lockedYear(ctx, in.OnDate.Year); err != nil {
 			return err
 		}
 		if _, err := s.Repo.Associate(ctx, in.ToAssociateID); err != nil {
