@@ -38,6 +38,9 @@ const (
 	RoleOwner      Role = "owner"
 	RoleCoOwner    Role = "co_owner"
 	RoleAccountant Role = "accountant"
+	// RoleManager is the grant role of an SCI's manager (gérant, Q-133). It
+	// resolves to RoleOwner in the SCI's scope: Scope.Manager says it.
+	RoleManager Role = "manager"
 )
 
 // ScopeHeader selects the active owner scope.
@@ -48,7 +51,21 @@ type Scope struct {
 	OwnerID   uuid.UUID `json:"owner_id"`
 	Role      Role      `json:"role"`
 	LegalName string    `json:"legal_name"`
+	// Kind is the owner's kind: KindPerson, or KindSCI for an SCI (Q-133).
+	Kind string `json:"kind" enums:"person,sci"`
+	// Manager is true when the caller holds the scope as an SCI's manager:
+	// their role is then RoleOwner.
+	Manager bool `json:"manager,omitempty"`
 }
+
+// Owner kinds (Q-133).
+const (
+	KindPerson = "person"
+	KindSCI    = "sci"
+)
+
+// IsSCI reports whether the scope is an SCI's.
+func (s *Scope) IsSCI() bool { return s != nil && s.Kind == KindSCI }
 
 // Principal is the authenticated caller.
 type Principal struct {

@@ -6,6 +6,11 @@
 PUT /me
 POST /grants
 DELETE /grants/{id}
+POST /entities +
+PUT /entity
+POST /associates
+PUT /associates/{id}
+POST /sci/movements
 POST /assets
 PUT /assets/{id}
 POST /assets/{id}/diagnostics

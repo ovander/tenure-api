@@ -228,7 +228,7 @@ func (s Service) PutMe(ctx context.Context, p *auth.Principal, requestID string,
 	}
 	now := s.now()
 	if !exists {
-		row := ownerRow{ID: s.NewID(), SocrateSub: p.Sub, LegalName: in.LegalName, Address: in.Address, TaxID: in.TaxID,
+		row := ownerRow{ID: s.NewID(), SocrateSub: &p.Sub, Kind: auth.KindPerson, LegalName: in.LegalName, Address: in.Address, TaxID: in.TaxID,
 			Language: in.Language, Version: 1, CreatedAt: now, CreatedBy: p.Sub, UpdatedAt: now, UpdatedBy: p.Sub}
 		out := ownerView(row)
 		err := s.DB.InScope(ctx, db.Scope{OwnerID: row.ID, ActorSub: p.Sub, Role: string(auth.RoleOwner), RequestID: requestID}, func(ctx context.Context) error {

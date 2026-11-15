@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
@@ -19,13 +20,18 @@ const (
 	TypeGrantExists  = "grant/already-granted"
 	TypeGrantRevoked = "grant/already-revoked"
 	TypeGrantSelf    = "grant/self"
+	// TypeGrantSelfRevoke: an SCI's manager does not revoke their own
+	// grant, another manager does (Q-133); the event of a revocation is
+	// recorded by someone who keeps access.
+	TypeGrantSelfRevoke = "grant/self-revoke"
 )
 
 func init() {
 	problem.Register(map[string]problem.Message{
-		TypeGrantExists:  problem.M(409, "Cette personne a déjà un accès en cours à ce portefeuille.", "This person already has live access to this portfolio."),
-		TypeGrantRevoked: problem.M(409, "Cet accès est déjà révoqué.", "This access is already revoked."),
-		TypeGrantSelf:    problem.M(422, "Un propriétaire ne s’accorde pas d’accès à lui-même.", "An owner does not grant access to themselves."),
+		TypeGrantExists:     problem.M(409, "Cette personne a déjà un accès en cours à ce portefeuille.", "This person already has live access to this portfolio."),
+		TypeGrantRevoked:    problem.M(409, "Cet accès est déjà révoqué.", "This access is already revoked."),
+		TypeGrantSelf:       problem.M(422, "Un propriétaire ne s’accorde pas d’accès à lui-même.", "An owner does not grant access to themselves."),
+		TypeGrantSelfRevoke: problem.M(422, "On ne révoque pas son propre accès : un autre gérant le fait.", "One does not revoke one’s own access: another manager does."),
 	})
 }
 
@@ -47,7 +53,7 @@ func (grantRow) TableName() string { return "owner_grants" }
 // given access (their /me shows it, Q-92) and their role.
 type GrantInput struct {
 	GranteeSub string `json:"grantee_sub"`
-	Role       string `json:"role" enums:"co_owner,accountant"`
+	Role       string `json:"role" enums:"co_owner,accountant,manager"`
 }
 
 // GrantView is a grant as the API returns it.
@@ -55,7 +61,7 @@ type GrantView struct {
 	ID         uuid.UUID  `json:"id"`
 	OwnerID    uuid.UUID  `json:"owner_id"`
 	GranteeSub string     `json:"grantee_sub"`
-	Role       string     `json:"role" enums:"co_owner,accountant"`
+	Role       string     `json:"role" enums:"co_owner,accountant,manager"`
 	GrantedAt  time.Time  `json:"granted_at"`
 	RevokedAt  *time.Time `json:"revoked_at"`
 }
@@ -85,7 +91,8 @@ func (s Service) Grants(ctx context.Context, p *auth.Principal, requestID string
 
 // CreateGrant gives a Socrate subject read access to the scope as co-owner or
 // accountant (RENT-BE-001 §4; a step_up route), recorded in the owner's
-// audit chain.
+// audit chain. In an SCI's scope it may also appoint a manager, who has the
+// owner's rights there (Q-133).
 func (s Service) CreateGrant(ctx context.Context, p *auth.Principal, requestID string, in GrantInput) (GrantView, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
@@ -96,11 +103,14 @@ func (s Service) CreateGrant(ctx context.Context, p *auth.Principal, requestID s
 	if in.GranteeSub == "" || len(in.GranteeSub) > 255 {
 		f.Add("grantee_sub", "L’identifiant Socrate de la personne est obligatoire.")
 	}
-	if in.Role != string(auth.RoleCoOwner) && in.Role != string(auth.RoleAccountant) {
-		f.Add("role", "Rôle attendu : co_owner ou accountant.")
+	if in.Role != string(auth.RoleCoOwner) && in.Role != string(auth.RoleAccountant) && in.Role != string(auth.RoleManager) {
+		f.Add("role", "Rôle attendu : co_owner, accountant ou manager.")
 	}
 	if err := f.Err(); err != nil {
 		return GrantView{}, err
+	}
+	if in.Role == string(auth.RoleManager) && !p.Active.IsSCI() {
+		return GrantView{}, invariant.New(TypeGrantManager, "")
 	}
 	if in.GranteeSub == p.Sub {
 		return GrantView{}, invariant.New(TypeGrantSelf, "")
@@ -124,7 +134,9 @@ func (s Service) CreateGrant(ctx context.Context, p *auth.Principal, requestID s
 
 // RevokeGrant ends a grant (DELETE /grants/{id}, a step_up route): revoked_at
 // is set and the row kept; the grantee's next request no longer resolves the
-// scope (403).
+// scope (403). One's own grant is not revoked (422 grant/self-revoke), nor
+// an SCI's last live manager (409 grant/last-manager, two revocations at
+// once).
 func (s Service) RevokeGrant(ctx context.Context, p *auth.Principal, requestID string, id uuid.UUID) (GrantView, error) {
 	sc, err := scoped(p, requestID)
 	if err != nil {
@@ -138,6 +150,18 @@ func (s Service) RevokeGrant(ctx context.Context, p *auth.Principal, requestID s
 		}
 		if g.RevokedAt != nil {
 			return invariant.New(TypeGrantRevoked, id.String())
+		}
+		if g.GranteeSub == p.Sub {
+			return invariant.New(TypeGrantSelfRevoke, "")
+		}
+		if g.Role == string(auth.RoleManager) {
+			n, err := s.Repo.liveManagers(ctx, sc.OwnerID)
+			if err != nil {
+				return err
+			}
+			if n <= 1 {
+				return invariant.New(TypeLastManager, "")
+			}
 		}
 		before := grantView(g)
 		now := s.now()
@@ -159,6 +183,18 @@ func (Repository) grantsOf(ctx context.Context, owner uuid.UUID) ([]grantRow, er
 	var rows []grantRow
 	err = t.Where("owner_id = ?", owner).Order("granted_at, id").Find(&rows).Error
 	return rows, err
+}
+
+func (Repository) liveManagers(ctx context.Context, owner uuid.UUID) (int64, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	// Locked, so that two revocations at once cannot leave the SCI without one.
+	var ids []uuid.UUID
+	err = t.Model(&grantRow{}).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("owner_id = ? AND role = 'manager' AND revoked_at IS NULL", owner).Pluck("id", &ids).Error
+	return int64(len(ids)), err
 }
 
 func (Repository) grantsReceived(ctx context.Context, sub string) ([]grantRow, error) {

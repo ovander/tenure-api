@@ -42,9 +42,12 @@ const FlagDraftCharge = "draft_charge"
 
 // Problem types of the tax module.
 const (
-	TypeAlreadyIssued    = "tax/already-issued"
-	TypeMicroIneligible  = "tax/micro-not-eligible"
-	TypeRegimeUnknown    = "tax/regime-unknown"
+	TypeAlreadyIssued   = "tax/already-issued"
+	TypeMicroIneligible = "tax/micro-not-eligible"
+	TypeRegimeUnknown   = "tax/regime-unknown"
+	// TypePersonOnly refuses to issue a person's declaration in an SCI's
+	// scope: an SCI at the income tax files the 2072 (Q-133).
+	TypePersonOnly       = "tax/person-only"
 	TypeLineMapMissing   = "tax/line-map-missing"
 	TypeCategoryUnmapped = "tax/category-unmapped"
 	TypeYearInvalid      = "tax/year-invalid"
@@ -52,9 +55,11 @@ const (
 
 func init() {
 	problem.Register(map[string]problem.Message{
-		TypeAlreadyIssued:    problem.M(409, "Le récapitulatif fiscal de cette année est déjà émis.", "This year's tax summary is already issued."),
-		TypeMicroIneligible:  problem.M(422, "Le micro-foncier n’est pas ouvert pour cette année : recettes au-delà du seuil.", "Micro-foncier is not available this year: receipts above the threshold."),
-		TypeRegimeUnknown:    problem.M(422, "Régime attendu : micro ou reel.", "Regime expected: micro or reel."),
+		TypeAlreadyIssued:   problem.M(409, "Le récapitulatif fiscal de cette année est déjà émis.", "This year's tax summary is already issued."),
+		TypeMicroIneligible: problem.M(422, "Le micro-foncier n’est pas ouvert pour cette année : recettes au-delà du seuil.", "Micro-foncier is not available this year: receipts above the threshold."),
+		TypeRegimeUnknown:   problem.M(422, "Régime attendu : micro ou reel.", "Regime expected: micro or reel."),
+		TypePersonOnly: problem.M(409, "Une SCI ne dépose ni la 2044 ni de déclaration BIC : ses revenus se déclarent sur la 2072, au nom de ses associés.",
+			"An SCI files neither the 2044 nor a BIC declaration: its income goes on the 2072, for its associates."),
 		TypeLineMapMissing:   problem.M(409, "La correspondance des lignes 2044 de cette année n’est pas encore publiée.", "This year's form 2044 line map is not published yet."),
 		TypeCategoryUnmapped: problem.M(409, "Une catégorie de charge n’a pas de ligne 2044 cette année.", "A charge category has no form 2044 line this year."),
 		TypeYearInvalid:      problem.M(422, "L’année doit être une année de revenus achevée.", "The year must be a completed income year."),
@@ -353,6 +358,9 @@ func (s Service) Create(ctx context.Context, p *auth.Principal, requestID string
 	}
 	if in.Regime != nil && *in.Regime != RegimeMicro && *in.Regime != RegimeReel {
 		return View{}, invariant.New(TypeRegimeUnknown, *in.Regime)
+	}
+	if in.Regime != nil && p.Active.IsSCI() {
+		return View{}, invariant.New(TypePersonOnly, "")
 	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {

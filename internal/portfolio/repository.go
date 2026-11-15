@@ -13,16 +13,22 @@ import (
 
 type ownerRow struct {
 	ID         uuid.UUID `gorm:"column:id;primaryKey"`
-	SocrateSub string    `gorm:"column:socrate_sub"`
+	SocrateSub *string   `gorm:"column:socrate_sub"`
+	Kind       string    `gorm:"column:kind"`
 	LegalName  string    `gorm:"column:legal_name"`
 	Address    string    `gorm:"column:address"`
 	TaxID      string    `gorm:"column:tax_id"`
 	Language   string    `gorm:"column:language"`
-	Version    int       `gorm:"column:version"`
-	CreatedAt  time.Time `gorm:"column:created_at"`
-	CreatedBy  string    `gorm:"column:created_by"`
-	UpdatedAt  time.Time `gorm:"column:updated_at"`
-	UpdatedBy  string    `gorm:"column:updated_by"`
+	// An SCI's (Q-133); nil or empty for a person.
+	Siren        string     `gorm:"column:siren"`
+	TaxRegime    *string    `gorm:"column:tax_regime"`
+	RegimeFrom   *time.Time `gorm:"column:regime_from;type:date"`
+	CapitalParts *int       `gorm:"column:capital_parts"`
+	Version      int        `gorm:"column:version"`
+	CreatedAt    time.Time  `gorm:"column:created_at"`
+	CreatedBy    string     `gorm:"column:created_by"`
+	UpdatedAt    time.Time  `gorm:"column:updated_at"`
+	UpdatedBy    string     `gorm:"column:updated_by"`
 }
 
 func (ownerRow) TableName() string { return "owners" }
@@ -108,6 +114,26 @@ func (Repository) InsertOwner(ctx context.Context, o ownerRow) error {
 		return err
 	}
 	return t.Create(&o).Error
+}
+
+// UpdateEntity updates an SCI's profile when the version matches, bumping it.
+func (Repository) UpdateEntity(ctx context.Context, o ownerRow, version int) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&ownerRow{}).Where("id = ? AND kind = 'sci' AND version = ?", o.ID, version).Updates(map[string]any{
+		"legal_name": o.LegalName, "address": o.Address, "tax_id": o.TaxID, "language": o.Language,
+		"siren": o.Siren, "regime_from": o.RegimeFrom, "capital_parts": o.CapitalParts,
+		"version": version + 1, "updated_at": o.UpdatedAt, "updated_by": o.UpdatedBy,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
 }
 
 // UpdateOwner updates the profile when the version matches, bumping it.
