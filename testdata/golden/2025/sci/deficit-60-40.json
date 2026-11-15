@@ -1,0 +1,37 @@
+{
+  "case": "A deficit of 2 000,01 € split 60/40; the interest and the other expenses split separately, for the associate's own deficit rules",
+  "figures": {
+    "income_cents": 500000,
+    "interest_cents": 300000,
+    "other_expenses_cents": 400001,
+    "net_cents": -200001
+  },
+  "holders": [
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000b001",
+      "parts": 600
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000b002",
+      "parts": 400
+    }
+  ],
+  "expected": [
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000b001",
+      "parts": 600,
+      "income_cents": 300000,
+      "interest_cents": 180000,
+      "other_expenses_cents": 240001,
+      "net_cents": -120001
+    },
+    {
+      "associate_id": "00000000-0000-7000-8000-00000000b002",
+      "parts": 400,
+      "income_cents": 200000,
+      "interest_cents": 120000,
+      "other_expenses_cents": 160000,
+      "net_cents": -80000
+    }
+  ]
+}

@@ -155,6 +155,9 @@ func TestSCI(t *testing.T) {
 	audited(t, seen, "POST /sci/movements", 201, func() resp {
 		return mv(map[string]any{"on_date": "2024-01-10", "reason": "subscription", "parts": 600, "to_associate_id": a.ID})
 	}).json(t, &subA)
+	if r := call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2025}}); r.Status != 409 || r.problemType(t) != "sci/register-incomplete" {
+		t.Errorf("600 parts held out of 1000: %d %s", r.Status, r.Body)
+	}
 	if r := mv(map[string]any{"on_date": "2024-01-10", "reason": "subscription", "parts": 400, "to_associate_id": b.ID}); r.Status != 201 {
 		t.Fatalf("subscription b: %d %s", r.Status, r.Body)
 	}
@@ -199,6 +202,74 @@ func TestSCI(t *testing.T) {
 		t.Errorf("movements %d", len(movements))
 	}
 
+	// The 2072 of 2025: a property tax paid by the SCI, a deficit split by
+	// the parts held on 31 December (400, 400, 200).
+	if r := call(t, "POST", "/charges", req{tok: tok, scope: entity.ID, body: map[string]any{"asset_id": asset.ID, "charged_on": "2025-10-15", "paid_on": "2025-10-15",
+		"category": "property_tax", "amount_cents": 120001, "recoverable_cents": 0}}); r.Status != 201 {
+		t.Fatalf("charge: %d %s", r.Status, r.Body)
+	}
+	type yearView struct {
+		Declared bool `json:"declared"`
+		Result   struct {
+			NetCents           int64 `json:"net_cents"`
+			OtherExpensesCents int64 `json:"other_expenses_cents"`
+		} `json:"result"`
+		Allocations []struct {
+			AssociateID string  `json:"associate_id"`
+			PersonSub   *string `json:"person_sub"`
+			Parts       int     `json:"parts"`
+			NetCents    int64   `json:"net_cents"`
+		} `json:"allocations"`
+		Blockers []string `json:"blockers"`
+	}
+	var y yearView
+	call(t, "GET", "/sci/result?year=2025", req{tok: tok, scope: entity.ID}).json(t, &y)
+	if y.Declared || y.Result.NetCents != -120001 || len(y.Blockers) != 0 || len(y.Allocations) != 3 {
+		t.Fatalf("2025 computed %+v", y)
+	}
+	nets := map[string]int64{}
+	for _, al := range y.Allocations {
+		nets[al.AssociateID] = al.NetCents
+	}
+	if nets[a.ID] != -48001 || nets[b.ID] != -48000 || nets[c.ID] != -24000 {
+		t.Errorf("the split by 400/400/200 parts %v", nets)
+	}
+	if r := call(t, "POST", "/sci/declarations", req{tok: tok, scope: entity.ID, body: map[string]any{"year": 2025}}); r.Status != 401 {
+		t.Errorf("without the step-up: %d", r.Status)
+	}
+	if r := call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2026}}); r.Status != 409 || r.problemType(t) != "sci/year-open" {
+		t.Errorf("an open year: %d %s", r.Status, r.Body)
+	}
+	audited(t, seen, "POST /sci/declarations", 201, func() resp {
+		return call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2025}})
+	}).json(t, &y)
+	if !y.Declared || len(y.Allocations) != 3 {
+		t.Fatalf("issued %+v", y)
+	}
+	if r := call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2025}}); r.Status != 409 || r.problemType(t) != "sci/declared" {
+		t.Errorf("issued twice: %d %s", r.Status, r.Body)
+	}
+	if n := superCount(t, `SELECT count(*) FROM sci_allocations WHERE owner_id = $1 AND tax_year = 2025 AND person_sub = $2`, entity.ID, subSCI); n != 1 {
+		t.Errorf("the linked associate's share names them: %d", n)
+	}
+	// Stored as issued: a later charge of 2025 does not change it.
+	if r := call(t, "POST", "/charges", req{tok: tok, scope: entity.ID, body: map[string]any{"asset_id": asset.ID, "charged_on": "2025-11-15", "paid_on": "2025-11-15",
+		"category": "property_tax", "amount_cents": 1000, "recoverable_cents": 0}}); r.Status != 201 {
+		t.Fatalf("late charge: %d %s", r.Status, r.Body)
+	}
+	call(t, "GET", "/sci/result?year=2025", req{tok: tok, scope: entity.ID}).json(t, &y)
+	if !y.Declared || y.Result.NetCents != -120001 {
+		t.Errorf("as issued %+v", y.Result)
+	}
+	var list []map[string]any
+	call(t, "GET", "/sci/declarations", req{tok: tok, scope: entity.ID}).json(t, &list)
+	if len(list) != 1 {
+		t.Errorf("declarations %d", len(list))
+	}
+	if r := mv(map[string]any{"on_date": "2025-11-01", "reason": "gift", "parts": 10, "from_holding_id": subA.Opened[0].ID, "to_associate_id": b.ID}); r.Status != 409 || r.problemType(t) != "sci/year-declared" {
+		t.Errorf("a movement in a declared year: %d %s", r.Status, r.Body)
+	}
+
 	// A person's declarations are refused in the SCI's scope.
 	if r := call(t, "POST", "/tax/summaries", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2025, "regime": "reel"}}); r.Status != 409 || r.problemType(t) != "tax/person-only" {
 		t.Errorf("a 2044 for the SCI: %d %s", r.Status, r.Body)
@@ -237,5 +308,5 @@ func TestSCI(t *testing.T) {
 	}
 
 	rlsZeroRows(t, entity.ID, other.ID, subSCI, subSCIX, asset.ID, map[string]string{"sci_associates": "owner_id = $1",
-		"sci_movements": "owner_id = $1", "sci_holdings": "owner_id = $1"})
+		"sci_movements": "owner_id = $1", "sci_holdings": "owner_id = $1", "sci_declarations": "owner_id = $1", "sci_allocations": "owner_id = $1"})
 }

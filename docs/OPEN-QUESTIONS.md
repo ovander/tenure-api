@@ -2054,7 +2054,7 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.
 
-**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190).**
+**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190, #192).**
 RENT-SPEC-019 asks for « SCI: entity with associates and shares; income allocated per associate
 for 2044/2072; entity-level ledger and FEC », and for reporting that consolidates per person
 when one person is a private owner, an SCI associate and an LMNP owner at once. Today an owner
@@ -2092,8 +2092,9 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
     31 December (default, to validate). A split prorata temporis agreed between associates is
     not opposable to the administration, so it is not offered. The intermediate result of
     CGI art. 93 B on a transfer is not built;
-  - the split is to the cent half-up, the last associate by register order taking what rounding
-    leaves, so the shares add up to the result;
+  - the split is by largest remainder, the shared rounding helper of co-ownership (Q-14), ties
+    to the earlier associate in register order, so the shares add up to the result (built in 19c:
+    the plan's « the last associate takes what rounding leaves » gave one associate every cent);
   - the 2072 of a year is issued once, behind the step-up, stored and immutable, like the tax
     summary. Its figures go to the form's lines through `legal_params`, never through numbers
     in code.
@@ -2155,3 +2156,23 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
       a movement is not undone. Locking holdings once a 2072 has used them comes with 19c.
   - **Refused in an SCI's scope until 19c:** issuing a tax summary (2044) and a BIC declaration
     (409 `tax/person-only`); drafts stay estimates.
+- **Built in 19c** (#192):
+  - **The year's result** (`GET /sci/result?year=`) is the SCI's own 2044 réel figures, computed
+    in its scope with `tax.Lines`: income, loan interest, other expenses, the net, and the 2044
+    lines and flags they come from. No deficit is carried at the entity level: a deficit goes to
+    the associates.
+  - **The split** (`sci.Allocate`, pure, table tests and golden files under
+    `testdata/golden/<year>/sci/`): each figure is split by the parts held on 31 December; the
+    associate's net is their income less their interest and other expenses, so the interest
+    stays apart for the associate's own deficit rules (19d).
+  - **Blockers**, listed by the result and refused on issue: the year not over (409
+    `sci/year-open`), furnished rent received in the year (409 `sci/furnished-receipts`), the
+    parts held on 31 December not making up the capital (409 `sci/register-incomplete`), the
+    year already issued (409 `sci/declared`).
+  - **Issuing** (`POST /sci/declarations`, step_up) stores the result and one allocation per
+    associate holding parts (their name, the person they are linked to, their parts and
+    figures), never changed. A charge recorded later does not move it, and a movement of parts
+    dated in that year or before is refused (409 `sci/year-declared`).
+  - **Not built:** the 2072 form's line numbers (they wait for the accountant's mapping, as the
+    2033's do, Q-132); in an SCI's scope the dashboard still shows the 2044 estimate of its
+    figures, which 19d replaces by the consolidation per person.
