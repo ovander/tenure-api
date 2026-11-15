@@ -181,3 +181,52 @@ func (Repository) FirstInService(ctx context.Context) (time.Time, error) {
 	}
 	return *days[0], nil
 }
+
+type declarationRow struct {
+	ID       uuid.UUID       `gorm:"column:id;primaryKey"`
+	OwnerID  uuid.UUID       `gorm:"column:owner_id"`
+	TaxYear  int             `gorm:"column:tax_year"`
+	Regime   string          `gorm:"column:regime"`
+	Result   json.RawMessage `gorm:"column:result;type:jsonb"`
+	Assets   json.RawMessage `gorm:"column:assets;type:jsonb"`
+	Grids    json.RawMessage `gorm:"column:grids;type:jsonb"`
+	IssuedAt time.Time       `gorm:"column:issued_at"`
+	IssuedBy string          `gorm:"column:issued_by"`
+}
+
+func (declarationRow) TableName() string { return "bic_declarations" }
+
+// Declarations lists the scope's owner's declarations, by year.
+func (Repository) Declarations(ctx context.Context) ([]declarationRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []declarationRow
+	err = t.Order("tax_year").Find(&rows).Error
+	return rows, err
+}
+
+// InsertDeclaration records a declaration.
+func (Repository) InsertDeclaration(ctx context.Context, r declarationRow) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Create(&r).Error
+}
+
+// FreezeGrid sets frozen_at on a grid version not yet frozen.
+func (Repository) FreezeGrid(ctx context.Context, id uuid.UUID, at time.Time) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Model(&gridRow{}).Where("id = ? AND frozen_at IS NULL", id).Update("frozen_at", at).Error
+}
+
+// GridID returns the id of an asset's latest grid version.
+func (r Repository) GridID(ctx context.Context, asset uuid.UUID) (uuid.UUID, bool, error) {
+	g, found, err := r.Grid(ctx, asset)
+	return g.ID, found, err
+}

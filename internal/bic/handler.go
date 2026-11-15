@@ -218,3 +218,49 @@ func (h Handler) GetResult(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, v)
 }
+
+// ListDeclarations godoc
+//
+//	@Summary		The BIC declarations issued
+//	@Description	The scope's owner's declarations of furnished letting, by year, with their figures as issued (Q-132).
+//	@Tags			bic
+//	@Produce		json
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		Declaration
+//	@Failure		401,403			{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bic/declarations [get]
+func (h Handler) ListDeclarations(w http.ResponseWriter, r *http.Request) {
+	v, err := h.Service.Declarations(r.Context(), caller(r), httpx.RequestID(r))
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// IssueDeclaration godoc
+//
+//	@Summary		Issue a year's BIC declaration
+//	@Description	Issues the year under the regime chosen (step_up): its figures, computed from the declarations before it, are stored as they are, and the grid versions they used are frozen; a frozen grid takes no new version (409 bic/grid-frozen). A year is declared once (409 bic/declared), after the years before it (409 bic/declaration-order); the micro is open up to its receipts threshold (422 bic/micro-closed). Under the micro, the year carries no depreciation of its own and passes the earlier carry on (Q-132).
+//	@Tags			bic
+//	@Accept			json
+//	@Produce		json
+//	@Param			body			body		DeclarationInput	true	"year and regime"
+//	@Param			X-Owner-Scope	header		string				false	"owner scope"
+//	@Success		201				{object}	Declaration
+//	@Failure		400,401,403,409,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bic/declarations [post]
+func (h Handler) IssueDeclaration(w http.ResponseWriter, r *http.Request) {
+	var in DeclarationInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.Issue(r.Context(), caller(r), httpx.RequestID(r), in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, v)
+}

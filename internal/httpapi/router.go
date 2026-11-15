@@ -237,6 +237,8 @@ func Routes(d Deps) []Route {
 		{"PUT", "/fixed-assets/{id}", GuardScopeOwnerW, false, h(d.BIC.UpdateItem)},
 		{"GET", "/assets/{id}/depreciation", GuardScopeOwnerW, false, h(d.BIC.GetDepreciation)},
 		{"GET", "/bic/result", GuardScopeOwnerW, false, h(d.BIC.GetResult)},
+		{"GET", "/bic/declarations", GuardScopeOwnerW, false, h(d.BIC.ListDeclarations)},
+		{"POST", "/bic/declarations", GuardScopeOwnerW, true, h(d.BIC.IssueDeclaration)},
 		{"GET", "/maintenance-contracts", GuardScopeOwnerW, false, h(d.Maintenance.ListContracts)},
 		{"POST", "/maintenance-contracts", GuardScopeOwnerW, false, h(d.Maintenance.CreateContract)},
 		{"GET", "/maintenance-contracts/{id}", GuardScopeOwnerW, false, h(d.Maintenance.GetContract)},

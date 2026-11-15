@@ -92,6 +92,9 @@ const (
 	// KeyBICMicro is the micro-BIC regime of long-term furnished letting:
 	// its abatement, minimum and receipts threshold (Q-132).
 	KeyBICMicro = "bic.micro"
+	// KeyBICDeficitYears is how many years a deficit of furnished letting
+	// is carried on later results (Q-132).
+	KeyBICDeficitYears = "bic.deficit_years"
 	// KeyLedgerCapitalisedConstruction is the account of construction,
 	// reconstruction and enlargement works (Q-130).
 	KeyLedgerCapitalisedConstruction = "ledger.capitalised_construction"
@@ -777,5 +780,17 @@ type BICMicro struct {
 func (s Set) BICMicro(asOf period.Date) (BICMicro, error) {
 	var r BICMicro
 	err := s.Decode(KeyBICMicro, asOf, &r)
+	return r, err
+}
+
+// BICDeficitYears is the parameter bic.deficit_years (Q-132).
+type BICDeficitYears struct {
+	Years int `json:"years"`
+}
+
+// BICDeficitYears returns bic.deficit_years in force on asOf.
+func (s Set) BICDeficitYears(asOf period.Date) (BICDeficitYears, error) {
+	var r BICDeficitYears
+	err := s.Decode(KeyBICDeficitYears, asOf, &r)
 	return r, err
 }
