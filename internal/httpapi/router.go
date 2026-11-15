@@ -27,6 +27,7 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/bff"
+	"github.com/ovander/tenure-api/internal/bic"
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/calendar"
 	"github.com/ovander/tenure-api/internal/charge"
@@ -68,6 +69,7 @@ type Deps struct {
 	Ledger         ledger.Handler
 	Dashboard      dashboard.Handler
 	Maintenance    maintenance.Handler
+	BIC            bic.Handler
 	Ready          func(ctx context.Context) error
 	TrustedProxies []*net.IPNet
 	// WriteBurst overrides the 60 writes a subject may make before being
@@ -228,6 +230,12 @@ func Routes(d Deps) []Route {
 		{"GET", "/contractors", GuardScopeOwnerW, false, h(d.Maintenance.ListContractors)},
 		{"POST", "/contractors", GuardScopeOwnerW, false, h(d.Maintenance.CreateContractor)},
 		{"PUT", "/contractors/{id}", GuardScopeOwnerW, false, h(d.Maintenance.UpdateContractor)},
+		{"GET", "/assets/{id}/bic-grid", GuardScopeOwnerW, false, h(d.BIC.GetGrid)},
+		{"PUT", "/assets/{id}/bic-grid", GuardScopeOwnerW, false, h(d.BIC.PutGrid)},
+		{"GET", "/assets/{id}/fixed-assets", GuardScopeOwnerW, false, h(d.BIC.ListItems)},
+		{"POST", "/assets/{id}/fixed-assets", GuardScopeOwnerW, false, h(d.BIC.CreateItem)},
+		{"PUT", "/fixed-assets/{id}", GuardScopeOwnerW, false, h(d.BIC.UpdateItem)},
+		{"GET", "/assets/{id}/depreciation", GuardScopeOwnerW, false, h(d.BIC.GetDepreciation)},
 		{"GET", "/maintenance-contracts", GuardScopeOwnerW, false, h(d.Maintenance.ListContracts)},
 		{"POST", "/maintenance-contracts", GuardScopeOwnerW, false, h(d.Maintenance.CreateContract)},
 		{"GET", "/maintenance-contracts/{id}", GuardScopeOwnerW, false, h(d.Maintenance.GetContract)},

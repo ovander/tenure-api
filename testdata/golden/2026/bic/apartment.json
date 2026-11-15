@@ -1,0 +1,358 @@
+{
+  "case": "apartment",
+  "description": "A furnished apartment first let on 15 March 2026: a price of 200 000 € and 15 000 € of acquisition costs, capitalised, spread over the default grid of the fixtures (the land not depreciated). Furniture of 6 000 € put in service the same day over the default duration; improvement works of 12 000 € put in service on 1 September 2026 over 15 years; a sofa of 1 200 € bought in 2027, disposed of in 2029. Years 2026 (first, by days), 2027 (full) and 2029 (the disposal).",
+  "in_service_on": "2026-03-15",
+  "basis_cents": 21500000,
+  "items": [
+    {
+      "id": "furniture",
+      "label": "Mobilier",
+      "cost_cents": 600000,
+      "in_service_on": "2026-03-15",
+      "months": 84
+    },
+    {
+      "id": "works",
+      "label": "Cuisine équipée",
+      "cost_cents": 1200000,
+      "in_service_on": "2026-09-01",
+      "months": 180
+    },
+    {
+      "id": "sofa",
+      "label": "Canapé",
+      "cost_cents": 120000,
+      "in_service_on": "2027-02-01",
+      "months": 84,
+      "disposed_on": "2029-06-30"
+    }
+  ],
+  "years": [
+    2026,
+    2027,
+    2029
+  ],
+  "expected": {
+    "2026": {
+      "rows": [
+        {
+          "ref": "land",
+          "base_cents": 3225000,
+          "months": 0,
+          "start_on": "2026-03-15",
+          "end_on": "",
+          "prior_cents": 0,
+          "year_cents": 0,
+          "net_cents": 3225000,
+          "depreciable": false
+        },
+        {
+          "ref": "structure",
+          "base_cents": 8600000,
+          "months": 600,
+          "start_on": "2026-03-15",
+          "end_on": "2076-03-14",
+          "prior_cents": 0,
+          "year_cents": 137502,
+          "net_cents": 8462498,
+          "depreciable": true
+        },
+        {
+          "ref": "roof",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 0,
+          "year_cents": 68755,
+          "net_cents": 2081245,
+          "depreciable": true
+        },
+        {
+          "ref": "facade",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 0,
+          "year_cents": 68755,
+          "net_cents": 2081245,
+          "depreciable": true
+        },
+        {
+          "ref": "technical",
+          "base_cents": 3225000,
+          "months": 240,
+          "start_on": "2026-03-15",
+          "end_on": "2046-03-14",
+          "prior_cents": 0,
+          "year_cents": 128912,
+          "net_cents": 3096088,
+          "depreciable": true
+        },
+        {
+          "ref": "fittings",
+          "base_cents": 2150000,
+          "months": 180,
+          "start_on": "2026-03-15",
+          "end_on": "2041-03-14",
+          "prior_cents": 0,
+          "year_cents": 114583,
+          "net_cents": 2035417,
+          "depreciable": true
+        },
+        {
+          "ref": "furniture",
+          "label": "Mobilier",
+          "base_cents": 600000,
+          "months": 84,
+          "start_on": "2026-03-15",
+          "end_on": "2033-03-14",
+          "prior_cents": 0,
+          "year_cents": 68518,
+          "net_cents": 531482,
+          "depreciable": true
+        },
+        {
+          "ref": "works",
+          "label": "Cuisine équipée",
+          "base_cents": 1200000,
+          "months": 180,
+          "start_on": "2026-09-01",
+          "end_on": "2041-08-31",
+          "prior_cents": 0,
+          "year_cents": 26720,
+          "net_cents": 1173280,
+          "depreciable": true
+        },
+        {
+          "ref": "sofa",
+          "label": "Canapé",
+          "base_cents": 120000,
+          "months": 84,
+          "start_on": "2027-02-01",
+          "end_on": "2034-01-31",
+          "prior_cents": 0,
+          "year_cents": 0,
+          "net_cents": 120000,
+          "depreciable": true
+        }
+      ],
+      "total_cents": 613745
+    },
+    "2027": {
+      "rows": [
+        {
+          "ref": "land",
+          "base_cents": 3225000,
+          "months": 0,
+          "start_on": "2026-03-15",
+          "end_on": "",
+          "prior_cents": 0,
+          "year_cents": 0,
+          "net_cents": 3225000,
+          "depreciable": false
+        },
+        {
+          "ref": "structure",
+          "base_cents": 8600000,
+          "months": 600,
+          "start_on": "2026-03-15",
+          "end_on": "2076-03-14",
+          "prior_cents": 137502,
+          "year_cents": 171878,
+          "net_cents": 8290620,
+          "depreciable": true
+        },
+        {
+          "ref": "roof",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 68755,
+          "year_cents": 85943,
+          "net_cents": 1995302,
+          "depreciable": true
+        },
+        {
+          "ref": "facade",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 68755,
+          "year_cents": 85943,
+          "net_cents": 1995302,
+          "depreciable": true
+        },
+        {
+          "ref": "technical",
+          "base_cents": 3225000,
+          "months": 240,
+          "start_on": "2026-03-15",
+          "end_on": "2046-03-14",
+          "prior_cents": 128912,
+          "year_cents": 161139,
+          "net_cents": 2934949,
+          "depreciable": true
+        },
+        {
+          "ref": "fittings",
+          "base_cents": 2150000,
+          "months": 180,
+          "start_on": "2026-03-15",
+          "end_on": "2041-03-14",
+          "prior_cents": 114583,
+          "year_cents": 143229,
+          "net_cents": 1892188,
+          "depreciable": true
+        },
+        {
+          "ref": "furniture",
+          "label": "Mobilier",
+          "base_cents": 600000,
+          "months": 84,
+          "start_on": "2026-03-15",
+          "end_on": "2033-03-14",
+          "prior_cents": 68518,
+          "year_cents": 85647,
+          "net_cents": 445835,
+          "depreciable": true
+        },
+        {
+          "ref": "works",
+          "label": "Cuisine équipée",
+          "base_cents": 1200000,
+          "months": 180,
+          "start_on": "2026-09-01",
+          "end_on": "2041-08-31",
+          "prior_cents": 26720,
+          "year_cents": 79942,
+          "net_cents": 1093338,
+          "depreciable": true
+        },
+        {
+          "ref": "sofa",
+          "label": "Canapé",
+          "base_cents": 120000,
+          "months": 84,
+          "start_on": "2027-02-01",
+          "end_on": "2034-01-31",
+          "prior_cents": 0,
+          "year_cents": 15675,
+          "net_cents": 104325,
+          "depreciable": true
+        }
+      ],
+      "total_cents": 829396
+    },
+    "2029": {
+      "rows": [
+        {
+          "ref": "land",
+          "base_cents": 3225000,
+          "months": 0,
+          "start_on": "2026-03-15",
+          "end_on": "",
+          "prior_cents": 0,
+          "year_cents": 0,
+          "net_cents": 3225000,
+          "depreciable": false
+        },
+        {
+          "ref": "structure",
+          "base_cents": 8600000,
+          "months": 600,
+          "start_on": "2026-03-15",
+          "end_on": "2076-03-14",
+          "prior_cents": 481728,
+          "year_cents": 171878,
+          "net_cents": 7946394,
+          "depreciable": true
+        },
+        {
+          "ref": "roof",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 240877,
+          "year_cents": 85944,
+          "net_cents": 1823179,
+          "depreciable": true
+        },
+        {
+          "ref": "facade",
+          "base_cents": 2150000,
+          "months": 300,
+          "start_on": "2026-03-15",
+          "end_on": "2051-03-14",
+          "prior_cents": 240877,
+          "year_cents": 85944,
+          "net_cents": 1823179,
+          "depreciable": true
+        },
+        {
+          "ref": "technical",
+          "base_cents": 3225000,
+          "months": 240,
+          "start_on": "2026-03-15",
+          "end_on": "2046-03-14",
+          "prior_cents": 451632,
+          "year_cents": 161140,
+          "net_cents": 2612228,
+          "depreciable": true
+        },
+        {
+          "ref": "fittings",
+          "base_cents": 2150000,
+          "months": 180,
+          "start_on": "2026-03-15",
+          "end_on": "2041-03-14",
+          "prior_cents": 401433,
+          "year_cents": 143228,
+          "net_cents": 1605339,
+          "depreciable": true
+        },
+        {
+          "ref": "furniture",
+          "label": "Mobilier",
+          "base_cents": 600000,
+          "months": 84,
+          "start_on": "2026-03-15",
+          "end_on": "2033-03-14",
+          "prior_cents": 240047,
+          "year_cents": 85647,
+          "net_cents": 274306,
+          "depreciable": true
+        },
+        {
+          "ref": "works",
+          "label": "Cuisine équipée",
+          "base_cents": 1200000,
+          "months": 180,
+          "start_on": "2026-09-01",
+          "end_on": "2041-08-31",
+          "prior_cents": 186822,
+          "year_cents": 79942,
+          "net_cents": 933236,
+          "depreciable": true
+        },
+        {
+          "ref": "sofa",
+          "label": "Canapé",
+          "base_cents": 120000,
+          "months": 84,
+          "start_on": "2027-02-01",
+          "end_on": "2034-01-31",
+          "prior_cents": 32851,
+          "year_cents": 8494,
+          "net_cents": 0,
+          "depreciable": true
+        }
+      ],
+      "total_cents": 822217
+    }
+  }
+}

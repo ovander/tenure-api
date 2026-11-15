@@ -80,6 +80,15 @@ const (
 	KeyTaxImprovementDeductible = "tax.improvement_deductible"
 	// KeyMaintenanceChimney is the chimney sweeping rhythm by fuel (Q-131).
 	KeyMaintenanceChimney = "maintenance.chimney"
+	// KeyBICComponents is the default component grid of an asset let
+	// furnished under the réel (Q-132); KeyBICFurniture the default duration
+	// of furniture; KeyBICSmallEquipment the threshold under which an item is
+	// expensed; KeyBICAcquisitionCosts whether acquisition costs are
+	// capitalised.
+	KeyBICComponents       = "bic.components"
+	KeyBICFurniture        = "bic.furniture"
+	KeyBICSmallEquipment   = "bic.small_equipment"
+	KeyBICAcquisitionCosts = "bic.acquisition_costs"
 	// KeyLedgerCapitalisedConstruction is the account of construction,
 	// reconstruction and enlargement works (Q-130).
 	KeyLedgerCapitalisedConstruction = "ledger.capitalised_construction"
@@ -690,5 +699,65 @@ func (c MaintenanceChimney) Months(fuel string) int {
 func (s Set) MaintenanceChimney(asOf period.Date) (MaintenanceChimney, error) {
 	var r MaintenanceChimney
 	err := s.Decode(KeyMaintenanceChimney, asOf, &r)
+	return r, err
+}
+
+// BICComponent is one line of the default component grid: its share of the
+// depreciable cost in basis points and its duration in months (0: not
+// depreciated, the land).
+type BICComponent struct {
+	Component string `json:"component"`
+	ShareBP   int64  `json:"share_bp"`
+	Months    int    `json:"months"`
+}
+
+// BICComponents is the parameter bic.components (Q-132).
+type BICComponents struct {
+	Lines []BICComponent `json:"lines"`
+}
+
+// BICComponents returns bic.components in force on asOf.
+func (s Set) BICComponents(asOf period.Date) (BICComponents, error) {
+	var r BICComponents
+	err := s.Decode(KeyBICComponents, asOf, &r)
+	return r, err
+}
+
+// BICFurniture is the parameter bic.furniture: the default duration of
+// furniture in months (Q-132).
+type BICFurniture struct {
+	Months int `json:"months"`
+}
+
+// BICFurniture returns bic.furniture in force on asOf.
+func (s Set) BICFurniture(asOf period.Date) (BICFurniture, error) {
+	var r BICFurniture
+	err := s.Decode(KeyBICFurniture, asOf, &r)
+	return r, err
+}
+
+// BICSmallEquipment is the parameter bic.small_equipment: the cost under
+// which an item is expensed rather than depreciated (Q-132).
+type BICSmallEquipment struct {
+	ThresholdCents int64 `json:"threshold_cents"`
+}
+
+// BICSmallEquipment returns bic.small_equipment in force on asOf.
+func (s Set) BICSmallEquipment(asOf period.Date) (BICSmallEquipment, error) {
+	var r BICSmallEquipment
+	err := s.Decode(KeyBICSmallEquipment, asOf, &r)
+	return r, err
+}
+
+// BICAcquisitionCosts is the parameter bic.acquisition_costs: whether the
+// acquisition costs are capitalised by default (Q-132).
+type BICAcquisitionCosts struct {
+	Capitalise bool `json:"capitalise"`
+}
+
+// BICAcquisitionCosts returns bic.acquisition_costs in force on asOf.
+func (s Set) BICAcquisitionCosts(asOf period.Date) (BICAcquisitionCosts, error) {
+	var r BICAcquisitionCosts
+	err := s.Decode(KeyBICAcquisitionCosts, asOf, &r)
 	return r, err
 }
