@@ -1,0 +1,693 @@
+{
+  "case": "sci-associate-shares",
+  "description": "House H1 owned 50/50 by O1 and O2, as in co-owned-50-50. Each is also an associate of an SCI whose issued 2072 gives them a share (Q-133): O1 a profit, which shrinks their deficit; O2 a deficit, mostly interest but within their income, which deepens the deficit they set against global income. Both let H1 unfurnished directly, so the micro-foncier stays open to them under the threshold, the shares' income counted in the gross.",
+  "leases": [
+    {
+      "id": "L5",
+      "kind": "unfurnished",
+      "state": "active",
+      "assets": [
+        {
+          "id": "H1",
+          "kind": "house",
+          "furnished": false,
+          "controlled_zone": false,
+          "tense_zone": false
+        }
+      ],
+      "start_on": "2024-01-01",
+      "end_on": "",
+      "term_months": 36,
+      "rent_cents": 120001,
+      "provision_cents": 15000,
+      "deposit_cents": 120001,
+      "due_day": 5,
+      "irl_ref_quarter": "2023-Q4",
+      "irl_ref_value": 14206,
+      "revision_month": 1
+    }
+  ],
+  "charges": [
+    {
+      "id": "rep",
+      "asset_id": "H1",
+      "category": "repairs",
+      "amount_cents": 2000001,
+      "charged_on": "2025-09-30",
+      "paid_on": "2025-09-30",
+      "recoverable_bp": 0,
+      "document_id": "doc-rep"
+    },
+    {
+      "id": "ins",
+      "asset_id": "H1",
+      "category": "insurance",
+      "amount_cents": 31000,
+      "charged_on": "2025-02-01",
+      "paid_on": "2025-02-01",
+      "recoverable_bp": 0,
+      "document_id": "doc-ins"
+    },
+    {
+      "id": "tf",
+      "asset_id": "H1",
+      "category": "property_tax",
+      "amount_cents": 140000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 0,
+      "document_id": "doc-tf"
+    },
+    {
+      "id": "teom",
+      "asset_id": "H1",
+      "category": "teom",
+      "amount_cents": 20000,
+      "charged_on": "2025-10-15",
+      "paid_on": "2025-10-15",
+      "recoverable_bp": 10000,
+      "document_id": "doc-teom"
+    },
+    {
+      "id": "int",
+      "asset_id": "H1",
+      "category": "loan_interest",
+      "amount_cents": 300000,
+      "charged_on": "2025-12-31",
+      "paid_on": "2025-12-31",
+      "recoverable_bp": 0,
+      "document_id": "doc-int"
+    }
+  ],
+  "payments": [
+    {
+      "id": "p01",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-01-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p01",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p01",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-02-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p02",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p02",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p03",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-03-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p03",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p03",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-04-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p04",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p04",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-05-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p05",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p05",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p06",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-06-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p06",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p06",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p07",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-07-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p07",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p07",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p08",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-08-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p08",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p08",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p09",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-09-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p09",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p09",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-10-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p10",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p10",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p11",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-11-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p11",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p11",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    },
+    {
+      "id": "p12",
+      "lease_id": "L5",
+      "asset_id": "H1",
+      "paid_on": "2025-12-05",
+      "amount_cents": 135001,
+      "matches": [
+        {
+          "billing_document_id": "AL-p12",
+          "line": "rent",
+          "amount_cents": 120001
+        },
+        {
+          "billing_document_id": "AL-p12",
+          "line": "provision",
+          "amount_cents": 15000
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "H1",
+      "furnished": false,
+      "shares": [
+        {
+          "owner_id": "O1",
+          "bp": 5000
+        },
+        {
+          "owner_id": "O2",
+          "bp": 5000
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "tax 2025 with SCI shares",
+      "tax": {
+        "year": 2025,
+        "prior": {
+          "O1": [
+            {
+              "year": 2014,
+              "remaining_cents": 90000
+            }
+          ],
+          "O2": [
+            {
+              "year": 2022,
+              "remaining_cents": 50000
+            }
+          ]
+        },
+        "sci_shares": {
+          "O1": [
+            {
+              "declaration_id": "D-sci-a",
+              "sci_name": "SCI Fictive A",
+              "parts": 400,
+              "total_parts": 1000,
+              "income_cents": 720001,
+              "interest_cents": 120000,
+              "other_expenses_cents": 320001,
+              "net_cents": 280000
+            }
+          ],
+          "O2": [
+            {
+              "declaration_id": "D-sci-b",
+              "sci_name": "SCI Fictive B",
+              "parts": 600,
+              "total_parts": 1000,
+              "income_cents": 300000,
+              "interest_cents": 480000,
+              "other_expenses_cents": 40000,
+              "net_cents": -220000
+            }
+          ]
+        }
+      },
+      "expected": {
+        "year": 2025,
+        "millesime": 2026,
+        "owners": [
+          {
+            "owner_id": "O1",
+            "assets": [
+              {
+                "asset_id": "H1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "211",
+                    "amount_cents": 720006,
+                    "sources": [
+                      "p01",
+                      "p02",
+                      "p03",
+                      "p04",
+                      "p05",
+                      "p06",
+                      "p07",
+                      "p08",
+                      "p09",
+                      "p10",
+                      "p11",
+                      "p12"
+                    ]
+                  },
+                  {
+                    "line": "222",
+                    "amount_cents": 1000,
+                    "sources": [
+                      "forfait_222:L5"
+                    ]
+                  },
+                  {
+                    "line": "223",
+                    "amount_cents": 15500,
+                    "sources": [
+                      "ins"
+                    ]
+                  },
+                  {
+                    "line": "224",
+                    "amount_cents": 1000001,
+                    "sources": [
+                      "rep"
+                    ]
+                  },
+                  {
+                    "line": "227",
+                    "amount_cents": 70000,
+                    "sources": [
+                      "tf"
+                    ]
+                  },
+                  {
+                    "line": "250",
+                    "amount_cents": 150000,
+                    "sources": [
+                      "int"
+                    ]
+                  }
+                ],
+                "net_cents": -516495
+              }
+            ],
+            "totals": [
+              {
+                "line": "211",
+                "amount_cents": 720006,
+                "sources": [
+                  "p01",
+                  "p02",
+                  "p03",
+                  "p04",
+                  "p05",
+                  "p06",
+                  "p07",
+                  "p08",
+                  "p09",
+                  "p10",
+                  "p11",
+                  "p12"
+                ]
+              },
+              {
+                "line": "222",
+                "amount_cents": 1000,
+                "sources": [
+                  "forfait_222:L5"
+                ]
+              },
+              {
+                "line": "223",
+                "amount_cents": 15500,
+                "sources": [
+                  "ins"
+                ]
+              },
+              {
+                "line": "224",
+                "amount_cents": 1000001,
+                "sources": [
+                  "rep"
+                ]
+              },
+              {
+                "line": "227",
+                "amount_cents": 70000,
+                "sources": [
+                  "tf"
+                ]
+              },
+              {
+                "line": "250",
+                "amount_cents": 150000,
+                "sources": [
+                  "int"
+                ]
+              }
+            ],
+            "micro": {
+              "eligible": true,
+              "gross_cents": 1440007,
+              "allowance_cents": 432002,
+              "taxable_cents": 1008005
+            },
+            "reel": {
+              "income_cents": 1440007,
+              "interest_cents": 270000,
+              "other_expenses_cents": 1406502,
+              "net_cents": -236495,
+              "prior_used": null,
+              "taxable_cents": 0,
+              "global_imputable_cents": 236495,
+              "carried_forward": null,
+              "expired": [
+                {
+                  "year": 2014,
+                  "remaining_cents": 90000
+                }
+              ]
+            },
+            "furnished_gross_receipts_cents": 0,
+            "sci_shares": [
+              {
+                "declaration_id": "D-sci-a",
+                "sci_name": "SCI Fictive A",
+                "parts": 400,
+                "total_parts": 1000,
+                "income_cents": 720001,
+                "interest_cents": 120000,
+                "other_expenses_cents": 320001,
+                "net_cents": 280000
+              }
+            ]
+          },
+          {
+            "owner_id": "O2",
+            "assets": [
+              {
+                "asset_id": "H1",
+                "furnished": false,
+                "lines": [
+                  {
+                    "line": "211",
+                    "amount_cents": 720006,
+                    "sources": [
+                      "p01",
+                      "p02",
+                      "p03",
+                      "p04",
+                      "p05",
+                      "p06",
+                      "p07",
+                      "p08",
+                      "p09",
+                      "p10",
+                      "p11",
+                      "p12"
+                    ]
+                  },
+                  {
+                    "line": "222",
+                    "amount_cents": 1000,
+                    "sources": [
+                      "forfait_222:L5"
+                    ]
+                  },
+                  {
+                    "line": "223",
+                    "amount_cents": 15500,
+                    "sources": [
+                      "ins"
+                    ]
+                  },
+                  {
+                    "line": "224",
+                    "amount_cents": 1000000,
+                    "sources": [
+                      "rep"
+                    ]
+                  },
+                  {
+                    "line": "227",
+                    "amount_cents": 70000,
+                    "sources": [
+                      "tf"
+                    ]
+                  },
+                  {
+                    "line": "250",
+                    "amount_cents": 150000,
+                    "sources": [
+                      "int"
+                    ]
+                  }
+                ],
+                "net_cents": -516494
+              }
+            ],
+            "totals": [
+              {
+                "line": "211",
+                "amount_cents": 720006,
+                "sources": [
+                  "p01",
+                  "p02",
+                  "p03",
+                  "p04",
+                  "p05",
+                  "p06",
+                  "p07",
+                  "p08",
+                  "p09",
+                  "p10",
+                  "p11",
+                  "p12"
+                ]
+              },
+              {
+                "line": "222",
+                "amount_cents": 1000,
+                "sources": [
+                  "forfait_222:L5"
+                ]
+              },
+              {
+                "line": "223",
+                "amount_cents": 15500,
+                "sources": [
+                  "ins"
+                ]
+              },
+              {
+                "line": "224",
+                "amount_cents": 1000000,
+                "sources": [
+                  "rep"
+                ]
+              },
+              {
+                "line": "227",
+                "amount_cents": 70000,
+                "sources": [
+                  "tf"
+                ]
+              },
+              {
+                "line": "250",
+                "amount_cents": 150000,
+                "sources": [
+                  "int"
+                ]
+              }
+            ],
+            "micro": {
+              "eligible": true,
+              "gross_cents": 1020006,
+              "allowance_cents": 306002,
+              "taxable_cents": 714004
+            },
+            "reel": {
+              "income_cents": 1020006,
+              "interest_cents": 630000,
+              "other_expenses_cents": 1126500,
+              "net_cents": -736494,
+              "prior_used": null,
+              "taxable_cents": 0,
+              "global_imputable_cents": 736494,
+              "carried_forward": [
+                {
+                  "year": 2022,
+                  "remaining_cents": 50000
+                }
+              ],
+              "expired": null
+            },
+            "furnished_gross_receipts_cents": 0,
+            "sci_shares": [
+              {
+                "declaration_id": "D-sci-b",
+                "sci_name": "SCI Fictive B",
+                "parts": 600,
+                "total_parts": 1000,
+                "income_cents": 300000,
+                "interest_cents": 480000,
+                "other_expenses_cents": 40000,
+                "net_cents": -220000
+              }
+            ]
+          }
+        ],
+        "flags": null
+      }
+    }
+  ]
+}

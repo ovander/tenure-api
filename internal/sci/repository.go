@@ -300,3 +300,17 @@ func (Repository) InsertAllocation(ctx context.Context, a allocationRow) error {
 	}
 	return t.Create(&a).Error
 }
+
+// EntityName returns the SCI's name.
+func (Repository) EntityName(ctx context.Context, owner uuid.UUID) (string, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return "", err
+	}
+	var names []string
+	err = t.Table("owners").Where("id = ?", owner).Limit(1).Pluck("legal_name", &names).Error
+	if err != nil || len(names) == 0 {
+		return "", err
+	}
+	return names[0], nil
+}

@@ -233,3 +233,31 @@ func (h Handler) IssueDeclaration(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, v)
 }
+
+// GetShares godoc
+//
+//	@Summary		The person's SCI shares of a year
+//	@Description	In a person's scope: their shares of the SCIs' issued 2072s that name them (each SCI's name, their parts and figures by nature), which their tax summary adds to their own revenus fonciers; and the SCIs they are a linked associate of whose 2072 of the year does not name them yet (Q-133). An SCI's scope has none.
+//	@Tags			sci
+//	@Produce		json
+//	@Param			year			query		int		true	"income year"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{object}	SharesView
+//	@Failure		400,401,403,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/sci/shares [get]
+func (h Handler) GetShares(w http.ResponseWriter, r *http.Request) {
+	year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	if err != nil {
+		var f invariant.Fields
+		f.Add("year", "Une année sur quatre chiffres est attendue.")
+		httpx.Error(w, r, f.Err())
+		return
+	}
+	v, err := h.Service.Shares(r.Context(), caller(r), httpx.RequestID(r), year)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}

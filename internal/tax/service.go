@@ -103,6 +103,8 @@ type Inputs struct {
 	// year (Q-126).
 	LoanInstalments int `json:"loan_instalments,omitempty"`
 	PriorYear       int `json:"prior_year,omitempty"`
+	// SCIShares counts the shares of SCIs' issued 2072s (Q-133).
+	SCIShares int `json:"sci_shares,omitempty"`
 }
 
 // computed is a summary with its inputs.
@@ -245,6 +247,25 @@ func (s Service) compute(ctx context.Context, year int) (computed, error) {
 	sum, err := Lines(payments, charges, assets, year, ps, out.prior)
 	if err != nil {
 		return out, mapErr(err)
+	}
+	// The person's shares of SCIs' issued 2072s, and the SCIs still to
+	// issue theirs (Q-133).
+	if sc, ok := db.ScopeFrom(ctx); ok && sc.OwnerID != uuid.Nil {
+		shares, err := s.Repo.SCIShares(ctx, sc.OwnerID, year)
+		if err != nil {
+			return out, err
+		}
+		if sum, err = WithShares(sum, sc.OwnerID.String(), shares, year, ps, out.prior); err != nil {
+			return out, mapErr(err)
+		}
+		out.inputs.SCIShares = len(shares)
+		pending, err := s.Repo.SCIsPending(ctx, sc.OwnerID, year)
+		if err != nil {
+			return out, err
+		}
+		for _, id := range pending {
+			sum.Flags = append(sum.Flags, Flag{Kind: FlagSCIPending, ID: id.String()})
+		}
 	}
 	sum.Flags = append(sum.Flags, drafts...)
 	sum.Flags = append(sum.Flags, superseded...)
