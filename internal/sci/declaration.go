@@ -66,6 +66,7 @@ type allocationRow struct {
 	TaxYear            int       `gorm:"column:tax_year"`
 	AssociateID        uuid.UUID `gorm:"column:associate_id"`
 	AssociateName      string    `gorm:"column:associate_name"`
+	SCIName            string    `gorm:"column:sci_name"`
 	PersonSub          *string   `gorm:"column:person_sub"`
 	Parts              int       `gorm:"column:parts"`
 	TotalParts         int       `gorm:"column:total_parts"`
@@ -306,13 +307,17 @@ func (s Service) Issue(ctx context.Context, p *auth.Principal, requestID string,
 		if err != nil {
 			return err
 		}
+		name, err := s.Repo.EntityName(ctx, sc.OwnerID)
+		if err != nil {
+			return err
+		}
 		d := declarationRow{ID: s.NewID(), OwnerID: sc.OwnerID, TaxYear: in.Year, Result: result, Holders: hb, IssuedAt: now, IssuedBy: p.Sub}
 		if err := s.Repo.InsertDeclaration(ctx, d); err != nil {
 			return err
 		}
 		for _, a := range v.Allocations {
 			r := allocationRow{ID: s.NewID(), OwnerID: sc.OwnerID, DeclarationID: d.ID, TaxYear: in.Year, AssociateID: a.AssociateID,
-				AssociateName: a.Name, PersonSub: a.PersonSub, Parts: a.Parts, TotalParts: v.HeldParts,
+				AssociateName: a.Name, SCIName: name, PersonSub: a.PersonSub, Parts: a.Parts, TotalParts: v.HeldParts,
 				IncomeCents: int64(a.IncomeCents), InterestCents: int64(a.InterestCents), OtherExpensesCents: int64(a.OtherExpensesCents), NetCents: int64(a.NetCents)}
 			if err := s.Repo.InsertAllocation(ctx, r); err != nil {
 				return err
@@ -336,4 +341,37 @@ func (s Service) lockedYear(ctx context.Context, year int) error {
 		return invariant.New(TypeYearDeclared, strconv.Itoa(last))
 	}
 	return nil
+}
+
+// SharesView is GET /sci/shares: in a person's scope, their shares of the
+// SCIs' issued 2072s of a year, and the SCIs they are an associate of whose
+// 2072 of the year does not name them yet (Q-133).
+type SharesView struct {
+	Year    int            `json:"year"`
+	Shares  []tax.SCIShare `json:"shares"`
+	Pending []uuid.UUID    `json:"pending"`
+}
+
+// Shares returns the scope's person's SCI shares of a year; an SCI's scope
+// has none.
+func (s Service) Shares(ctx context.Context, p *auth.Principal, requestID string, year int) (SharesView, error) {
+	if p.Active == nil {
+		return SharesView{}, invariant.ErrForbidden
+	}
+	if err := checkYear(year); err != nil {
+		return SharesView{}, err
+	}
+	sc := p.DBScope(requestID)
+	out := SharesView{Year: year, Shares: []tax.SCIShare{}, Pending: []uuid.UUID{}}
+	err := s.DB.InScope(ctx, sc, func(ctx context.Context) error {
+		shares, err := tax.Repository{}.SCIShares(ctx, sc.OwnerID, year)
+		if err != nil {
+			return err
+		}
+		out.Shares = append(out.Shares, shares...)
+		pending, err := tax.Repository{}.SCIsPending(ctx, sc.OwnerID, year)
+		out.Pending = append(out.Pending, pending...)
+		return err
+	})
+	return out, err
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/money"
 )
 
 type summaryRow struct {
@@ -333,4 +334,54 @@ func (Repository) AssetLabels(ctx context.Context) (map[uuid.UUID]string, error)
 		}
 	}
 	return out, err
+}
+
+// SCIShares returns the shares of SCIs' issued 2072s of a year that name the
+// scope's person (Q-133): the person's own Socrate subject on the
+// allocation, read through the rows' person policy. An SCI's scope has no
+// person, so it reads none.
+func (Repository) SCIShares(ctx context.Context, owner uuid.UUID, year int) ([]SCIShare, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		DeclarationID      uuid.UUID
+		SCIName            string
+		Parts              int
+		TotalParts         int
+		IncomeCents        int64
+		InterestCents      int64
+		OtherExpensesCents int64
+		NetCents           int64
+	}
+	err = t.Table("sci_allocations").
+		Select("declaration_id, sci_name, parts, total_parts, income_cents, interest_cents, other_expenses_cents, net_cents").
+		Where("tax_year = ? AND person_sub = (SELECT socrate_sub FROM owners WHERE id = ? AND kind = 'person')", year, owner).
+		Order("sci_name, declaration_id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SCIShare, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, SCIShare{DeclarationID: r.DeclarationID.String(), SCIName: r.SCIName, Parts: r.Parts, TotalParts: r.TotalParts,
+			IncomeCents: money.Cents(r.IncomeCents), InterestCents: money.Cents(r.InterestCents),
+			OtherExpensesCents: money.Cents(r.OtherExpensesCents), NetCents: money.Cents(r.NetCents)})
+	}
+	return out, nil
+}
+
+// SCIsPending returns the SCIs the scope's person is a linked associate of
+// that have no 2072 of the year naming them.
+func (Repository) SCIsPending(ctx context.Context, owner uuid.UUID, year int) ([]uuid.UUID, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uuid.UUID
+	err = t.Table("sci_associates a").Distinct("a.owner_id").
+		Where("a.person_sub = (SELECT socrate_sub FROM owners WHERE id = ? AND kind = 'person')", owner).
+		Where("NOT EXISTS (SELECT 1 FROM sci_allocations al WHERE al.owner_id = a.owner_id AND al.associate_id = a.id AND al.tax_year = ?)", year).
+		Order("a.owner_id").Pluck("a.owner_id", &ids).Error
+	return ids, err
 }

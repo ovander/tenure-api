@@ -137,6 +137,7 @@ func Routes(d Deps) []Route {
 		{"GET", "/sci/movements", GuardScopeOwnerW, false, h(d.SCI.ListMovements)},
 		{"POST", "/sci/movements", GuardScopeOwnerW, false, h(d.SCI.RecordMovement)},
 		{"GET", "/sci/result", GuardScopeOwnerW, false, h(d.SCI.GetYear)},
+		{"GET", "/sci/shares", GuardScopeOwnerW, false, h(d.SCI.GetShares)},
 		{"GET", "/sci/declarations", GuardScopeOwnerW, false, h(d.SCI.ListDeclarations)},
 		{"POST", "/sci/declarations", GuardScopeOwnerW, true, h(d.SCI.IssueDeclaration)},
 		{"GET", "/assets", GuardScopeOwnerW, false, h(d.Portfolio.ListAssets)},

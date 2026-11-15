@@ -3,6 +3,7 @@
 package itest
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 )
@@ -240,6 +241,19 @@ func TestSCI(t *testing.T) {
 	if r := call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2026}}); r.Status != 409 || r.problemType(t) != "sci/year-open" {
 		t.Errorf("an open year: %d %s", r.Status, r.Body)
 	}
+	// Before the 2072, the associate's own scope lists the SCI as pending.
+	var shares struct {
+		Shares []struct {
+			SCIName  string `json:"sci_name"`
+			Parts    int    `json:"parts"`
+			NetCents int64  `json:"net_cents"`
+		} `json:"shares"`
+		Pending []string `json:"pending"`
+	}
+	call(t, "GET", "/sci/shares?year=2025", req{tok: tok}).json(t, &shares)
+	if len(shares.Shares) != 0 || len(shares.Pending) != 1 || shares.Pending[0] != entity.ID {
+		t.Errorf("pending before the 2072 %+v", shares)
+	}
 	audited(t, seen, "POST /sci/declarations", 201, func() resp {
 		return call(t, "POST", "/sci/declarations", req{tok: up, scope: entity.ID, body: map[string]any{"year": 2025}})
 	}).json(t, &y)
@@ -252,6 +266,48 @@ func TestSCI(t *testing.T) {
 	if n := superCount(t, `SELECT count(*) FROM sci_allocations WHERE owner_id = $1 AND tax_year = 2025 AND person_sub = $2`, entity.ID, subSCI); n != 1 {
 		t.Errorf("the linked associate's share names them: %d", n)
 	}
+	// The associate's side: their share in their own scope and in their 2044.
+	call(t, "GET", "/sci/shares?year=2025", req{tok: tok}).json(t, &shares)
+	if len(shares.Shares) != 1 || shares.Shares[0].NetCents != -48001 || shares.Shares[0].Parts != 400 ||
+		shares.Shares[0].SCIName != "SCI des Tilleuls" || len(shares.Pending) != 0 {
+		t.Errorf("the associate's share %+v", shares)
+	}
+	var none struct {
+		Shares []any `json:"shares"`
+	}
+	call(t, "GET", "/sci/shares?year=2025", req{tok: tokX}).json(t, &none)
+	if len(none.Shares) != 0 {
+		t.Errorf("another person reads no share: %+v", none)
+	}
+	call(t, "GET", "/sci/shares?year=2025", req{tok: tok, scope: entity.ID}).json(t, &none)
+	if len(none.Shares) != 0 {
+		t.Errorf("the SCI's own scope has no share: %+v", none)
+	}
+	var draft struct {
+		Summary struct {
+			Owners []struct {
+				OwnerID   string           `json:"owner_id"`
+				SCIShares []map[string]any `json:"sci_shares"`
+				Reel      struct {
+					NetCents             int64 `json:"net_cents"`
+					GlobalImputableCents int64 `json:"global_imputable_cents"`
+				} `json:"reel"`
+				Micro struct {
+					Eligible bool `json:"eligible"`
+				} `json:"micro"`
+			} `json:"owners"`
+		} `json:"summary"`
+	}
+	if r := call(t, "POST", "/tax/summaries", req{tok: up, body: map[string]any{"year": 2025}}); r.Status != 200 && r.Status != 201 {
+		t.Fatalf("the associate's 2044 draft: %d %s", r.Status, r.Body)
+	} else {
+		r.json(t, &draft)
+	}
+	if len(draft.Summary.Owners) != 1 || draft.Summary.Owners[0].OwnerID != person.ID || len(draft.Summary.Owners[0].SCIShares) != 1 ||
+		draft.Summary.Owners[0].Reel.NetCents != -48001 || draft.Summary.Owners[0].Reel.GlobalImputableCents != 48001 || draft.Summary.Owners[0].Micro.Eligible {
+		t.Errorf("the share in the associate's 2044 %+v", draft.Summary)
+	}
+
 	// Stored as issued: a later charge of 2025 does not change it.
 	if r := call(t, "POST", "/charges", req{tok: tok, scope: entity.ID, body: map[string]any{"asset_id": asset.ID, "charged_on": "2025-11-15", "paid_on": "2025-11-15",
 		"category": "property_tax", "amount_cents": 1000, "recoverable_cents": 0}}); r.Status != 201 {
@@ -309,4 +365,20 @@ func TestSCI(t *testing.T) {
 
 	rlsZeroRows(t, entity.ID, other.ID, subSCI, subSCIX, asset.ID, map[string]string{"sci_associates": "owner_id = $1",
 		"sci_movements": "owner_id = $1", "sci_holdings": "owner_id = $1", "sci_declarations": "owner_id = $1", "sci_allocations": "owner_id = $1"})
+	// The associate reads their own allocation row from their scope, and no
+	// other associate's.
+	if n := superCount(t, `SELECT count(*) FROM sci_allocations WHERE owner_id = $1`, entity.ID); n != 3 {
+		t.Fatalf("allocations %d", n)
+	}
+	var mineN int
+	if err := asAPI(t, person.ID, subSCI, func(tx *sql.Tx) error {
+		return tx.QueryRow(`SELECT count(*) FROM sci_allocations`).Scan(&mineN)
+	}); err != nil || mineN != 1 {
+		t.Errorf("the associate reads %d allocation rows (%v), want their own only", mineN, err)
+	}
+	if err := asAPI(t, other.ID, subSCIX, func(tx *sql.Tx) error {
+		return tx.QueryRow(`SELECT count(*) FROM sci_allocations`).Scan(&mineN)
+	}); err != nil || mineN != 0 {
+		t.Errorf("another owner reads %d allocation rows (%v)", mineN, err)
+	}
 }

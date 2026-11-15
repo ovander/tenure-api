@@ -2054,7 +2054,7 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.
 
-**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190, #192).**
+**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190, #192, #194).**
 RENT-SPEC-019 asks for « SCI: entity with associates and shares; income allocated per associate
 for 2044/2072; entity-level ledger and FEC », and for reporting that consolidates per person
 when one person is a private owner, an SCI associate and an LMNP owner at once. Today an owner
@@ -2122,9 +2122,9 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
 - **Slices:**
   - 19b: SCI scopes and the `manager` role, the register of associates and dated holdings;
   - 19c: the 2072 (the entity result, the split on 31 December, issued and stored);
-  - 19d: the associate's side (their shares in their tax summary, the micro rule, the loan of
-    kind `parts`) and the consolidation per person;
-  - 19e: the screens.
+  - 19d: the associate's side (their shares in their tax summary, the micro rule);
+  - 19e: the loan of kind `parts` and the consolidation per person;
+  - 19f: the screens.
 - **Built in 19b** (#190):
   - **The SCI scope.** `POST /entities` (step_up) creates an owner of kind `sci`, with no Socrate
     subject, its SIREN (nine digits), its tax regime (`ir` only: `is` answers 422
@@ -2175,4 +2175,23 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
     dated in that year or before is refused (409 `sci/year-declared`).
   - **Not built:** the 2072 form's line numbers (they wait for the accountant's mapping, as the
     2033's do, Q-132); in an SCI's scope the dashboard still shows the 2044 estimate of its
-    figures, which 19d replaces by the consolidation per person.
+    figures, which 19e replaces by the consolidation per person.
+- **Built in 19d** (#194):
+  - **Reading.** A Tenure person linked as an associate reads, in their own scope, the
+    allocations of the issued 2072s that carry their Socrate subject, and their own register rows,
+    nothing else of the SCI. `tenure_scope_person` gives the subject of the scope's person when
+    the caller has a role there, so their accountant preparing their 2044 reads them too; the job
+    role reads them for the yearly drafts. An allocation carries the SCI's name as issued.
+  - **The associate's 2044** (`tax.WithShares`, pure, table tests and the golden case
+    `sci-associate-shares`): after `tax.Lines`, the shares' income, interest and other expenses
+    join the person's réel, then the person's deficit rules apply to the whole (prior deficits,
+    the global income cap, interest carried forward). The micro-foncier counts the shares' income
+    in the gross receipts and is open, with shares, only to a person who also lets a property
+    unfurnished directly. A person with shares and no asset of their own gets a summary of their
+    own. The draft, the issue and the yearly job all add them; an issued summary keeps them.
+  - **Pending.** The summary flags `sci_pending` for each SCI the person is a linked associate of
+    whose 2072 of the year does not name them yet; `GET /sci/shares?year=` lists the shares and
+    those SCIs. An associate's 2044 is issued after the SCIs' 2072s: a share issued later is not
+    added to an issued summary.
+  - **Not mapped:** the 2044 line of the shares. Sources disagree between section 110 of the 2044
+    and lines 420 to 440, so the figures are given by nature, the mapping for the accountant.

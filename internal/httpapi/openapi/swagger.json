@@ -12938,6 +12938,70 @@
                 }
             }
         },
+        "/sci/shares": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "In a person's scope: their shares of the SCIs' issued 2072s that name them (each SCI's name, their parts and figures by nature), which their tax summary adds to their own revenus fonciers; and the SCIs they are a linked associate of whose 2072 of the year does not name them yet (Q-133). An SCI's scope has none.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sci"
+                ],
+                "summary": "The person's SCI shares of a year",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "income year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sci.SharesView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/tax/summaries": {
             "get": {
                 "security": [
@@ -21788,6 +21852,26 @@
                 }
             }
         },
+        "sci.SharesView": {
+            "type": "object",
+            "properties": {
+                "pending": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "shares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.SCIShare"
+                    }
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
         "sci.YearView": {
             "type": "object",
             "properties": {
@@ -21895,6 +21979,10 @@
                 },
                 "prior_year": {
                     "type": "integer"
+                },
+                "sci_shares": {
+                    "description": "SCIShares counts the shares of SCIs' issued 2072s (Q-133).",
+                    "type": "integer"
                 }
             }
         },
@@ -21968,6 +22056,13 @@
                 "reel": {
                     "$ref": "#/definitions/tax.Reel"
                 },
+                "sci_shares": {
+                    "description": "SCIShares are the owner's shares of SCIs' issued 2072s, counted in\nReel and Micro (WithShares, Q-133).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.SCIShare"
+                    }
+                },
                 "totals": {
                     "type": "array",
                     "items": {
@@ -22015,6 +22110,35 @@
                     }
                 },
                 "taxable_cents": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax.SCIShare": {
+            "type": "object",
+            "properties": {
+                "declaration_id": {
+                    "type": "string"
+                },
+                "income_cents": {
+                    "type": "integer"
+                },
+                "interest_cents": {
+                    "type": "integer"
+                },
+                "net_cents": {
+                    "type": "integer"
+                },
+                "other_expenses_cents": {
+                    "type": "integer"
+                },
+                "parts": {
+                    "type": "integer"
+                },
+                "sci_name": {
+                    "type": "string"
+                },
+                "total_parts": {
                     "type": "integer"
                 }
             }

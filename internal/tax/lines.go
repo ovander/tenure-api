@@ -92,6 +92,9 @@ type OwnerSummary struct {
 	Micro                       Micro        `json:"micro"`
 	Reel                        Reel         `json:"reel"`
 	FurnishedGrossReceiptsCents money.Cents  `json:"furnished_gross_receipts_cents"`
+	// SCIShares are the owner's shares of SCIs' issued 2072s, counted in
+	// Reel and Micro (WithShares, Q-133).
+	SCIShares []SCIShare `json:"sci_shares,omitempty"`
 }
 
 // Flag kinds: figures counted but needing the owner's attention.

@@ -92,6 +92,9 @@ type validateStep struct {
 type taxStep struct {
 	Year  int                      `json:"year"`
 	Prior map[string][]tax.Deficit `json:"prior,omitempty"`
+	// SCIShares are owners' shares of SCIs' issued 2072s, added after the
+	// lines (tax.WithShares, Q-133).
+	SCIShares map[string][]tax.SCIShare `json:"sci_shares,omitempty"`
 }
 
 func loadParams(t *testing.T, year int, override []params.Entry) params.Set {
@@ -253,6 +256,17 @@ func runStep(s *step, leases map[string]lease.Lease, c caseFile, ps params.Set) 
 	case s.Tax != nil:
 		charges, flags := tax.WithLoans(c.Charges, c.Loans, s.Tax.Year)
 		sum, err := tax.Lines(c.Payments, charges, c.Assets, s.Tax.Year, ps, s.Tax.Prior)
+		owners := make([]string, 0, len(s.Tax.SCIShares))
+		for o := range s.Tax.SCIShares {
+			owners = append(owners, o)
+		}
+		sort.Strings(owners)
+		for _, o := range owners {
+			if err != nil {
+				break
+			}
+			sum, err = tax.WithShares(sum, o, s.Tax.SCIShares[o], s.Tax.Year, ps, s.Tax.Prior)
+		}
 		sum.Flags = append(sum.Flags, flags...)
 		return sum, err
 	}
