@@ -255,7 +255,19 @@ func (s Service) compute(ctx context.Context, year int) (computed, error) {
 		if err != nil {
 			return out, err
 		}
-		if sum, err = WithShares(sum, sc.OwnerID.String(), shares, year, ps, out.prior); err != nil {
+		parts, err := s.Repo.PartsLoans(ctx, from, to)
+		if err != nil {
+			return out, err
+		}
+		for _, pl := range parts {
+			if pl.DocumentID != "" {
+				if id, err := uuid.Parse(pl.DocumentID); err == nil && !seenDoc[id] {
+					seenDoc[id] = true
+					out.docs = append(out.docs, id)
+				}
+			}
+		}
+		if sum, err = WithShares(sum, sc.OwnerID.String(), shares, parts, year, ps, out.prior); err != nil {
 			return out, mapErr(err)
 		}
 		out.inputs.SCIShares = len(shares)

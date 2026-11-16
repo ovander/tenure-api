@@ -144,8 +144,42 @@ func (Repository) LoanInstalments(ctx context.Context, from, to time.Time) ([]in
 	var rows []instalmentRow
 	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
 		Select("i.loan_id, l.asset_id, i.seq, i.due_on, i.interest_cents, i.insurance_cents, l.document_id").
-		Where("i.due_on BETWEEN ? AND ?", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
+		Where("i.due_on BETWEEN ? AND ? AND l.kind = 'asset'", from, to).Order("i.due_on, i.loan_id, i.seq").Scan(&rows).Error
 	return rows, err
+}
+
+// PartsLoans returns, per loan for SCI parts (Q-133), the interest and
+// insurance of its instalments due in [from, to].
+func (Repository) PartsLoans(ctx context.Context, from, to time.Time) ([]PartsLoan, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		LoanID         uuid.UUID
+		Label          string
+		SCIName        string
+		InterestCents  int64
+		InsuranceCents int64
+		DocumentID     *uuid.UUID
+	}
+	err = t.Table("loan_instalments i").Joins("JOIN loans l ON l.id = i.loan_id").
+		Select("i.loan_id, l.label, l.sci_name, sum(i.interest_cents) AS interest_cents, sum(i.insurance_cents) AS insurance_cents, l.document_id").
+		Where("i.due_on BETWEEN ? AND ? AND l.kind = 'parts'", from, to).
+		Group("i.loan_id, l.label, l.sci_name, l.document_id").Order("l.sci_name, i.loan_id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PartsLoan, 0, len(rows))
+	for _, r := range rows {
+		pl := PartsLoan{LoanID: r.LoanID.String(), Label: r.Label, SCIName: r.SCIName,
+			InterestCents: money.Cents(r.InterestCents), InsuranceCents: money.Cents(r.InsuranceCents)}
+		if r.DocumentID != nil {
+			pl.DocumentID = r.DocumentID.String()
+		}
+		out = append(out, pl)
+	}
+	return out, nil
 }
 
 // assetRow is an asset with its furnished flag for the year.

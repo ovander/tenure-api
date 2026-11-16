@@ -19,11 +19,15 @@ import (
 // Problem types of a loan.
 const (
 	TypeScheduleInvalid = "loan/schedule-invalid"
+	// TypePartsPersonOnly refuses a loan for SCI parts in an SCI's scope.
+	TypePartsPersonOnly = "loan/parts-person-only"
 )
 
 func init() {
 	problem.Register(map[string]problem.Message{
 		TypeScheduleInvalid: problem.M(422, "Le tableau d’amortissement de cet emprunt est incohérent.", "This loan's amortisation table is inconsistent."),
+		TypePartsPersonOnly: problem.M(409, "Un emprunt pour des parts de SCI est celui d’un associé : enregistrez-le dans son propre portefeuille, pas dans celui de la SCI.",
+			"A loan for parts of an SCI is an associate's: record it in their own portfolio, not the SCI's."),
 	})
 }
 

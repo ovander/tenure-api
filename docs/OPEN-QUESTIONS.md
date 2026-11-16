@@ -2054,7 +2054,7 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     versions frozen), deficits carried, the 2033 figures by nature;
   - 18e: the screen.
 
-**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190, #192, #194).**
+**Q-133 SCI at the income tax, its associates and the associate's 2044, part 19 — Open (#188, #190, #192, #194, #196).**
 RENT-SPEC-019 asks for « SCI: entity with associates and shares; income allocated per associate
 for 2044/2072; entity-level ledger and FEC », and for reporting that consolidates per person
 when one person is a private owner, an SCI associate and an LMNP owner at once. Today an owner
@@ -2195,3 +2195,20 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
     added to an issued summary.
   - **Not mapped:** the 2044 line of the shares. Sources disagree between section 110 of the 2044
     and lines 420 to 440, so the figures are given by nature, the mapping for the accountant.
+- **Built in 19e** (#196):
+  - **A loan for parts.** A loan of kind `parts` is an associate's loan for their parts of an
+    SCI: the SCI's name as typed (the SCI is another scope, which a foreign key cannot reach), no
+    asset. It is recorded in a person's scope only (409 `loan/parts-person-only` in an SCI's). The
+    interest and insurance of its instalments due in the year join the person's réel with their
+    shares (`tax.WithShares`, the golden case `sci-parts-loan`), as an asset's loan does on line
+    250; interest beyond income is carried forward by the person's own deficit rules. It stays
+    out of the per-asset 2044 lines and of the journal, which keeps the scope's own letting.
+  - **The dashboard per person** (`GET /dashboard`): the 2044 estimate already holds the shares
+    and the loans for parts; beside it the estimate lists them, counts the SCIs whose 2072 does not
+    name the owner yet (`sci_pending`), and gives the owner's furnished letting as a BIC result
+    (declared, or computed under the réel, the micro beside), never added to the revenus
+    fonciers. A share not issued is not shown: the associate does not see an SCI's figures before
+    its 2072. In an SCI's scope there is no 2044 estimate (reason `entity/sci`): its figures are
+    in `GET /sci/result`.
+  - **Fixed on the way:** the BIC result of a scope with neither a grid nor an item failed on its
+    first year (a NULL scanned into a date); it now chains from the year asked.

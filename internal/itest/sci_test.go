@@ -308,6 +308,61 @@ func TestSCI(t *testing.T) {
 		t.Errorf("the share in the associate's 2044 %+v", draft.Summary)
 	}
 
+	// A loan the associate took for their parts: in their own scope only;
+	// its interest and insurance join their share's.
+	partsLoan := map[string]any{"kind": "parts", "sci_name": "SCI des Tilleuls", "label": "Prêt pour les parts", "principal_cents": 1000000,
+		"instalments": []map[string]any{{"due_on": "2025-06-10", "principal_cents": 1000000, "interest_cents": 30000, "insurance_cents": 1000}}}
+	if r := call(t, "POST", "/loans", req{tok: tok, scope: entity.ID, body: partsLoan}); r.Status != 409 || r.problemType(t) != "loan/parts-person-only" {
+		t.Errorf("a loan for parts in the SCI's scope: %d %s", r.Status, r.Body)
+	}
+	if r := call(t, "POST", "/loans", req{tok: tok, body: map[string]any{"kind": "parts", "asset_id": asset.ID, "sci_name": "X", "label": "x",
+		"principal_cents": 100, "instalments": []map[string]any{{"due_on": "2025-06-10", "principal_cents": 100, "interest_cents": 0, "insurance_cents": 0}}}}); r.Status != 422 {
+		t.Errorf("a loan for parts with an asset: %d %s", r.Status, r.Body)
+	}
+	var loanV struct {
+		Kind    string  `json:"kind"`
+		AssetID *string `json:"asset_id"`
+	}
+	if r := call(t, "POST", "/loans", req{tok: tok, body: partsLoan}); r.Status != 201 {
+		t.Fatalf("a loan for parts: %d %s", r.Status, r.Body)
+	} else {
+		r.json(t, &loanV)
+	}
+	if loanV.Kind != "parts" || loanV.AssetID != nil {
+		t.Errorf("loan for parts %+v", loanV)
+	}
+	if r := call(t, "POST", "/tax/summaries", req{tok: up, body: map[string]any{"year": 2025}}); r.Status != 200 && r.Status != 201 {
+		t.Fatalf("draft with the loan: %d %s", r.Status, r.Body)
+	} else {
+		r.json(t, &draft)
+	}
+	if o := draft.Summary.Owners[0]; o.Reel.NetCents != -48001-31000 {
+		t.Errorf("the loan's interest and insurance with the share: %+v", o.Reel)
+	}
+
+	// The dashboard per person: the share, the loan, beside the person's
+	// own figures; in the SCI's scope, no 2044 estimate.
+	var dash struct {
+		Tax struct {
+			Available  bool             `json:"available"`
+			Reason     string           `json:"reason"`
+			SCIShares  []map[string]any `json:"sci_shares"`
+			PartsLoans []map[string]any `json:"parts_loans"`
+			Reel       *struct {
+				NetCents int64 `json:"net_cents"`
+			} `json:"reel"`
+		} `json:"tax"`
+	}
+	call(t, "GET", "/dashboard?year=2025", req{tok: tok}).json(t, &dash)
+	if !dash.Tax.Available || len(dash.Tax.SCIShares) != 1 || len(dash.Tax.PartsLoans) != 1 || dash.Tax.Reel == nil || dash.Tax.Reel.NetCents != -79001 {
+		t.Errorf("the person's dashboard %+v", dash.Tax)
+	}
+	dash.Tax.SCIShares, dash.Tax.Available = nil, true
+	call(t, "GET", "/dashboard?year=2025", req{tok: tok, scope: entity.ID}).json(t, &dash)
+	if dash.Tax.Available || dash.Tax.Reason != "entity/sci" {
+		t.Errorf("the SCI's dashboard has no 2044 estimate %+v", dash.Tax)
+	}
+
 	// Stored as issued: a later charge of 2025 does not change it.
 	if r := call(t, "POST", "/charges", req{tok: tok, scope: entity.ID, body: map[string]any{"asset_id": asset.ID, "charged_on": "2025-11-15", "paid_on": "2025-11-15",
 		"category": "property_tax", "amount_cents": 1000, "recoverable_cents": 0}}); r.Status != 201 {

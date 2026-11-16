@@ -57,7 +57,12 @@ type InstalmentInput struct {
 // with instalments it is the bank's table as typed in, and the term and
 // first due day are read from it.
 type Input struct {
+	// Kind is asset (the default: a loan financing an asset of the scope)
+	// or parts (a loan that financed the owner's parts of an SCI, Q-133:
+	// no asset, the SCI's name instead).
+	Kind           string      `json:"kind,omitempty" enums:"asset,parts"`
 	AssetID        uuid.UUID   `json:"asset_id"`
+	SCIName        string      `json:"sci_name,omitempty"`
 	Label          string      `json:"label" example:"Prêt bancaire"`
 	Lender         string      `json:"lender,omitempty" example:"Banque Exemple"`
 	PrincipalCents money.Cents `json:"principal_cents" example:"15000000"`
@@ -76,7 +81,9 @@ type Input struct {
 // View is a loan as the API returns it. Instalments is left out of a list.
 type View struct {
 	ID             uuid.UUID    `json:"id"`
-	AssetID        uuid.UUID    `json:"asset_id"`
+	Kind           string       `json:"kind" enums:"asset,parts"`
+	AssetID        *uuid.UUID   `json:"asset_id"`
+	SCIName        string       `json:"sci_name,omitempty"`
 	Label          string       `json:"label"`
 	Lender         string       `json:"lender,omitempty"`
 	PrincipalCents money.Cents  `json:"principal_cents"`
@@ -95,7 +102,7 @@ type View struct {
 }
 
 func view(r loanRow, rows []Instalment, withRows bool) View {
-	v := View{ID: r.ID, AssetID: r.AssetID, Label: r.Label, Lender: r.Lender, PrincipalCents: money.Cents(r.PrincipalCents),
+	v := View{ID: r.ID, Kind: r.Kind, AssetID: r.AssetID, SCIName: r.SCIName, Label: r.Label, Lender: r.Lender, PrincipalCents: money.Cents(r.PrincipalCents),
 		AnnualRatePPM: r.AnnualRatePPM, TermMonths: r.TermMonths, FirstDueOn: period.FromTime(r.FirstDueOn),
 		InsuranceCents: money.Cents(r.InsuranceCents), Source: r.Source, DocumentID: r.DocumentID, Years: Years(rows), Version: r.Version}
 	for _, i := range rows {
@@ -121,9 +128,28 @@ func instalments(rs []instalmentRow) []Instalment {
 // build validates an input and computes or checks its table.
 func build(in *Input) (string, []Instalment, error) {
 	in.Label, in.Lender = strings.TrimSpace(in.Label), strings.TrimSpace(in.Lender)
+	in.SCIName = strings.TrimSpace(in.SCIName)
+	if in.Kind == "" {
+		in.Kind = KindAsset
+	}
 	var f invariant.Fields
-	if in.AssetID == uuid.Nil {
-		f.Add("asset_id", "Le bien financé est obligatoire.")
+	switch in.Kind {
+	case KindAsset:
+		if in.AssetID == uuid.Nil {
+			f.Add("asset_id", "Le bien financé est obligatoire.")
+		}
+		if in.SCIName != "" {
+			f.Add("sci_name", "Seul un emprunt pour des parts de SCI nomme une SCI.")
+		}
+	case KindParts:
+		if in.AssetID != uuid.Nil {
+			f.Add("asset_id", "Un emprunt pour des parts de SCI ne finance aucun bien du portefeuille.")
+		}
+		if in.SCIName == "" || len([]rune(in.SCIName)) > 200 {
+			f.Add("sci_name", "Le nom de la SCI dont les parts ont été achetées est obligatoire (200 caractères au plus).")
+		}
+	default:
+		f.Add("kind", "Nature attendue : asset ou parts.")
 	}
 	if in.Label == "" || len(in.Label) > 100 {
 		f.Add("label", "Un libellé de 1 à 100 caractères est obligatoire.")
@@ -172,6 +198,9 @@ func build(in *Input) (string, []Instalment, error) {
 }
 
 func (s Service) checkLinks(ctx context.Context, in Input) error {
+	if in.Kind == KindParts {
+		return nil
+	}
 	if _, err := s.Portfolio.AssetInTx(ctx, in.AssetID); err != nil {
 		if errors.Is(err, invariant.ErrNotFound) {
 			var f invariant.Fields
@@ -276,13 +305,16 @@ func (s Service) Create(ctx context.Context, p *auth.Principal, requestID string
 	if err != nil {
 		return View{}, err
 	}
+	if in.Kind == KindParts && p.Active.IsSCI() {
+		return View{}, invariant.New(TypePartsPersonOnly, "")
+	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		if err := s.checkLinks(ctx, in); err != nil {
 			return err
 		}
 		now := s.now()
-		r := loanRow{ID: s.NewID(), OwnerID: sc.OwnerID, AssetID: in.AssetID, Label: in.Label, Lender: in.Lender,
+		r := loanRow{ID: s.NewID(), OwnerID: sc.OwnerID, Kind: in.Kind, AssetID: assetOf(in), SCIName: in.SCIName, Label: in.Label, Lender: in.Lender,
 			PrincipalCents: int64(in.PrincipalCents), AnnualRatePPM: in.AnnualRatePPM, TermMonths: in.TermMonths,
 			FirstDueOn: in.FirstDueOn.Time(), InsuranceCents: int64(in.InsuranceCents), Source: source, DocumentID: in.DocumentID,
 			CreatedAt: now, CreatedBy: p.Sub, UpdatedAt: now, UpdatedBy: p.Sub, Version: 1}
@@ -309,6 +341,9 @@ func (s Service) Update(ctx context.Context, p *auth.Principal, requestID string
 	if err != nil {
 		return View{}, err
 	}
+	if in.Kind == KindParts && p.Active.IsSCI() {
+		return View{}, invariant.New(TypePartsPersonOnly, "")
+	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		old, err := s.Repo.Loan(ctx, id, true)
@@ -326,7 +361,8 @@ func (s Service) Update(ctx context.Context, p *auth.Principal, requestID string
 			return err
 		}
 		r := old
-		r.AssetID, r.Label, r.Lender, r.PrincipalCents, r.AnnualRatePPM = in.AssetID, in.Label, in.Lender, int64(in.PrincipalCents), in.AnnualRatePPM
+		r.Kind, r.AssetID, r.SCIName = in.Kind, assetOf(in), in.SCIName
+		r.Label, r.Lender, r.PrincipalCents, r.AnnualRatePPM = in.Label, in.Lender, int64(in.PrincipalCents), in.AnnualRatePPM
 		r.TermMonths, r.FirstDueOn, r.InsuranceCents, r.Source, r.DocumentID = in.TermMonths, in.FirstDueOn.Time(), int64(in.InsuranceCents), source, in.DocumentID
 		r.UpdatedAt, r.UpdatedBy = s.now(), p.Sub
 		if err := s.Repo.UpdateLoan(ctx, r, old.Version); err != nil {
@@ -341,4 +377,18 @@ func (s Service) Update(ctx context.Context, p *auth.Principal, requestID string
 			view(old, instalments(before), false), view(r, table, false))
 	})
 	return out, err
+}
+
+// Loan kinds (Q-133).
+const (
+	KindAsset = "asset"
+	KindParts = "parts"
+)
+
+func assetOf(in Input) *uuid.UUID {
+	if in.Kind == KindParts {
+		return nil
+	}
+	id := in.AssetID
+	return &id
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/bic"
 	"github.com/ovander/tenure-api/internal/billing"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
@@ -33,6 +34,7 @@ type Service struct {
 	Billing   billing.Service
 	Portfolio portfolio.Service
 	Tax       tax.Service
+	BIC       bic.Service
 	Params    params.Repository
 	Now       func() time.Time
 }
@@ -49,7 +51,33 @@ type TaxEstimate struct {
 	Lower     string     `json:"lower,omitempty" enums:"micro,reel"`
 	Millesime int        `json:"millesime,omitempty"`
 	Owner     string     `json:"owner_id,omitempty"`
+	// The consolidation per person (Q-133), each with where it comes from:
+	// the shares of SCIs' issued 2072s and the loans for SCI parts, already
+	// in Micro and Reel; the SCIs whose 2072 does not name the owner yet;
+	// and the owner's furnished letting, a BIC result beside the revenus
+	// fonciers, never added to them.
+	SCIShares  []tax.SCIShare  `json:"sci_shares,omitempty"`
+	PartsLoans []tax.PartsLoan `json:"parts_loans,omitempty"`
+	SCIPending int             `json:"sci_pending,omitempty"`
+	BIC        *BICEstimate    `json:"bic,omitempty"`
 }
+
+// BICEstimate is the owner's furnished letting of the year (RENT-SPEC-019,
+// Q-132): as declared when it is, else computed under the réel, the micro
+// beside.
+type BICEstimate struct {
+	Declared          bool        `json:"declared"`
+	Regime            string      `json:"regime" enums:"reel,micro"`
+	ReceiptsCents     money.Cents `json:"receipts_cents"`
+	ResultCents       money.Cents `json:"result_cents"`
+	TaxableCents      money.Cents `json:"taxable_cents"`
+	MicroEligible     bool        `json:"micro_eligible"`
+	MicroTaxableCents money.Cents `json:"micro_taxable_cents"`
+}
+
+// ReasonSCI is the estimate's reason in an SCI's scope: an SCI files the
+// 2072, not the 2044 (GET /sci/result).
+const ReasonSCI = "entity/sci"
 
 // View is the dashboard as the API returns it.
 type View struct {
@@ -89,7 +117,7 @@ func label(a portfolio.AssetView) string {
 }
 
 // build gathers the inputs in the scope's transaction and runs Build.
-func (s Service) build(ctx context.Context, owner uuid.UUID, year int) (View, error) {
+func (s Service) build(ctx context.Context, owner uuid.UUID, sci bool, year int) (View, error) {
 	today := period.FromTime(s.Now().In(paris()))
 	ps, err := s.Params.Load(ctx)
 	if err != nil {
@@ -156,6 +184,10 @@ func (s Service) build(ctx context.Context, owner uuid.UUID, year int) (View, er
 		return View{}, err
 	}
 	out := View{Dashboard: d}
+	if sci {
+		out.Tax = TaxEstimate{Reason: ReasonSCI}
+		return out, nil
+	}
 	out.Tax, err = s.estimate(ctx, owner, year)
 	return out, err
 }
@@ -172,12 +204,28 @@ func (s Service) estimate(ctx context.Context, owner uuid.UUID, year int) (TaxEs
 		return TaxEstimate{}, err
 	}
 	t := TaxEstimate{Available: true, Millesime: sum.Millesime, Flags: len(sum.Flags)}
+	for _, f := range sum.Flags {
+		if f.Kind == tax.FlagSCIPending {
+			t.SCIPending++
+		}
+	}
+	b, ok, err := s.BIC.ResultInTx(ctx, owner, year)
+	switch {
+	case errors.Is(err, params.ErrNotFound):
+	case err != nil:
+		return TaxEstimate{}, err
+	case ok:
+		r := b.Result
+		t.BIC = &BICEstimate{Declared: r.Declared, Regime: r.Regime, ReceiptsCents: r.ReceiptsCents, ResultCents: r.ResultCents,
+			TaxableCents: r.TaxableCents, MicroEligible: r.Micro.Eligible, MicroTaxableCents: r.Micro.TaxableCents}
+	}
 	for _, o := range sum.Owners {
 		if o.OwnerID != owner.String() {
 			continue
 		}
 		m, r := o.Micro, o.Reel
 		t.Micro, t.Reel, t.Owner = &m, &r, o.OwnerID
+		t.SCIShares, t.PartsLoans = o.SCIShares, o.PartsLoans
 		t.Lower = "reel"
 		if m.Eligible && m.TaxableCents <= r.TaxableCents {
 			t.Lower = "micro"
@@ -197,7 +245,7 @@ func (s Service) Year(ctx context.Context, p *auth.Principal, requestID string, 
 	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		out, err = s.build(ctx, sc.OwnerID, year)
+		out, err = s.build(ctx, sc.OwnerID, p.Active.IsSCI(), year)
 		return err
 	})
 	return out, err
@@ -247,7 +295,7 @@ func (s Service) Export(ctx context.Context, p *auth.Principal, requestID string
 	}
 	var out []byte
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
-		v, err := s.build(ctx, sc.OwnerID, year)
+		v, err := s.build(ctx, sc.OwnerID, p.Active.IsSCI(), year)
 		if err != nil {
 			return err
 		}
