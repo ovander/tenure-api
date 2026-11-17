@@ -2023,7 +2023,7 @@ is a parameter in `legal_params`, or a setting per asset that the owner changes,
     receipts less the other charges, and the rest is carried without time limit. The years are
     chained from the first one in service, so the carry reaches the year asked. A deficit can
     only come from the other charges; carrying it to later years is not built.
-  - **Micro-BIC** (`bic.micro`: abatement 50 %, minimum 305 €, receipts up to 77 700 €) is
+  - **Micro-BIC** (`bic.micro`: abatement 50 %, minimum 305 €, receipts up to 77 700 €, 83 600 € from the revenue of 2026, Q-134) is
     computed beside, and the lower regime is named. The chain assumes the réel every year: a year
     under the micro carries no depreciation, and choosing the regime per year is not built.
   - The pure `bic.Results`, with golden files under `testdata/golden/<year>/bicresult/`.
@@ -2212,3 +2212,22 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
     in `GET /sci/result`.
   - **Fixed on the way:** the BIC result of a scope with neither a grid nor an item failed on its
     first year (a NULL scanned into a date); it now chains from the year asked.
+
+**Q-134 Parameters corrected by the tax review of the accountant's questionnaire — Open (#203).**
+The sixteen closed questions of Q-132 and Q-133 were reviewed against the texts and the BOFiP
+before the accountant answers. Two parameters were out of date, whatever the answers:
+- **Micro-BIC threshold.** For the revenue earned from 2026, furnished letting other than
+  unclassified tourist lets has a receipts threshold of 83 600 € (CGI art. 50-0, revalued),
+  abatement 50 % and minimum 305 € unchanged. `bic.micro` gets an entry from 2026-01-01; the
+  years before keep 77 700 €. Secondary sources disagree on whether the new threshold applies to
+  the revenue of 2026 or from the return filed in 2026: Tenure reads the BOFiP, revenue of 2026.
+- **Penalty account.** The PCG reform (ANC regulation 2022-06, years opened from 2025-01-01)
+  removed the exceptional section: 6712 « Pénalités, amendes fiscales et pénales » became 6582.
+  `ledger.chart` gets an entry from 2025-01-01 with the penalties on 658200; 2024 keeps 671200.
+  The penalty posted there is the deposit returned late (loi du 6 juillet 1989, art. 22), a
+  civil penalty owed to the tenant. Whether 6582 or 6581 (« Pénalités sur marchés ») fits it
+  better is put to the accountant; changing it is a parameter.
+- Both are new dated entries, seeded by migration 000038; no code changed. The other answers of
+  the review (furniture of first installation, the 39 C excess per asset, the 2044 lines of the
+  SCI shares, an allocation key set by the articles) change behaviour and follow in their own issues or
+  wait for the accountant.

@@ -210,18 +210,18 @@
           "balance_cents": 120000
         },
         {
+          "account": "658200",
+          "label": "Pénalités, amendes fiscales et pénales",
+          "debit_cents": 10000,
+          "credit_cents": 0,
+          "balance_cents": 10000
+        },
+        {
           "account": "661100",
           "label": "Intérêts des emprunts",
           "debit_cents": 43125,
           "credit_cents": 0,
           "balance_cents": 43125
-        },
-        {
-          "account": "671200",
-          "label": "Pénalités et amendes",
-          "debit_cents": 10000,
-          "credit_cents": 0,
-          "balance_cents": 10000
         },
         {
           "account": "706000",
@@ -417,8 +417,8 @@
               "credit_cents": 0
             },
             {
-              "account": "671200",
-              "label": "Pénalités et amendes",
+              "account": "658200",
+              "label": "Pénalités, amendes fiscales et pénales",
               "debit_cents": 10000,
               "credit_cents": 0
             },
