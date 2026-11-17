@@ -339,6 +339,20 @@
       },
       "source": "RENT-SPEC-014 : journal du bailleur en partie double ; comptes du plan comptable général (règlement ANC n° 2014-03 modifié par le règlement n° 2022-06, exercices ouverts à compter du 1er janvier 2025 : le compte 6712 devient 6582), choix de gestion à valider par l’expert-comptable ; Q-134",
       "source_url": "https://www.anc.gouv.fr/normes-francaises/plan-comptable-general"
+    },
+    {
+      "key": "form_2044_sci_line_map",
+      "effective_from": "2025-01-01",
+      "value": {
+        "tax_year": 2025,
+        "millesime": 2026,
+        "income": "111",
+        "expenses": "112",
+        "interest": "113",
+        "net": "114"
+      },
+      "source": "Formulaire 2044, millésime 2026 (revenus 2025), rubrique 110 « Revenus des parts de sociétés immobilières » : 111 revenus bruts, 112 frais et charges hors intérêts d’emprunt, 113 intérêts d’emprunt (dont ceux de l’emprunt personnel pour l’acquisition des parts), 114 bénéfice ou déficit ; Q-135",
+      "source_url": "https://www.impots.gouv.fr/sites/default/files/formulaires/2044/2026/2044_5483.pdf"
     }
   ]
 }

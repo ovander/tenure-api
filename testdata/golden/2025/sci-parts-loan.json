@@ -550,6 +550,38 @@
                 "insurance_cents": 12000,
                 "document_id": "doc-lp1"
               }
+            ],
+            "sci_lines": [
+              {
+                "line": "111",
+                "amount_cents": 720001,
+                "sources": [
+                  "D-sci-a"
+                ]
+              },
+              {
+                "line": "112",
+                "amount_cents": 320001,
+                "sources": [
+                  "D-sci-a"
+                ]
+              },
+              {
+                "line": "113",
+                "amount_cents": 342001,
+                "sources": [
+                  "D-sci-a",
+                  "LP1"
+                ]
+              },
+              {
+                "line": "114",
+                "amount_cents": 57999,
+                "sources": [
+                  "D-sci-a",
+                  "LP1"
+                ]
+              }
             ]
           },
           {
@@ -704,6 +736,36 @@
                 "interest_cents": 480000,
                 "other_expenses_cents": 40000,
                 "net_cents": -220000
+              }
+            ],
+            "sci_lines": [
+              {
+                "line": "111",
+                "amount_cents": 300000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "112",
+                "amount_cents": 40000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "113",
+                "amount_cents": 480000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "114",
+                "amount_cents": -220000,
+                "sources": [
+                  "D-sci-b"
+                ]
               }
             ]
           }

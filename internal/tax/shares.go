@@ -1,6 +1,8 @@
 package tax
 
 import (
+	"sort"
+
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
 )
@@ -53,8 +55,12 @@ const (
 //   - an owner with shares or such loans and no asset of their own gets a
 //     summary of their own.
 //
-// The 2044 lines of the shares are not mapped: their figures are given by
-// nature, the form's line for them waiting for the accountant (Q-133).
+// The shares and the loans for parts also fill the form's section for
+// partnerships (Q-135), its lines read from the parameter set: gross income,
+// expenses other than interest, interest (the SCI's and the owner's own loans
+// for parts, their insurance with them as on line 250) and the result. A
+// year without that section in the parameters is refused, as Lines refuses a
+// year without its line map.
 func WithShares(sum Summary, owner string, shares []SCIShare, loans []PartsLoan, year int, ps params.Set, prior map[string][]Deficit) (Summary, error) {
 	if len(shares) == 0 && len(loans) == 0 {
 		return sum, nil
@@ -74,6 +80,10 @@ func WithShares(sum Summary, owner string, shares []SCIShare, loans []PartsLoan,
 		return sum, err
 	}
 	carryYears, err := get(params.KeyDeficitCarryForward)
+	if err != nil {
+		return sum, err
+	}
+	lm, err := ps.Form2044SCILineMap(year)
 	if err != nil {
 		return sum, err
 	}
@@ -109,6 +119,7 @@ func WithShares(sum Summary, owner string, shares []SCIShare, loans []PartsLoan,
 	}
 	o.Reel = r
 	o.SCIShares, o.PartsLoans = shares, loans
+	o.SCILines = sciLines(lm, shares, loans)
 	taxable, err := money.MulDivHalfUp(r.IncomeCents, 100-allowancePct, 100)
 	if err != nil {
 		return sum, err
@@ -116,4 +127,41 @@ func WithShares(sum Summary, owner string, shares []SCIShare, loans []PartsLoan,
 	o.Micro = Micro{Eligible: direct && r.IncomeCents <= money.Cents(threshold), GrossCents: r.IncomeCents,
 		AllowanceCents: r.IncomeCents - taxable, TaxableCents: taxable}
 	return sum, nil
+}
+
+// sciLines is the form's section for partnerships: one line per figure, each
+// with the declarations and loans it comes from.
+func sciLines(lm params.SCILineMap, shares []SCIShare, loans []PartsLoan) []LineAmount {
+	income := LineAmount{Line: lm.Income, Sources: []string{}}
+	expenses := LineAmount{Line: lm.Expenses, Sources: []string{}}
+	interest := LineAmount{Line: lm.Interest, Sources: []string{}}
+	for _, s := range shares {
+		income.AmountCents += s.IncomeCents
+		expenses.AmountCents += s.OtherExpensesCents
+		interest.AmountCents += s.InterestCents
+		for _, l := range []*LineAmount{&income, &expenses, &interest} {
+			l.Sources = append(l.Sources, s.DeclarationID)
+		}
+	}
+	for _, l := range loans {
+		interest.AmountCents += l.InterestCents + l.InsuranceCents
+		interest.Sources = append(interest.Sources, l.LoanID)
+	}
+	net := LineAmount{Line: lm.Net, AmountCents: income.AmountCents - expenses.AmountCents - interest.AmountCents,
+		Sources: append([]string{}, interest.Sources...)}
+	for _, l := range []*LineAmount{&income, &expenses, &interest, &net} {
+		sort.Strings(l.Sources)
+		l.Sources = compactSorted(l.Sources)
+	}
+	return []LineAmount{income, expenses, interest, net}
+}
+
+func compactSorted(s []string) []string {
+	out := s[:0]
+	for i, v := range s {
+		if i == 0 || v != s[i-1] {
+			out = append(out, v)
+		}
+	}
+	return out
 }

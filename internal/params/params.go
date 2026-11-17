@@ -35,13 +35,16 @@ const (
 	KeyRentControlZoneCeiling = "rent_control.zone_ceiling"
 	KeyRentControlRelocation  = "rent_control.relocation_rule"
 	KeyForm2044LineMap        = "form_2044_line_map"
-	KeyDepositWarningBox      = "deposit_warning_months.box"
-	KeyDiagnostics            = "diagnostics"
-	KeyRentalMinDPEClass      = "rental_min_dpe_class"
-	KeyMobilityTerm           = "mobility_term_months"
-	KeyLeaseTerm              = "lease_term_months"
-	KeySupportingDocsMonths   = "regularisation_supporting_docs_months"
-	KeyReelLockYears          = "reel_option_lock_years"
+	// KeyForm2044SCILineMap is the 2044 section of the shares of
+	// partnerships that hold property (Q-133, Q-135), per income year.
+	KeyForm2044SCILineMap   = "form_2044_sci_line_map"
+	KeyDepositWarningBox    = "deposit_warning_months.box"
+	KeyDiagnostics          = "diagnostics"
+	KeyRentalMinDPEClass    = "rental_min_dpe_class"
+	KeyMobilityTerm         = "mobility_term_months"
+	KeyLeaseTerm            = "lease_term_months"
+	KeySupportingDocsMonths = "regularisation_supporting_docs_months"
+	KeyReelLockYears        = "reel_option_lock_years"
 	// Deposit restitution (RENT-INV-001 §6, §7), seeded by inventory slice 2.
 	KeyDepositReturnConforming     = "deposit.return_months.conforming"
 	KeyDepositReturnWithDeductions = "deposit.return_months.with_deductions"
@@ -434,6 +437,35 @@ func (s Set) Form2044LineMap(taxYear int) (LineMap, error) {
 		}
 	}
 	return LineMap{}, fmt.Errorf("%w: %s for income year %d", ErrNotFound, KeyForm2044LineMap, taxYear)
+}
+
+// SCILineMap is the 2044 section an associate's SCI shares go to, for one
+// income year (Q-135): the lines of gross income, of expenses other than
+// interest, of interest (the SCI's and the associate's own loan for the
+// parts) and of the result.
+type SCILineMap struct {
+	TaxYear   int    `json:"tax_year"`
+	Millesime int    `json:"millesime"`
+	Income    string `json:"income"`
+	Expenses  string `json:"expenses"`
+	Interest  string `json:"interest"`
+	Net       string `json:"net"`
+}
+
+// Form2044SCILineMap returns the SCI section of income year taxYear; a
+// missing year is ErrNotFound, as for Form2044LineMap.
+func (s Set) Form2044SCILineMap(taxYear int) (SCILineMap, error) {
+	list := s.entries[KeyForm2044SCILineMap]
+	for i := len(list) - 1; i >= 0; i-- {
+		var m SCILineMap
+		if err := json.Unmarshal(list[i].Value, &m); err != nil {
+			return SCILineMap{}, err
+		}
+		if m.TaxYear == taxYear && m.Income != "" && m.Expenses != "" && m.Interest != "" && m.Net != "" {
+			return m, nil
+		}
+	}
+	return SCILineMap{}, fmt.Errorf("%w: %s for income year %d", ErrNotFound, KeyForm2044SCILineMap, taxYear)
 }
 
 // TaxYearEnd is the date the parameters of income year taxYear are read at:

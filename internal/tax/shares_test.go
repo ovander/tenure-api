@@ -1,6 +1,8 @@
 package tax
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ovander/tenure-api/internal/money"
@@ -107,5 +109,55 @@ func TestWithSharesPartsLoans(t *testing.T) {
 	r = got.Owners[0].Reel
 	if r.NetCents != -900 || r.GlobalImputableCents != 0 || len(r.CarriedForward) != 1 || r.CarriedForward[0].RemainingCents != 900 {
 		t.Errorf("a loan for parts without income %+v", r)
+	}
+}
+
+func TestWithSharesSCILines(t *testing.T) {
+	ps := fixtures(t)
+	lm, err := ps.Form2044SCILineMap(2025)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shares := []SCIShare{
+		{DeclarationID: "d2", IncomeCents: 1000, InterestCents: 300, OtherExpensesCents: 200},
+		{DeclarationID: "d1", IncomeCents: 500, InterestCents: 0, OtherExpensesCents: 50},
+	}
+	loans := []PartsLoan{{LoanID: "l1", InterestCents: 400, InsuranceCents: 30}}
+	got, err := WithShares(Summary{Year: 2025}, "p", shares, loans, 2025, ps, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []LineAmount{
+		{Line: lm.Income, AmountCents: 1500, Sources: []string{"d1", "d2"}},
+		{Line: lm.Expenses, AmountCents: 250, Sources: []string{"d1", "d2"}},
+		{Line: lm.Interest, AmountCents: 730, Sources: []string{"d1", "d2", "l1"}},
+		{Line: lm.Net, AmountCents: 520, Sources: []string{"d1", "d2", "l1"}},
+	}
+	lines := got.Owners[0].SCILines
+	if len(lines) != len(want) {
+		t.Fatalf("lines %+v", lines)
+	}
+	for i := range want {
+		if lines[i].Line != want[i].Line || lines[i].AmountCents != want[i].AmountCents || strings.Join(lines[i].Sources, ",") != strings.Join(want[i].Sources, ",") {
+			t.Errorf("line %d: got %+v, want %+v", i, lines[i], want[i])
+		}
+	}
+	if got.Owners[0].Reel.NetCents != lines[3].AmountCents {
+		t.Errorf("the section's result %d differs from the réel %d", lines[3].AmountCents, got.Owners[0].Reel.NetCents)
+	}
+
+	// A loan for parts and no share yet: the interest alone, a deficit.
+	got, err = WithShares(Summary{Year: 2025}, "p", nil, loans, 2025, ps, nil)
+	if err != nil || got.Owners[0].SCILines[3].AmountCents != -430 || got.Owners[0].SCILines[0].AmountCents != 0 {
+		t.Errorf("loan only %+v %v", got.Owners[0].SCILines, err)
+	}
+
+	// A year without the section in the parameters is refused.
+	if _, err := WithShares(Summary{Year: 2026}, "p", shares, nil, 2026, ps, nil); !errors.Is(err, params.ErrNotFound) {
+		t.Error("a year without the SCI section must be refused")
+	}
+	// Without shares nor loans, nothing is read and nothing is added.
+	if got, err := WithShares(Summary{Year: 2026}, "p", nil, nil, 2026, ps, nil); err != nil || len(got.Owners) != 0 {
+		t.Errorf("nothing to add: %+v %v", got, err)
 	}
 }

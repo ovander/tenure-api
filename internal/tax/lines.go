@@ -98,6 +98,10 @@ type OwnerSummary struct {
 	// PartsLoans are the owner's loans for SCI parts, their interest and
 	// insurance counted in Reel (WithShares, Q-133).
 	PartsLoans []PartsLoan `json:"parts_loans,omitempty"`
+	// SCILines are the 2044 lines of the shares and the loans for parts
+	// (gross income, expenses, interest, result), in the form's section for
+	// partnerships (WithShares, Q-135).
+	SCILines []LineAmount `json:"sci_lines,omitempty"`
 }
 
 // Flag kinds: figures counted but needing the owner's attention.
