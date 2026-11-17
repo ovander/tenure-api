@@ -194,18 +194,18 @@
           "balance_cents": 120000
         },
         {
+          "account": "658200",
+          "label": "Pénalités, amendes fiscales et pénales",
+          "debit_cents": 10000,
+          "credit_cents": 0,
+          "balance_cents": 10000
+        },
+        {
           "account": "661100",
           "label": "Intérêts des emprunts",
           "debit_cents": 43125,
           "credit_cents": 0,
           "balance_cents": 43125
-        },
-        {
-          "account": "671200",
-          "label": "Pénalités et amendes",
-          "debit_cents": 10000,
-          "credit_cents": 0,
-          "balance_cents": 10000
         },
         {
           "account": "706000",
@@ -243,7 +243,7 @@
         "6,2026-05-20,BQ,charge,REFACT,Produits des activités annexes,512000,Banque,4500,0,",
         "6,2026-05-20,BQ,charge,REFACT,Produits des activités annexes,708000,Produits des activités annexes,0,4500,",
         "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,165000,Dépôts et cautionnements reçus,100000,0,DOC-RD1",
-        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,671200,Pénalités et amendes,10000,0,DOC-RD1",
+        "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,658200,\"Pénalités, amendes fiscales et pénales\",10000,0,DOC-RD1",
         "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,706000,Loyers,0,30000,DOC-RD1",
         "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,419800,\"Locataires, provisions sur charges\",0,5000,DOC-RD1",
         "7,2026-06-30,OD,settlement,RD1,Restitution du dépôt de garantie,708000,Produits des activités annexes,0,20000,DOC-RD1",
@@ -438,8 +438,8 @@
               "credit_cents": 0
             },
             {
-              "account": "671200",
-              "label": "Pénalités et amendes",
+              "account": "658200",
+              "label": "Pénalités, amendes fiscales et pénales",
               "debit_cents": 10000,
               "credit_cents": 0
             },
@@ -563,7 +563,7 @@
         "BQ\tBanque\t6\t20260520\t512000\tBanque\t\t\tREFACT\t20260520\tProduits des activités annexes\t45,00\t0,00\t\t\t20270520\t\t",
         "BQ\tBanque\t6\t20260520\t708000\tProduits des activités annexes\t\t\tREFACT\t20260520\tProduits des activités annexes\t0,00\t45,00\t\t\t20270520\t\t",
         "OD\tOpérations diverses\t7\t20260630\t165000\tDépôts et cautionnements reçus\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t1000,00\t0,00\t\t\t20270520\t\t",
-        "OD\tOpérations diverses\t7\t20260630\t671200\tPénalités et amendes\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t100,00\t0,00\t\t\t20270520\t\t",
+        "OD\tOpérations diverses\t7\t20260630\t658200\tPénalités, amendes fiscales et pénales\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t100,00\t0,00\t\t\t20270520\t\t",
         "OD\tOpérations diverses\t7\t20260630\t706000\tLoyers\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t300,00\t\t\t20270520\t\t",
         "OD\tOpérations diverses\t7\t20260630\t419800\tLocataires, provisions sur charges\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t50,00\t\t\t20270520\t\t",
         "OD\tOpérations diverses\t7\t20260630\t708000\tProduits des activités annexes\t\t\tRD1\t20260630\tRestitution du dépôt de garantie\t0,00\t200,00\t\t\t20270520\t\t",
@@ -577,7 +577,7 @@
         "BQ\tBanque\t10\t20261015\t512000\tBanque\t\t\tTF\t20261015\tTaxes foncières\t0,00\t1200,00\t\t\t20270520\t\t",
         ""
       ],
-      "fec_sha256": "4c1db61637631a5f17e7becb68f3370b819e838317ebac4a57ed9fca25d29bbb"
+      "fec_sha256": "67627b107986232a96f33576db739eb98dc39ebd37d2394a627160c1131a4575"
     }
   }
 }
