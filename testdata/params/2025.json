@@ -223,6 +223,122 @@
       },
       "source": "Loi 89-462 art. 10 (location nue : 3 ans, 6 ans si le bailleur est une personne morale) et art. 25-7 (meublé : 1 an, 9 mois pour un étudiant)",
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
+      "key": "ledger.chart",
+      "effective_from": "2025-01-01",
+      "value": {
+        "accounts": {
+          "bank": {
+            "code": "512000",
+            "label": "Banque"
+          },
+          "tenants": {
+            "code": "411000",
+            "label": "Locataires"
+          },
+          "tenant_advances": {
+            "code": "419100",
+            "label": "Locataires, avances reçues"
+          },
+          "provisions": {
+            "code": "419800",
+            "label": "Locataires, provisions sur charges"
+          },
+          "rent": {
+            "code": "706000",
+            "label": "Loyers"
+          },
+          "other_income": {
+            "code": "708000",
+            "label": "Produits des activités annexes"
+          },
+          "deposits": {
+            "code": "165000",
+            "label": "Dépôts et cautionnements reçus"
+          },
+          "loans": {
+            "code": "164000",
+            "label": "Emprunts auprès des établissements de crédit"
+          },
+          "loan_interest": {
+            "code": "661100",
+            "label": "Intérêts des emprunts"
+          },
+          "loan_insurance": {
+            "code": "616100",
+            "label": "Assurance emprunteur"
+          },
+          "penalties": {
+            "code": "658200",
+            "label": "Pénalités, amendes fiscales et pénales"
+          }
+        },
+        "categories": {
+          "management": {
+            "code": "622600",
+            "label": "Honoraires de gestion"
+          },
+          "insurance": {
+            "code": "616000",
+            "label": "Primes d’assurance"
+          },
+          "repairs": {
+            "code": "615200",
+            "label": "Entretien et réparations sur biens immobiliers"
+          },
+          "property_tax": {
+            "code": "635120",
+            "label": "Taxes foncières"
+          },
+          "teom": {
+            "code": "635120",
+            "label": "Taxes foncières"
+          },
+          "copro_provision": {
+            "code": "614000",
+            "label": "Charges locatives et de copropriété"
+          },
+          "copro_statement": {
+            "code": "614000",
+            "label": "Charges locatives et de copropriété"
+          },
+          "copro_regularisation_prior": {
+            "code": "614000",
+            "label": "Charges locatives et de copropriété"
+          },
+          "recoverable_utilities": {
+            "code": "614000",
+            "label": "Charges locatives et de copropriété"
+          },
+          "unrecovered_at_close": {
+            "code": "614000",
+            "label": "Charges locatives et de copropriété"
+          },
+          "loan_interest": {
+            "code": "661100",
+            "label": "Intérêts des emprunts"
+          },
+          "loan_insurance": {
+            "code": "616100",
+            "label": "Assurance emprunteur"
+          },
+          "owner_expense_charged_to_tenant": {
+            "code": "708000",
+            "label": "Produits des activités annexes"
+          },
+          "indemnity": {
+            "code": "708000",
+            "label": "Produits des activités annexes"
+          }
+        },
+        "income_categories": [
+          "owner_expense_charged_to_tenant",
+          "indemnity"
+        ]
+      },
+      "source": "RENT-SPEC-014 : journal du bailleur en partie double ; comptes du plan comptable général (règlement ANC n° 2014-03 modifié par le règlement n° 2022-06, exercices ouverts à compter du 1er janvier 2025 : le compte 6712 devient 6582), choix de gestion à valider par l’expert-comptable ; Q-134",
+      "source_url": "https://www.anc.gouv.fr/normes-francaises/plan-comptable-general"
     }
   ]
 }
