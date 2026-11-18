@@ -528,6 +528,36 @@
                 "other_expenses_cents": 320001,
                 "net_cents": 280000
               }
+            ],
+            "sci_lines": [
+              {
+                "line": "111",
+                "amount_cents": 720001,
+                "sources": [
+                  "D-sci-a"
+                ]
+              },
+              {
+                "line": "112",
+                "amount_cents": 320001,
+                "sources": [
+                  "D-sci-a"
+                ]
+              },
+              {
+                "line": "113",
+                "amount_cents": 120000,
+                "sources": [
+                  "D-sci-a"
+                ]
+              },
+              {
+                "line": "114",
+                "amount_cents": 280000,
+                "sources": [
+                  "D-sci-a"
+                ]
+              }
             ]
           },
           {
@@ -682,6 +712,36 @@
                 "interest_cents": 480000,
                 "other_expenses_cents": 40000,
                 "net_cents": -220000
+              }
+            ],
+            "sci_lines": [
+              {
+                "line": "111",
+                "amount_cents": 300000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "112",
+                "amount_cents": 40000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "113",
+                "amount_cents": 480000,
+                "sources": [
+                  "D-sci-b"
+                ]
+              },
+              {
+                "line": "114",
+                "amount_cents": -220000,
+                "sources": [
+                  "D-sci-b"
+                ]
               }
             ]
           }

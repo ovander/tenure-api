@@ -2195,6 +2195,7 @@ question (« do you validate X? »). None is a value in code: a rule is a parame
     added to an issued summary.
   - **Not mapped:** the 2044 line of the shares. Sources disagree between section 110 of the 2044
     and lines 420 to 440, so the figures are given by nature, the mapping for the accountant.
+    Mapped since (Q-135): section 110, lines 111 to 114.
 - **Built in 19e** (#196):
   - **A loan for parts.** A loan of kind `parts` is an associate's loan for their parts of an
     SCI: the SCI's name as typed (the SCI is another scope, which a foreign key cannot reach), no
@@ -2231,3 +2232,23 @@ before the accountant answers. Two parameters were out of date, whatever the ans
   the review (furniture of first installation, the 39 C excess per asset, the 2044 lines of the
   SCI shares, an allocation key set by the articles) change behaviour and follow in their own issues or
   wait for the accountant.
+
+**Q-135 The 2044 lines of an associate's SCI shares — Open (#204).** Q-133 gave the shares by
+nature, the line left to the accountant between section 110 and lines 420 to 440. The tax review
+of the questionnaire answered: both, at two levels. The detail goes in section 110 « Revenus des
+parts de sociétés immobilières » (millésime 2026: 111 gross income, 112 expenses other than loan
+interest, 113 loan interest, 114 the result), whose total is then carried to page 4 with the
+rest of the revenus fonciers; the notice asks for the interest of a personal loan for the parts
+to be added to the SCI's, so on line 113.
+- **Built:** a parameter `form_2044_sci_line_map` per income year (2025 seeded by migration
+  000039), read by `tax.WithShares`. An owner with shares or loans for parts gets `sci_lines` in
+  their summary: 111, 112 and 113 summed over the shares, the interest and insurance of the loans
+  for parts on 113 (as a loan's insurance goes on line 250), and 114 = 111 − 112 − 113, each with
+  the declarations and loans it comes from. The summary's CSV adds them under `sci`. A year with
+  shares and no such section is refused (`tax/line-map-missing`), as a year without a line map.
+- **Reading kept:** the borrower insurance of a loan for parts is on line 113 with its interest.
+  The detail of that loan (lender, SCI) goes in a separate section of the form whose number
+  changes with the millésime; Tenure does not fill it and lists the loan instead.
+- **Not built:** the page-4 carry, which Tenure does not draw for the direct properties either;
+  the PDF of the summary (`tax_summary/v1`) does not print the shares yet, and the web screen
+  shows them from `sci_shares` until it reads `sci_lines`.

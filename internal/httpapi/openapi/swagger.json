@@ -22133,6 +22133,13 @@
                 "reel": {
                     "$ref": "#/definitions/tax.Reel"
                 },
+                "sci_lines": {
+                    "description": "SCILines are the 2044 lines of the shares and the loans for parts\n(gross income, expenses, interest, result), in the form's section for\npartnerships (WithShares, Q-135).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax.LineAmount"
+                    }
+                },
                 "sci_shares": {
                     "description": "SCIShares are the owner's shares of SCIs' issued 2072s, counted in\nReel and Micro (WithShares, Q-133).",
                     "type": "array",

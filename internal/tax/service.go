@@ -553,6 +553,9 @@ func CSV(year int, sum Summary, docs []SupportingDoc) ([]byte, error) {
 		for _, l := range o.Totals {
 			_ = w.Write([]string{strconv.Itoa(year), o.OwnerID, "total", l.Line, strconv.FormatInt(int64(l.AmountCents), 10), strings.Join(l.Sources, " ")})
 		}
+		for _, l := range o.SCILines {
+			_ = w.Write([]string{strconv.Itoa(year), o.OwnerID, "sci", l.Line, strconv.FormatInt(int64(l.AmountCents), 10), strings.Join(l.Sources, " ")})
+		}
 	}
 	flags := append([]Flag(nil), sum.Flags...)
 	sort.Slice(flags, func(i, j int) bool { return flags[i].Kind+flags[i].ID < flags[j].Kind+flags[j].ID })
