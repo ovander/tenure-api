@@ -32,9 +32,13 @@ func init() {
 // conversion ends in its 503, not in a client timeout (Q-101). The start
 // timeouts are raised from 20 s per engine and 30 s for the API: with
 // auto-start, a slow boot past them makes gotenberg exit instead of serving
-// (Q-103).
+// (Q-103). Chromium is denied every network and file URL except the files of
+// the conversion under /tmp, so a rendering never reaches the network even if
+// a URL slipped into a template, and runs no script (threat model A-3); the
+// thumbnails of an inventory are data: URLs, which stay allowed.
 var GotenbergFlags = []string{"gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
-	"--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s"}
+	"--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s",
+	"--chromium-deny-list=^(?:https?|wss?|ftp|file):(?!///tmp/).*", "--chromium-disable-javascript=true"}
 
 // pdfRetryDelay is the wait before the one retry of a conversion gotenberg
 // refused with 503 (busy or restarting Chromium or LibreOffice).
