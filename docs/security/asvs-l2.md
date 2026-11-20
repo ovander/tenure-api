@@ -9,7 +9,7 @@ shows each one.
 
 | ASVS | Control | Where it is shown | Status |
 | --- | --- | --- | --- |
-| V1 Architecture | Layering handler → service → repository; RLS on every owner table; threat model per phase | CLAUDE.md, RENT-BE-001 §1–§2; cross-owner zero-row checks (`rlsZeroRows` in `internal/itest`) | CI |
+| V1 Architecture | Layering handler → service → repository; RLS on every owner table; threat model per phase | CLAUDE.md, RENT-BE-001 §1–§2; cross-owner zero-row checks (`rlsZeroRows` in `internal/itest`); `threat-model.md` (phase 1) | CI |
 | V2 Authentication | No local credentials; Socrate tokens checked by backendkit `jwtauth` (RS256, JWKS, issuer, audience) | `internal/auth`; `TestEveryRouteRequiresAToken` | CI |
 | V2.8 / step-up | `step_up` routes need `auth_time` ≤ 5 min and `mfa` in `amr` | `internal/auth` tests; 401 `auth/step-up-required` in TestTax and TestArchive | CI |
 | V2.2 Anti-automation | 10 failed authentications per 15 min per address, then 429 | `TestFailedAuthLockout` | CI |

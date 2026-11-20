@@ -3,7 +3,6 @@ package ledger
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/csv"
 	"fmt"
 	"sort"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"github.com/ovander/tenure-api/internal/csvx"
 	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/period"
 )
@@ -23,7 +23,7 @@ var journalLabels = map[string]string{JournalBank: "Banque", JournalGeneral: "Op
 // (amounts in cents, as every export of the tool).
 func CSV(entries []Entry) []byte {
 	var b bytes.Buffer
-	w := csv.NewWriter(&b)
+	w := csvx.NewWriter(&b)
 	_ = w.Write([]string{"entry", "date", "journal", "kind", "source", "label", "account", "account_label", "debit_cents", "credit_cents", "document_id"})
 	for n, e := range entries {
 		for _, l := range e.Lines {
@@ -38,7 +38,7 @@ func CSV(entries []Entry) []byte {
 // BalancesCSV writes each account's movements over the journal.
 func BalancesCSV(balances []Balance) []byte {
 	var b bytes.Buffer
-	w := csv.NewWriter(&b)
+	w := csvx.NewWriter(&b)
 	_ = w.Write([]string{"account", "label", "debit_cents", "credit_cents", "balance_cents"})
 	for _, x := range balances {
 		_ = w.Write([]string{x.Account, x.Label, strconv.FormatInt(int64(x.DebitCents), 10), strconv.FormatInt(int64(x.CreditCents), 10),
