@@ -2252,3 +2252,20 @@ to be added to the SCI's, so on line 113.
 - **Not built:** the page-4 carry, which Tenure does not draw for the direct properties either;
   the PDF of the summary (`tax_summary/v1`) does not print the shares yet, and the web screen
   shows them from `sci_shares` until it reads `sci_lines`.
+
+**Q-136 Tax measures of 2026 not modelled — Open (#209).** The review of the 2026 parameters
+before go-live found them current (micro-foncier 15 000 € and 30 %, deficit cap 10 700 €,
+forfait 20 €, micro-BIC 83 600 € from Q-134, DPE floor F). The loi de finances pour 2026
+(loi n° 2026-103 du 19 février 2026) brings two measures that Tenure does not compute; both
+leave the owner's deduction lower than the law allows, never higher:
+- **Doubled deficit cap for energy renovation.** The cap on the deficit set against global
+  income is 21 400 € instead of 10 700 € for renovation works that take a dwelling from class
+  E, F or G to A to D, paid from 2023 to the end of 2027. Tenure applies 10 700 €; the rest is
+  carried forward, as for any deficit above the cap. Modelling it needs a flag on the works
+  and the DPE before and after; until then the owner adds the difference on the form.
+- **Statut du bailleur privé** (art. 47): a depreciation for unfurnished letting under rent and
+  energy conditions, for dwellings bought or built until the end of 2028. Not modelled; an
+  owner who opts in keeps their figures outside Tenure for that asset.
+Both are put to the accountant with the questionnaire. Sources are secondary until the BOFiP
+comments are read.
+
