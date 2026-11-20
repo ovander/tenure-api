@@ -8,9 +8,11 @@ services:
     image: gotenberg/gotenberg:8.21
     # Chromium and LibreOffice start at boot, with start timeouts long enough
     # for a slow host (Q-103); gotenberg's limit stays under tenure's 60 s
-    # client timeout (document.GotenbergFlags, Q-101).
+    # client timeout (document.GotenbergFlags, Q-101). Chromium reaches no URL but
+    # the files of the conversion, and runs no script (threat model A-3).
     command: ["gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
-              "--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s"]
+              "--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s",
+              "--chromium-deny-list=^(?:https?|wss?|ftp|file):(?!///tmp/).*", "--chromium-disable-javascript=true"]
     ports: ["127.0.0.1:3000:3000"]
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
