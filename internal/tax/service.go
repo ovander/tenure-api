@@ -3,7 +3,6 @@ package tax
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/charge"
+	"github.com/ovander/tenure-api/internal/csvx"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
@@ -539,7 +539,7 @@ func (s Service) issue(ctx context.Context, owner uuid.UUID, year int, regime st
 // documents (RENT-SPEC-004: every figure traceable to its payment or charge).
 func CSV(year int, sum Summary, docs []SupportingDoc) ([]byte, error) {
 	var b bytes.Buffer
-	w := csv.NewWriter(&b)
+	w := csvx.NewWriter(&b)
 	_ = w.Write([]string{"tax_year", "owner_id", "asset_id", "line", "amount_cents", "sources"})
 	for _, o := range sum.Owners {
 		for _, a := range o.Assets {

@@ -2,12 +2,12 @@ package audit
 
 import (
 	"context"
-	"encoding/csv"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/csvx"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/httpx"
 	"github.com/ovander/tenure-api/internal/invariant"
@@ -176,7 +176,7 @@ func (h Handler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="audit-events.csv"`)
-	cw := csv.NewWriter(w)
+	cw := csvx.NewWriter(w)
 	_ = cw.Write([]string{"id", "occurred_at", "actor_sub", "scope", "action", "entity_type", "entity_id", "request_id", "before", "after", "prev_hash", "hash"})
 	for _, e := range events {
 		_ = cw.Write([]string{strconv.FormatInt(e.ID, 10), e.OccurredAt.UTC().Format(time.RFC3339Nano), e.ActorSub, e.Scope, e.Action,

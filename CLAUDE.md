@@ -76,6 +76,7 @@ internal/app          wiring of the router and the jobs (cmd/tenure and the inte
 internal/db           scoped transactions (app.owner_id, app.actor_sub), column types
 internal/migrate      goose over the embedded migrations
 internal/httpx        decode, ETag/If-Match, paging, service error → problem
+internal/csvx         CSV exports opened in a spreadsheet: formula cells neutralised (not the FEC)
 internal/problem      RFC 9457 bodies and the FR/EN title catalogue
 internal/invariant    Error{Type, Detail}, ErrNotFound/ErrStale/ErrForbidden, Fields
 internal/itest        integration suite (build tag integration, testcontainers)

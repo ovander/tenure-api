@@ -3,7 +3,6 @@ package dashboard
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"errors"
 	"strconv"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/bic"
 	"github.com/ovander/tenure-api/internal/billing"
+	"github.com/ovander/tenure-api/internal/csvx"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
@@ -254,7 +254,7 @@ func (s Service) Year(ctx context.Context, p *auth.Principal, requestID string, 
 // CSV writes the dashboard's assets, one row each, then the portfolio.
 func CSV(d Dashboard) []byte {
 	var b bytes.Buffer
-	w := csv.NewWriter(&b)
+	w := csvx.NewWriter(&b)
 	_ = w.Write([]string{"year", "as_of", "asset_id", "label", "acquisition_cents", "rent_cents", "other_income_cents", "expenses_cents",
 		"interest_cents", "net_cents", "gross_yield_bp", "net_yield_bp", "days", "vacant_days", "occupied_days",
 		"provisions_received_cents", "recoverable_paid_cents", "arrears_cents"})
