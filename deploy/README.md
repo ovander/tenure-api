@@ -14,10 +14,13 @@ requirements; this directory is how they are met.
 | `tenure.env.example`, `backup/backup.env.example` | Every setting, with placeholders; real values only on the host |
 | `deploy.sh` | Installs a release: checksum, migrate, swap, readiness, rollback of the binary |
 | `sql/roles.sql`, `sql/backup-role.sql` | Database roles, run once per cluster |
-| `runbooks/` | Release and rollback, restore, breach (72 h), break-glass |
+| `runbooks/` | First install and go-live, release and rollback, restore, breach (72 h), break-glass |
 | `dev/` | Development only (docker-compose.dev.yml) |
 
 ## First install
+
+`runbooks/first-install.md` gives the order, the decisions to take first and the check
+that closes each step; the list below is what each step installs.
 
 1. Host: an encrypted data volume for PostgreSQL; packages `postgresql-17`, `caddy`,
    `docker` with the compose plugin, `age`, `awscli`, `curl`. Users `tenure` and
