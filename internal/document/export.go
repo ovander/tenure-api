@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"context"
 	"crypto/sha256"
-	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/csvx"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/invariant"
 	"github.com/ovander/tenure-api/internal/problem"
@@ -159,7 +159,7 @@ func (s Service) writeZip(ctx context.Context, key string, docs []documentRow) (
 			if err != nil {
 				return err
 			}
-			cw := csv.NewWriter(idx)
+			cw := csvx.NewWriter(idx)
 			_ = cw.Write([]string{"file", "id", "class", "source", "asset_id", "lease_id", "period", "issued_at", "sha256", "size_bytes", "retain_until"})
 			for _, d := range docs {
 				name := path.Join(d.Class, d.ID.String()+"-"+path.Base(d.ObjectKey))
