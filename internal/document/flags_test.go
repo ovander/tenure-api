@@ -14,7 +14,7 @@ import (
 func TestComposeGotenbergFlags(t *testing.T) {
 	command := regexp.MustCompile(`(?s)\n  gotenberg:\n.*?\n    command: \[(.*?)\]`)
 	arg := regexp.MustCompile(`"([^"]*)"`)
-	for _, file := range []string{"../../deploy/sidecars.compose.yml", "../../docker-compose.dev.yml"} {
+	for _, file := range []string{"../../deploy/sidecars.compose.yml", "../../docker-compose.dev.yml", "../../deploy/test/compose.yml"} {
 		b, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)

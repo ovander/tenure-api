@@ -1,0 +1,40 @@
+# The tenure site for a test install on a host whose Caddy already serves other
+# sites (deploy/runbooks/test-install.md): imported from the host's Caddyfile,
+# it adds a site block and nothing global. TENURE_DOMAIN is replaced at install.
+TENURE_DOMAIN {
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	encode zstd gzip
+
+	header {
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "DENY"
+		-Server
+	}
+
+	request_body {
+		max_size 30MB
+	}
+
+	@internal path /metrics /metrics/*
+	respond @internal 404
+
+	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Forwarded-For {remote_host}
+		health_uri /healthz
+		health_interval 30s
+	}
+
+	log {
+		output file /var/log/caddy/tenure.access.log {
+			roll_size 50MiB
+			roll_keep_for 720h
+		}
+		format json
+	}
+}

@@ -1,0 +1,69 @@
+# A test install of tenure on a shared host (deploy/runbooks/test-install.md):
+# the production sidecars (gotenberg, ClamAV) with memory caps, so that on a
+# small host they are the ones stopped, not the other services; a local
+# S3-compatible archive (RustFS, Q-38) instead of Scaleway, since tenure locks
+# every document for 10 years; Mailpit to read the e-mails tenure sends.
+# Fictitious data only: nothing here is backed up. Every port is on the
+# loopback. Passwords are generated on the host (test.env), never written here.
+name: tenure-test
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8.21
+    # The flags of document.GotenbergFlags (TestComposeGotenbergFlags).
+    command: ["gotenberg", "--chromium-auto-start=true", "--libreoffice-auto-start=true", "--api-timeout=50s",
+              "--chromium-start-timeout=60s", "--libreoffice-start-timeout=60s", "--api-start-timeout=90s",
+              "--chromium-deny-list=^(?:https?|wss?|ftp|file):(?!///tmp/).*", "--chromium-disable-javascript=true"]
+    ports: ["127.0.0.1:3000:3000"]
+    mem_limit: 900m
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+  clamav:
+    image: clamav/clamav:1.4.3
+    ports: ["127.0.0.1:3310:3310"]
+    mem_limit: 1600m
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    volumes: ["clamav-db:/var/lib/clamav"]
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 10m
+
+  archive:
+    image: rustfs/rustfs:1.0.3
+    env_file: [/etc/tenure/test.env]
+    ports: ["127.0.0.1:9000:9000"]
+    mem_limit: 256m
+    restart: unless-stopped
+    volumes: ["archive-data:/data"]
+
+  # Creates the bucket with object lock, once:
+  #   docker compose -f compose.yml --profile init run --rm archive-init
+  archive-init:
+    profiles: ["init"]
+    image: amazon/aws-cli:2.27.0
+    env_file: [/etc/tenure/test.env]
+    depends_on: [archive]
+    network_mode: host
+    entrypoint: ["sh", "-c", "AWS_ACCESS_KEY_ID=$$RUSTFS_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$$RUSTFS_SECRET_KEY AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url http://127.0.0.1:9000 s3api create-bucket --bucket tenure-test --object-lock-enabled-for-bucket"]
+
+  # Every e-mail tenure sends, readable on http://127.0.0.1:8025 through an
+  # SSH tunnel; nothing leaves the host.
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+    mem_limit: 128m
+    restart: unless-stopped
+
+volumes:
+  clamav-db:
+  archive-data:
