@@ -1,6 +1,7 @@
 package charge
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,6 +29,15 @@ func fixtures(t *testing.T) params.Set {
 	// so the same value is back-dated for the test only.
 	s, err = s.With(params.Entry{Key: params.KeyRegularisationSpread, EffectiveFrom: d(2014, 3, 27),
 		Value: []byte("12"), Source: "test only: 2025 fixture value back-dated"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := s.Int64(params.KeyRegularisationInstalments, d(2025, 1, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err = s.With(params.Entry{Key: params.KeyRegularisationInstalments, EffectiveFrom: d(2014, 3, 27),
+		Value: []byte(fmt.Sprint(n)), Source: "test only: 2025 fixture value back-dated"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,14 +106,64 @@ func TestAllocateLateSpread(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	n, err := ps.Int64(params.KeyRegularisationInstalments, late.IssuedOn)
+	if err != nil {
+		t.Fatal(err)
+	}
 	ln := a.Lines[0]
-	if !ln.Spread || len(ln.Instalments) != 12 || money.Sum(ln.Instalments...) != ln.BalanceCents ||
-		ln.Instalments[0] != 2527 || ln.Instalments[11] != 2531 {
+	if !ln.Spread || int64(len(ln.Instalments)) != n || money.Sum(ln.Instalments...) != ln.BalanceCents ||
+		ln.Instalments[0] != 2527 || ln.Instalments[len(ln.Instalments)-1] != 2531 {
 		t.Errorf("spread %+v", ln)
 	}
 	credit, err := Allocate(charges2023(), leases, late, map[string]money.Cents{"new": 200000}, ps)
 	if err != nil || credit.Lines[0].Spread || credit.Lines[0].BalanceCents >= 0 {
 		t.Errorf("a credit is never spread: %+v, %v", credit.Lines, err)
+	}
+}
+
+// An exercise issued on time does not read the instalment count.
+func TestAllocateOnTimeWithoutInstalments(t *testing.T) {
+	s := fixtures(t)
+	var ps params.Set
+	for _, e := range s.Entries() {
+		if e.Key != params.KeyRegularisationInstalments {
+			var err error
+			if ps, err = ps.With(e); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	ex := Exercise{AssetID: "A2", Start: d(2023, 1, 1), End: d(2023, 12, 31), IssuedOn: d(2024, 3, 1)}
+	if _, err := Allocate(charges2023(), []lease.Lease{mkLease("new", d(2023, 6, 1), period.Date{})}, ex,
+		map[string]money.Cents{"new": 84000}, ps); err != nil {
+		t.Errorf("on time, without the instalment count: %v", err)
+	}
+}
+
+// An exercise ending on 29 February is late from 28 February of the year
+// the spread delay ends in, not from 1 March (the month count is clamped).
+func TestAllocateLateFromLeapDay(t *testing.T) {
+	ps := fixtures(t)
+	leases := []lease.Lease{mkLease("new", d(2023, 3, 1), period.Date{})}
+	after, err := ps.Int64(params.KeyRegularisationSpread, d(2025, 1, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ex := Exercise{AssetID: "A2", Start: d(2023, 3, 1), End: d(2024, 2, 29)}
+	limit := ex.End.AddMonthsClamped(int(after))
+	// Issued on the limit: on time. The day after: late.
+	for _, c := range []struct {
+		on     period.Date
+		spread bool
+	}{{limit, false}, {limit.AddDays(1), true}} {
+		ex.IssuedOn = c.on
+		a, err := Allocate(charges2023(), leases, ex, map[string]money.Cents{"new": 84000}, ps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Lines[0].Spread != c.spread {
+			t.Errorf("issued on %s (limit %s): spread %v, want %v", c.on, limit, a.Lines[0].Spread, c.spread)
+		}
 	}
 }
 
