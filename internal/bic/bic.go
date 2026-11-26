@@ -103,11 +103,23 @@ func (g Grid) Bases() []money.Cents {
 	return out
 }
 
+// halfUp returns num ÷ den to the nearest unit, halves away from zero, so a
+// negative amount (a deficit, a refund) rounds like the matching positive one
+// (Q-18, as money.MulDivHalfUp). Go's division truncates towards zero, so
+// the magnitude is rounded and the sign put back.
 func halfUp(num, den int64) int64 {
-	if den == 0 {
+	if den <= 0 {
 		return 0
 	}
-	return (2*num + den) / (2 * den)
+	neg := num < 0
+	if neg {
+		num = -num
+	}
+	q := (2*num + den) / (2 * den)
+	if neg {
+		return -q
+	}
+	return q
 }
 
 func days(from, to period.Date) int64 {

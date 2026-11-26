@@ -322,12 +322,18 @@ document. Provisional: it takes the next number in the class of the document it 
 is archived in that class, and is rendered from the `cancellation` template.
 
 **Q-50 Binding a download link to the caller — Open (slice 3).** An S3 presigned URL cannot check
-who uses it. Provisional:
+who uses it: it is a bearer link, and whoever holds it can download the document until it
+expires. "Bound to the caller" means no more than the following (wording corrected after the
+code audit of 2026-11-26):
 - a link is issued only to a caller who may read the document;
 - its signature covers `x-tenure-sub` and `x-tenure-document`, so changing either makes the
-  store answer 403;
+  store answer 403, and the store's access logs name the subject it was issued to; nothing
+  checks them when the link is used;
 - it lasts 10 minutes and is recorded as `document.download`;
 - an accountant gets links for financial classes only.
+
+A link checked on use would need tenure to stream the object itself, behind the session.
+Needs answer before the phase 4 tenant portal, where links leave the owner's browser.
 
 **Q-51 One bucket or one per owner — Open (slice 3).** RENT-SPEC-005 says "bucket per owner";
 RENT-BE-001 §6 keys objects `<owner_id>/…` in one bucket. Provisional: follow the backend spec,
