@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -55,6 +56,11 @@ func verifyStoredHeads(ctx context.Context, store document.Store) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	type stored struct {
+		event int64
+		hash  string
+	}
+	inBucket := map[string][]stored{}
 	for _, v := range versions {
 		obj, err := store.Open(ctx, v.Key, v.VersionID)
 		if err != nil {
@@ -76,6 +82,25 @@ func verifyStoredHeads(ctx context.Context, store document.Store) (int, error) {
 		}
 		if err := audit.CheckStoredHead(ctx, h.LastEventID, h.HeadHash); err != nil {
 			return 0, fmt.Errorf("%w: %s (version %s): %v", ErrChainMismatch, v.Key, v.VersionID, err)
+		}
+		inBucket[v.Key] = append(inBucket[v.Key], stored{h.LastEventID, h.HeadHash})
+	}
+	// Every head row has its locked object: a row whose object is missing
+	// from the bucket is a checkpoint that can no longer be proved.
+	rows, err := audit.HeadRows(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, r := range rows {
+		found := false
+		for _, s := range inBucket[r.ObjectKey] {
+			if s.event == r.LastEventID && s.hash == r.HeadHash {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return 0, fmt.Errorf("%w: stored head of %s missing from the bucket (%q)", ErrChainMismatch, r.AsOf.Format(time.DateOnly), r.ObjectKey)
 		}
 	}
 	return len(versions), nil

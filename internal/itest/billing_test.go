@@ -440,6 +440,19 @@ func TestBilling(t *testing.T) {
 		if err != nil || run.Status != jobs.StatusFailed || !strings.Contains(string(run.Summary), "stored head") {
 			t.Errorf("verify with a forged stored head: %s %s %v", run.Status, run.Summary, err)
 		}
+		_ = env.s3.RemoveObject(context.Background(), bucket, key, minio.RemoveObjectOptions{VersionID: info.VersionID})
+		// A head row whose object is missing from the bucket fails the check
+		// too, though the row itself matches the chain.
+		superExec(t, `INSERT INTO audit_chain_heads (owner_id, as_of, last_event_id, head_hash, object_key)
+			SELECT owner_id, as_of - 1, last_event_id, head_hash, owner_id::text || '/audit/missing.json' FROM audit_chain_heads
+			WHERE owner_id = $1 ORDER BY as_of DESC LIMIT 1`, owner.ID)
+		t.Cleanup(func() {
+			_, _ = env.super.Exec(`DELETE FROM audit_chain_heads WHERE owner_id = $1 AND object_key LIKE '%/audit/missing.json'`, owner.ID)
+		})
+		run, _, err = env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid, DryRun: true})
+		if err != nil || run.Status != jobs.StatusFailed || !strings.Contains(string(run.Summary), "missing from the bucket") {
+			t.Errorf("verify with a head object missing: %s %s %v", run.Status, run.Summary, err)
+		}
 	})
 
 	t.Run("isolation of the new tables", func(t *testing.T) {

@@ -101,6 +101,22 @@ func VerifyHeads(ctx context.Context) (int, error) {
 	return len(heads), nil
 }
 
+// HeadRows returns the head rows of the scope's chain (an owner's, or the
+// platform's without an owner scope), oldest first.
+func HeadRows(ctx context.Context) ([]ChainHead, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	f, err := chainFilter(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var heads []ChainHead
+	err = f(tx.Model(&ChainHead{})).Order("as_of").Find(&heads).Error
+	return heads, err
+}
+
 // Heads returns the scope's chain heads, latest first (owner and accountant).
 func (s Service) Heads(ctx context.Context, p *auth.Principal, requestID string, offset, limit int) ([]ChainHead, int, error) {
 	if p.Active == nil {
