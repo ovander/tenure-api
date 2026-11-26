@@ -17,7 +17,7 @@ shows each one.
 | V4 Access control | Deny by default; scope from `owners`/`owner_grants`, never a claim; RLS; revoked grant ⇒ 403 | TestArchive (grants), TestScenario (isolation), `X-Owner-Scope` checks | CI |
 | V5 Validation | JSON only, typed decoding, 1 MiB body cap (25 MB uploads); invariants in services; RFC 9457 problems | `internal/httpx`, `internal/invariant` | CI |
 | V7 Logging | slog JSON; audit chain INSERT-only, hashed and verified weekly; heads under object lock | `internal/audit`, TestZAuditedRoutes, `audit.verify` | CI |
-| V8 Data protection | `Cache-Control: no-store` on the API; signed URLs for 10 min bound to the subject; RGPD export | `internal/document`, `GET /me/export` | CI |
+| V8 Data protection | `Cache-Control: no-store` on the API; signed URLs for 10 min, issued per caller and document (bearer links, Q-50); RGPD export | `internal/document`, `GET /me/export` | CI |
 | V9 Communications | TLS 1.2+ at Caddy; database over TLS (`sslmode=verify-full`); S3 over TLS (insecure only on the loopback) | `deploy/Caddyfile`, `deploy/tenure.env.example`, `TestDeployTemplate` | host |
 | V10 Malicious code | gitleaks, govulncheck, golangci-lint; SBOM on each release | `.github/workflows/ci.yml`, `release.yml` | CI |
 | V12 Files | Quarantine, ClamAV (fail closed), sniffed type, 25 MB cap; the archive is versioned and locked | TestContracts (uploads), `internal/document` | CI |
