@@ -208,9 +208,12 @@ func TestReviseLeaseSignedOn29February(t *testing.T) {
 	// The first anniversary in a common year is 28 February, twelve months
 	// after the start once the month is capped.
 	r, err := Revise(l, idx, d(2025, 2, 28), p(2025, 3), fixtures(t))
-	if err != nil || r.Forfeited || r.NewRentCents == l.RentCents {
+	// 70000 × 14470 ÷ 14259 = 71035.84
+	if err != nil || r.Forfeited || r.NewRentCents != 71036 {
 		t.Fatalf("revision on 28 February: %+v, %v", r, err)
 	}
+	// The anniversary itself comes from the start date: DueRevision gives 28
+	// February 2025 for this lease (TestDueRevision).
 	// Applied twelve months after that anniversary, it is still allowed.
 	if r, err := Revise(l, idx, d(2025, 2, 28), p(2026, 2), fixtures(t)); err != nil || r.Forfeited {
 		t.Errorf("applied in February of the next year: %+v, %v", r, err)
