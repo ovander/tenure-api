@@ -14,7 +14,7 @@ requirements; this directory is how they are met.
 | `tenure.env.example`, `backup/backup.env.example` | Every setting, with placeholders; real values only on the host |
 | `deploy.sh` | Installs a release: checksum, migrate, swap, readiness, rollback of the binary |
 | `sql/roles.sql`, `sql/backup-role.sql` | Database roles, run once per cluster |
-| `runbooks/` | First install and go-live, a test install on a shared host, release and rollback, restore, breach (72 h), break-glass |
+| `runbooks/` | First install and go-live, a test install on a shared host, release and rollback, restore, breach (72 h), break-glass, and where operators log them (`ops.md`, a private repository) |
 | `dev/` | Development only (docker-compose.dev.yml) |
 | `test/` | A test install beside other services: capped sidecars, a local archive, Mailpit, a Caddy site to import (`runbooks/test-install.md`) |
 

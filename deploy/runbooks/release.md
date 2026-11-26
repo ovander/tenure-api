@@ -36,4 +36,5 @@ within 60 s, it puts the previous binary back and fails.
 - A migration marked not reversible is reverted only by restoring the backup taken before the
   deploy (`restore.md`).
 
-Each rollback is noted in the release's GitHub issue with its reason.
+Each rollback is noted, with its reason, in an issue of the private operations repository
+(`ops.md`).

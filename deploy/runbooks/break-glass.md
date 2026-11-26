@@ -1,8 +1,8 @@
 # Break-glass
 
 Break-glass is access outside the normal path, used only when that path is down: Socrate
-unavailable, the host unreachable, or a key lost. Every use is logged in a private GitHub issue
-labelled `break-glass`, with who, when, why and what was done. Every secret used is rotated
+unavailable, the host unreachable, or a key lost. Every use is logged in an issue labelled
+`break-glass` in the private operations repository (`ops.md`), never in this public one, with who, when, why and what was done. Every secret used is rotated
 afterwards.
 
 ## What is kept offline
