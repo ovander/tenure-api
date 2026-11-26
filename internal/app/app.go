@@ -92,10 +92,10 @@ func New(d Deps) (*App, error) {
 	ts := tax.Service{DB: d.API, Issuer: issuer, Now: d.Now, NewID: newID}
 	reg := map[string]jobs.Job{}
 	for _, j := range []jobs.Job{
-		jobs.AuditVerify(),
+		jobs.AuditVerify(d.Store),
 		jobs.AuditHead(d.Store, params.Repository{}),
 		jobs.ArchiveRetention(d.Store, params.Repository{}),
-		jobs.ArchiveVerify(d.Store),
+		jobs.ArchiveVerify(d.Store, params.Repository{}, inventory.Repository{}.RecentPhotos),
 		billing.MonthlyJob(bs, d.Jobs),
 		billing.IRLFetchJob(bs, d.Jobs, d.INSEE),
 		billing.ReceiptsJob(bs, d.Jobs),

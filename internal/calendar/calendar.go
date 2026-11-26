@@ -266,7 +266,7 @@ func nextRevision(l Lease, today period.Date) (period.Date, bool) {
 		p := period.Period{Year: y, Month: time.Month(l.RevisionMonth)}
 		return period.Date{Year: y, Month: time.Month(l.RevisionMonth), Day: min(l.StartOn.Day, p.Days())}
 	}
-	firstOn := l.StartOn.AddMonths(12)
+	firstOn := l.StartOn.AddMonthsClamped(12)
 	y := max(firstOn.Year, refYear+1)
 	ann := at(y)
 	for ann.Before(firstOn) || ann.Before(today) {

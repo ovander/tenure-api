@@ -8,18 +8,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/period"
 )
 
 // ErrChainMismatch reports a chain whose recomputed hashes differ from the
 // stored ones.
 var ErrChainMismatch = errors.New("audit chain mismatch")
 
-func verifyChain(ctx context.Context) (any, error) {
+func verifyChain(ctx context.Context, store document.Store) (any, error) {
 	res, err := audit.Verify(ctx)
 	if err != nil {
 		return nil, err
@@ -31,19 +35,89 @@ func verifyChain(ctx context.Context) (any, error) {
 	if err != nil {
 		return res, fmt.Errorf("%w: %v", ErrChainMismatch, err)
 	}
-	return map[string]any{"chain": res, "heads_checked": n}, nil
+	stored, err := verifyStoredHeads(ctx, store)
+	if err != nil {
+		return res, err
+	}
+	return map[string]any{"chain": res, "heads_checked": n, "stored_heads_checked": stored}, nil
+}
+
+// verifyStoredHeads reads back every version of every head object of the
+// chain from the bucket, where audit.head wrote it under compliance lock,
+// and checks it against the chain. It lists the bucket rather than the
+// audit_chain_heads table, so that a head row deleted or rewritten in the
+// database cannot hide an object from the check.
+func verifyStoredHeads(ctx context.Context, store document.Store) (int, error) {
+	sc, _ := db.ScopeFrom(ctx)
+	prefix := "platform"
+	if sc.OwnerID != uuid.Nil {
+		prefix = sc.OwnerID.String()
+	}
+	versions, err := store.Versions(ctx, prefix+"/audit/")
+	if err != nil {
+		return 0, err
+	}
+	type stored struct {
+		event int64
+		hash  string
+	}
+	inBucket := map[string][]stored{}
+	for _, v := range versions {
+		obj, err := store.Open(ctx, v.Key, v.VersionID)
+		if err != nil {
+			return 0, err
+		}
+		var h struct {
+			OwnerID     *string `json:"owner_id"`
+			LastEventID int64   `json:"last_event_id"`
+			HeadHash    string  `json:"head_hash"`
+		}
+		err = json.NewDecoder(io.LimitReader(obj, 1<<16)).Decode(&h)
+		_ = obj.Close()
+		owner := ""
+		if h.OwnerID != nil {
+			owner = *h.OwnerID
+		}
+		if err != nil || (sc.OwnerID != uuid.Nil && owner != sc.OwnerID.String()) || (sc.OwnerID == uuid.Nil && owner != "") {
+			return 0, fmt.Errorf("%w: stored head %s (version %s) is not a head of this chain", ErrChainMismatch, v.Key, v.VersionID)
+		}
+		if err := audit.CheckStoredHead(ctx, h.LastEventID, h.HeadHash); err != nil {
+			return 0, fmt.Errorf("%w: %s (version %s): %v", ErrChainMismatch, v.Key, v.VersionID, err)
+		}
+		inBucket[v.Key] = append(inBucket[v.Key], stored{h.LastEventID, h.HeadHash})
+	}
+	// Every head row has its locked object: a row whose object is missing
+	// from the bucket is a checkpoint that can no longer be proved.
+	rows, err := audit.HeadRows(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, r := range rows {
+		found := false
+		for _, s := range inBucket[r.ObjectKey] {
+			if s.event == r.LastEventID && s.hash == r.HeadHash {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return 0, fmt.Errorf("%w: stored head of %s missing from the bucket (%q)", ErrChainMismatch, r.AsOf.Format(time.DateOnly), r.ObjectKey)
+		}
+	}
+	return len(versions), nil
 }
 
 // AuditVerify recomputes every owner's chain and the platform chain weekly and
-// checks the stored daily heads against them (RENT-BE-001 §5, §8b); a mismatch
-// fails that unit, so the run ends partial or failed, which alerts.
-func AuditVerify() Job {
+// checks the daily heads against them, both the rows and the objects locked
+// in the bucket (RENT-BE-001 §5, §8b); a mismatch fails that unit, so the run
+// ends partial or failed, which alerts.
+func AuditVerify(store document.Store) Job {
 	return Job{
 		Name:     "audit.verify",
 		Schedule: "0 5 * * 0",
 		Period:   WeekKey,
-		PerOwner: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx) },
-		Platform: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx) },
+		PerOwner: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx, store) },
+		Platform: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx, store) },
 	}
 }
 
@@ -166,29 +240,80 @@ func ArchiveRetention(store document.Store, ps params.Repository) Job {
 }
 
 // ArchiveVerify is archive.verify (RENT-BE-001 §5): every Sunday at 04:00,
-// per owner, it re-hashes a random sample of archived objects against
-// documents.sha256; a mismatch or a missing object fails that owner's unit,
-// so the run ends partial or failed, which alerts.
-func ArchiveVerify(store document.Store) Job {
+// per owner, it re-hashes a random sample of archived objects, and every
+// document of the last eight days, against documents.sha256; a mismatch or a
+// missing object fails that owner's unit, so the run ends partial or failed,
+// which alerts. It also checks their compliance lock, placed after the commit
+// (document.Archive), and places it again where it is missing ("relocked").
+func ArchiveVerify(store document.Store, ps params.Repository, others ...document.RecentArchived) Job {
 	return Job{
 		Name:     "archive.verify",
 		Schedule: "0 4 * * 0",
 		Period:   WeekKey,
-		PerOwner: func(ctx context.Context, _ Owner) (any, error) {
-			docs, err := document.Repository{}.Sample(ctx, VerifySample)
+		PerOwner: func(ctx context.Context, o Owner) (any, error) {
+			sample, err := document.Repository{}.Sample(ctx, VerifySample)
 			if err != nil {
 				return nil, err
 			}
-			var bad []string
-			for _, d := range docs {
-				sum, err := hashObject(ctx, store, d.ObjectKey, d.ObjectVersion)
-				if err != nil || sum != d.SHA256 {
-					bad = append(bad, d.ID.String())
-				}
+			// Every object of the last eight days is checked as well, the
+			// documents and the other modules' objects (inventory photos):
+			// its compliance lock is placed after its commit
+			// (document.Archive), and one that failed is placed again here.
+			since := o.Today.AddDays(-8).Time()
+			recent, err := document.Repository{}.Recent(ctx, since)
+			if err != nil {
+				return nil, err
 			}
-			res := map[string]any{"checked": len(docs), "mismatches": bad}
+			var objects []document.Archived
+			for _, d := range append(sample, recent...) {
+				objects = append(objects, document.Archived{ID: d.ID.String(), Key: d.ObjectKey, Version: d.ObjectVersion, SHA256: d.SHA256, CreatedAt: d.CreatedAt})
+			}
+			for _, list := range others {
+				more, err := list(ctx, since)
+				if err != nil {
+					return nil, err
+				}
+				objects = append(objects, more...)
+			}
+			set, err := ps.Load(ctx)
+			if err != nil {
+				return nil, err
+			}
+			var bad, relocked []string
+			seen := map[string]bool{}
+			for _, d := range objects {
+				if seen[d.ID] {
+					continue
+				}
+				seen[d.ID] = true
+				sum, err := hashObject(ctx, store, d.Key, d.Version)
+				if err != nil || sum != d.SHA256 {
+					bad = append(bad, d.ID)
+					continue
+				}
+				created := d.CreatedAt.In(Paris())
+				years, err := set.Int64(document.KeyArchiveRetention, period.FromTime(created))
+				if err != nil {
+					return nil, err
+				}
+				want := document.RetainUntil(created, years).Time()
+				until, locked, err := store.Locked(ctx, d.Key, d.Version)
+				if err != nil {
+					return nil, err
+				}
+				if locked && !until.Before(want) {
+					continue
+				}
+				if !o.DryRun {
+					if err := store.ExtendRetention(ctx, d.Key, d.Version, want); err != nil {
+						return nil, err
+					}
+				}
+				relocked = append(relocked, d.ID)
+			}
+			res := map[string]any{"checked": len(seen), "mismatches": bad, "relocked": relocked}
 			if len(bad) > 0 {
-				return res, fmt.Errorf("%w: %d of %d objects", ErrArchiveMismatch, len(bad), len(docs))
+				return res, fmt.Errorf("%w: %d of %d objects", ErrArchiveMismatch, len(bad), len(seen))
 			}
 			return res, nil
 		},

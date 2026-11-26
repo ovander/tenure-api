@@ -62,6 +62,14 @@ type txKey struct{}
 type txValue struct {
 	tx    *gorm.DB
 	scope Scope
+	hooks *hooks
+}
+
+// hooks are run once the outermost transaction has ended: after on commit,
+// rollback otherwise.
+type hooks struct {
+	after    []func(context.Context)
+	rollback []func(context.Context)
 }
 
 // DB is a connection pool.
@@ -111,7 +119,8 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 		}
 		return fn(ctx)
 	}
-	return lockErr(d.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	h := &hooks{}
+	err := lockErr(d.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		owner := ""
 		if scope.OwnerID != uuid.Nil {
 			owner = scope.OwnerID.String()
@@ -120,8 +129,40 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 			owner, scope.ActorSub).Error; err != nil {
 			return fmt.Errorf("db: set scope: %w", err)
 		}
-		return fn(context.WithValue(ctx, txKey{}, txValue{tx: tx, scope: scope}))
+		return fn(context.WithValue(ctx, txKey{}, txValue{tx: tx, scope: scope, hooks: h}))
 	}))
+	run := h.after
+	if err != nil {
+		run = h.rollback
+	}
+	for _, f := range run {
+		f(context.WithoutCancel(ctx))
+	}
+	return err
+}
+
+// AfterCommit registers fn to run once the transaction of ctx has committed,
+// outside it, with a context that is never cancelled; fn is dropped if the
+// transaction rolls back. It is how work that cannot be undone (a compliance
+// lock in the archive) waits for the data it belongs to.
+func AfterCommit(ctx context.Context, fn func(context.Context)) error {
+	v, ok := ctx.Value(txKey{}).(txValue)
+	if !ok || v.hooks == nil {
+		return ErrNoScope
+	}
+	v.hooks.after = append(v.hooks.after, fn)
+	return nil
+}
+
+// OnRollback registers fn to run if the transaction of ctx rolls back, to
+// undo what it did outside the database (an object written to the archive).
+func OnRollback(ctx context.Context, fn func(context.Context)) error {
+	v, ok := ctx.Value(txKey{}).(txValue)
+	if !ok || v.hooks == nil {
+		return ErrNoScope
+	}
+	v.hooks.rollback = append(v.hooks.rollback, fn)
+	return nil
 }
 
 // Tx returns the scoped transaction of ctx, bound to ctx.

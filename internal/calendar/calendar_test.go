@@ -44,6 +44,7 @@ func TestNextRevision(t *testing.T) {
 		{Lease{StartOn: d("2026-01-15"), RevisionMonth: 1, IRLRefQuarter: "2025-Q3"}, "2026-11-07", "2027-01-15"},
 		{Lease{StartOn: d("2024-03-31"), RevisionMonth: 2, IRLRefQuarter: "2025-Q4"}, "2026-01-01", "2026-02-28"}, // start day capped
 		{Lease{StartOn: d("2024-03-31"), RevisionMonth: 2, IRLRefQuarter: "2025-Q4"}, "2026-03-01", "2027-02-28"}, // passed this year
+		{Lease{StartOn: d("2024-02-29"), RevisionMonth: 2, IRLRefQuarter: "2023-Q4"}, "2025-01-10", "2025-02-28"}, // signed on 29 February
 		{Lease{StartOn: d("2026-01-15"), RevisionMonth: 0, IRLRefQuarter: "2025-Q3"}, "2026-11-07", ""},
 		{Lease{StartOn: d("2026-01-15"), RevisionMonth: 1}, "2026-11-07", ""},
 	} {

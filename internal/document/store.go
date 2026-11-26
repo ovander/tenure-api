@@ -21,6 +21,10 @@ type Store interface {
 	// and verifies the stored bytes hash to sha256hex; it returns the object
 	// version.
 	Put(ctx context.Context, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error)
+	// Stage writes data under key without retention and verifies the stored
+	// bytes hash to sha256hex; it returns the object version. Archive locks
+	// it once the transaction commits.
+	Stage(ctx context.Context, key string, data []byte, contentType, sha256hex string) (string, error)
 	// PresignGet returns a URL valid for ttl that downloads one version of key.
 	PresignGet(ctx context.Context, key, version string, ttl time.Duration, params url.Values) (*url.URL, error)
 	// CheckLock reports whether the bucket enforces object lock (/readyz).
@@ -42,6 +46,19 @@ type Store interface {
 	// ExtendRetention moves one version's compliance lock to until; a
 	// compliance lock can only be extended, never shortened.
 	ExtendRetention(ctx context.Context, key, version string, until time.Time) error
+	// Locked reports whether one version is under compliance retention, and
+	// until when.
+	Locked(ctx context.Context, key, version string) (time.Time, bool, error)
+	// Versions lists every version of every object under prefix, so that a
+	// verification reads what the bucket holds, not what a table says it
+	// holds.
+	Versions(ctx context.Context, prefix string) ([]ObjectVersion, error)
+}
+
+// ObjectVersion is one version of an object.
+type ObjectVersion struct {
+	Key       string
+	VersionID string
 }
 
 // S3 is the Store over an S3-compatible bucket with versioning and object lock
@@ -65,24 +82,50 @@ var ErrChecksum = errors.New("document: stored object does not match its checksu
 
 // Put implements Store.
 func (s *S3) Put(ctx context.Context, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error) {
-	info, err := s.Client.PutObject(ctx, s.Bucket, key, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+	version, err := s.put(ctx, key, data, minio.PutObjectOptions{
 		ContentType: contentType, SendContentMd5: true, Mode: minio.Compliance, RetainUntilDate: retainUntil.UTC(),
 		UserMetadata: map[string]string{"sha256": sha256hex},
-	})
+	}, sha256hex)
+	if err != nil {
+		return "", err
+	}
+	return version, nil
+}
+
+// Stage implements Store. A version written but not verified is removed:
+// it holds no lock yet, so nothing is left behind.
+func (s *S3) Stage(ctx context.Context, key string, data []byte, contentType, sha256hex string) (string, error) {
+	version, err := s.put(ctx, key, data, minio.PutObjectOptions{
+		ContentType: contentType, SendContentMd5: true, UserMetadata: map[string]string{"sha256": sha256hex},
+	}, sha256hex)
+	if err != nil && version != "" {
+		if derr := s.Delete(context.WithoutCancel(ctx), key, version); derr != nil {
+			return "", fmt.Errorf("%w (and the unverified version was not removed: %v)", err, derr)
+		}
+		return "", err
+	}
+	return version, err
+}
+
+// put writes data with opts and reads it back to check its hash.
+func (s *S3) put(ctx context.Context, key string, data []byte, opts minio.PutObjectOptions, sha256hex string) (string, error) {
+	info, err := s.Client.PutObject(ctx, s.Bucket, key, bytes.NewReader(data), int64(len(data)), opts)
 	if err != nil {
 		return "", fmt.Errorf("document: put %s: %w", key, err)
 	}
+	// A verification error returns the version written, so that Stage can
+	// remove it; Put's callers ignore it, as before.
 	obj, err := s.Client.GetObject(ctx, s.Bucket, key, minio.GetObjectOptions{VersionID: info.VersionID})
 	if err != nil {
-		return "", fmt.Errorf("document: verify %s: %w", key, err)
+		return info.VersionID, fmt.Errorf("document: verify %s: %w", key, err)
 	}
 	defer func() { _ = obj.Close() }()
 	back, err := io.ReadAll(obj)
 	if err != nil {
-		return "", fmt.Errorf("document: verify %s: %w", key, err)
+		return info.VersionID, fmt.Errorf("document: verify %s: %w", key, err)
 	}
 	if SHA256(back) != sha256hex {
-		return "", fmt.Errorf("%w: %s", ErrChecksum, key)
+		return info.VersionID, fmt.Errorf("%w: %s", ErrChecksum, key)
 	}
 	return info.VersionID, nil
 }
@@ -182,8 +225,42 @@ func (s *S3) CheckLock(ctx context.Context) error {
 	if enabled != "Enabled" {
 		return fmt.Errorf("document: bucket %s has no object lock", s.Bucket)
 	}
-	if mode != nil && *mode != minio.Compliance {
-		return fmt.Errorf("document: bucket %s default retention is %s, not COMPLIANCE", s.Bucket, *mode)
+	// No default retention at all: tenure locks each object itself, once
+	// its transaction commits (Archive). A default would lock a staged
+	// object at once, so a rollback could not remove it.
+	if mode != nil {
+		return fmt.Errorf("document: bucket %s has a default %s retention; tenure sets one per object", s.Bucket, *mode)
 	}
 	return nil
+}
+
+// Locked implements Store: an object with no retention configured is
+// reported unlocked, not as an error.
+func (s *S3) Locked(ctx context.Context, key, version string) (time.Time, bool, error) {
+	mode, until, err := s.Client.GetObjectRetention(ctx, s.Bucket, key, version)
+	if err != nil {
+		if minio.ToErrorResponse(err).Code == "NoSuchObjectLockConfiguration" {
+			return time.Time{}, false, nil
+		}
+		return time.Time{}, false, fmt.Errorf("document: retention of %s: %w", key, err)
+	}
+	if mode == nil || *mode != minio.Compliance || until == nil {
+		return time.Time{}, false, nil
+	}
+	return *until, true, nil
+}
+
+// Versions implements Store; delete markers are skipped.
+func (s *S3) Versions(ctx context.Context, prefix string) ([]ObjectVersion, error) {
+	var out []ObjectVersion
+	for o := range s.Client.ListObjects(ctx, s.Bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true, WithVersions: true}) {
+		if o.Err != nil {
+			return nil, fmt.Errorf("document: list %s: %w", prefix, o.Err)
+		}
+		if o.IsDeleteMarker {
+			continue
+		}
+		out = append(out, ObjectVersion{Key: o.Key, VersionID: o.VersionID})
+	}
+	return out, nil
 }
