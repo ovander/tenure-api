@@ -215,8 +215,11 @@ func (s *S3) CheckLock(ctx context.Context) error {
 	if enabled != "Enabled" {
 		return fmt.Errorf("document: bucket %s has no object lock", s.Bucket)
 	}
-	if mode != nil && *mode != minio.Compliance {
-		return fmt.Errorf("document: bucket %s default retention is %s, not COMPLIANCE", s.Bucket, *mode)
+	// No default retention at all: tenure locks each object itself, once
+	// its transaction commits (Archive). A default would lock a staged
+	// object at once, so a rollback could not remove it.
+	if mode != nil {
+		return fmt.Errorf("document: bucket %s has a default %s retention; tenure sets one per object", s.Bucket, *mode)
 	}
 	return nil
 }

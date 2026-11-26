@@ -15,6 +15,17 @@ var (
 	lockBackoff  = time.Second
 )
 
+// Archived is an object archived by another module (an inventory photo),
+// checked and relocked by archive.verify like a document.
+type Archived struct {
+	ID, Key, Version, SHA256 string
+	CreatedAt                time.Time
+}
+
+// RecentArchived lists a module's objects archived since a time, in the
+// owner scope of the transaction.
+type RecentArchived func(ctx context.Context, since time.Time) ([]Archived, error)
+
 // Archive writes data under key in the caller's scoped transaction and
 // returns the object version. The object is written without retention and
 // locked in compliance mode until retainUntil once the transaction commits;
@@ -24,7 +35,8 @@ var (
 //
 // A lock that still fails after its retries leaves the committed document
 // unlocked; it is logged as an error, which raises the alert (threat model
-// A-1), and archive.retention or an operator locks it again.
+// A-1), and archive.verify locks it again (documents and inventory
+// photos).
 func Archive(ctx context.Context, store Store, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error) {
 	version, err := store.Stage(ctx, key, data, contentType, sha256hex)
 	if err != nil {

@@ -219,6 +219,22 @@ func TestBilling(t *testing.T) {
 			}
 			return n
 		}
+		// A bucket with a default retention would lock a staged object at
+		// once, so that a rollback could not remove it: it is refused.
+		if err := env.store.CheckLock(ctx); err != nil {
+			t.Fatalf("archive bucket: %v", err)
+		}
+		withDefault := "itest-default-retention"
+		if err := env.s3.MakeBucket(ctx, withDefault, minio.MakeBucketOptions{ObjectLocking: true}); err != nil {
+			t.Fatal(err)
+		}
+		lockMode, days, unit := minio.Compliance, uint(1), minio.Days
+		if err := env.s3.SetObjectLockConfig(ctx, withDefault, &lockMode, &days, &unit); err != nil {
+			t.Fatal(err)
+		}
+		if err := (&document.S3{Client: env.s3, Bucket: withDefault}).CheckLock(ctx); err == nil {
+			t.Error("a bucket with a default compliance retention is accepted")
+		}
 		// A staged object that does not verify is removed at once.
 		if _, err := env.store.Stage(ctx, owner.ID+"/tax_summary/2000/unverified.csv", []byte("x"), "text/csv", strings.Repeat("0", 64)); !errors.Is(err, document.ErrChecksum) {
 			t.Errorf("stage with a wrong hash: %v", err)

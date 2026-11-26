@@ -172,7 +172,7 @@ func ArchiveRetention(store document.Store, ps params.Repository) Job {
 // missing object fails that owner's unit, so the run ends partial or failed,
 // which alerts. It also checks their compliance lock, placed after the commit
 // (document.Archive), and places it again where it is missing ("relocked").
-func ArchiveVerify(store document.Store, ps params.Repository) Job {
+func ArchiveVerify(store document.Store, ps params.Repository, others ...document.RecentArchived) Job {
 	return Job{
 		Name:     "archive.verify",
 		Schedule: "0 4 * * 0",
@@ -182,12 +182,25 @@ func ArchiveVerify(store document.Store, ps params.Repository) Job {
 			if err != nil {
 				return nil, err
 			}
-			// Every document of the last eight days is checked as well: its
-			// compliance lock is placed after its commit (document.Archive),
-			// and one that failed is placed again here.
-			recent, err := document.Repository{}.Recent(ctx, o.Today.AddDays(-8).Time())
+			// Every object of the last eight days is checked as well, the
+			// documents and the other modules' objects (inventory photos):
+			// its compliance lock is placed after its commit
+			// (document.Archive), and one that failed is placed again here.
+			since := o.Today.AddDays(-8).Time()
+			recent, err := document.Repository{}.Recent(ctx, since)
 			if err != nil {
 				return nil, err
+			}
+			var objects []document.Archived
+			for _, d := range append(sample, recent...) {
+				objects = append(objects, document.Archived{ID: d.ID.String(), Key: d.ObjectKey, Version: d.ObjectVersion, SHA256: d.SHA256, CreatedAt: d.CreatedAt})
+			}
+			for _, list := range others {
+				more, err := list(ctx, since)
+				if err != nil {
+					return nil, err
+				}
+				objects = append(objects, more...)
 			}
 			set, err := ps.Load(ctx)
 			if err != nil {
@@ -195,14 +208,14 @@ func ArchiveVerify(store document.Store, ps params.Repository) Job {
 			}
 			var bad, relocked []string
 			seen := map[string]bool{}
-			for _, d := range append(sample, recent...) {
-				if seen[d.ID.String()] {
+			for _, d := range objects {
+				if seen[d.ID] {
 					continue
 				}
-				seen[d.ID.String()] = true
-				sum, err := hashObject(ctx, store, d.ObjectKey, d.ObjectVersion)
+				seen[d.ID] = true
+				sum, err := hashObject(ctx, store, d.Key, d.Version)
 				if err != nil || sum != d.SHA256 {
-					bad = append(bad, d.ID.String())
+					bad = append(bad, d.ID)
 					continue
 				}
 				created := d.CreatedAt.In(Paris())
@@ -211,7 +224,7 @@ func ArchiveVerify(store document.Store, ps params.Repository) Job {
 					return nil, err
 				}
 				want := document.RetainUntil(created, years).Time()
-				until, locked, err := store.Locked(ctx, d.ObjectKey, d.ObjectVersion)
+				until, locked, err := store.Locked(ctx, d.Key, d.Version)
 				if err != nil {
 					return nil, err
 				}
@@ -219,11 +232,11 @@ func ArchiveVerify(store document.Store, ps params.Repository) Job {
 					continue
 				}
 				if !o.DryRun {
-					if err := store.ExtendRetention(ctx, d.ObjectKey, d.ObjectVersion, want); err != nil {
+					if err := store.ExtendRetention(ctx, d.Key, d.Version, want); err != nil {
 						return nil, err
 					}
 				}
-				relocked = append(relocked, d.ID.String())
+				relocked = append(relocked, d.ID)
 			}
 			res := map[string]any{"checked": len(seen), "mismatches": bad, "relocked": relocked}
 			if len(bad) > 0 {
