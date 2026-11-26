@@ -22,6 +22,7 @@ import (
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/jobs"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 )
 
@@ -177,6 +178,55 @@ func TestBilling(t *testing.T) {
 		}
 		if n := superCount(t, "SELECT count(*) FROM billing_documents WHERE owner_id = $1 AND period = '2025-03'", owner.ID); n != 1 {
 			t.Errorf("documents after re-runs: %d", n)
+		}
+	})
+
+	t.Run("an archived object is locked only once its transaction commits", func(t *testing.T) {
+		ctx := context.Background()
+		sc := db.Scope{OwnerID: uuid.MustParse(owner.ID), Role: "job"}
+		archive := func(name string, fail bool) (document.Issued, error) {
+			var out document.Issued
+			err := env.jobsDB.InScope(ctx, sc, func(ctx context.Context) error {
+				ps, err := params.Repository{}.Load(ctx)
+				if err != nil {
+					return err
+				}
+				if out, err = env.app.Billing.Issuer.Attach(ctx, document.AttachRequest{Class: document.ClassTaxSummary, Name: name,
+					Data: []byte("archive test " + name), ContentType: "text/csv"}, ps); err != nil {
+					return err
+				}
+				if fail {
+					return errors.New("rolled back (test)")
+				}
+				return nil
+			})
+			return out, err
+		}
+		versions := func(key string) int {
+			n := 0
+			for o := range env.s3.ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: key, WithVersions: true}) {
+				if o.Err == nil && !o.IsDeleteMarker {
+					n++
+				}
+			}
+			return n
+		}
+		// Rolled back: the object is removed, nothing stays locked.
+		rolled, err := archive("rolled-back.csv", true)
+		if err == nil || rolled.ObjectKey == "" {
+			t.Fatalf("rolled back archive: %+v %v", rolled, err)
+		}
+		if n := versions(rolled.ObjectKey); n != 0 {
+			t.Errorf("%d versions left after a rollback", n)
+		}
+		// Committed: the object is under compliance lock.
+		done, err := archive("committed.csv", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mode, until, err := env.s3.GetObjectRetention(ctx, bucket, done.ObjectKey, done.ObjectVersion)
+		if err != nil || mode == nil || *mode != minio.Compliance || until == nil || until.Year() < time.Now().Year()+9 {
+			t.Errorf("committed object not locked: %v %v %v", mode, until, err)
 		}
 	})
 

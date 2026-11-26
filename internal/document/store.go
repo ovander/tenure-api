@@ -21,6 +21,10 @@ type Store interface {
 	// and verifies the stored bytes hash to sha256hex; it returns the object
 	// version.
 	Put(ctx context.Context, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error)
+	// Stage writes data under key without retention and verifies the stored
+	// bytes hash to sha256hex; it returns the object version. Archive locks
+	// it once the transaction commits.
+	Stage(ctx context.Context, key string, data []byte, contentType, sha256hex string) (string, error)
 	// PresignGet returns a URL valid for ttl that downloads one version of key.
 	PresignGet(ctx context.Context, key, version string, ttl time.Duration, params url.Values) (*url.URL, error)
 	// CheckLock reports whether the bucket enforces object lock (/readyz).
@@ -65,10 +69,22 @@ var ErrChecksum = errors.New("document: stored object does not match its checksu
 
 // Put implements Store.
 func (s *S3) Put(ctx context.Context, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error) {
-	info, err := s.Client.PutObject(ctx, s.Bucket, key, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+	return s.put(ctx, key, data, minio.PutObjectOptions{
 		ContentType: contentType, SendContentMd5: true, Mode: minio.Compliance, RetainUntilDate: retainUntil.UTC(),
 		UserMetadata: map[string]string{"sha256": sha256hex},
-	})
+	}, sha256hex)
+}
+
+// Stage implements Store.
+func (s *S3) Stage(ctx context.Context, key string, data []byte, contentType, sha256hex string) (string, error) {
+	return s.put(ctx, key, data, minio.PutObjectOptions{
+		ContentType: contentType, SendContentMd5: true, UserMetadata: map[string]string{"sha256": sha256hex},
+	}, sha256hex)
+}
+
+// put writes data with opts and reads it back to check its hash.
+func (s *S3) put(ctx context.Context, key string, data []byte, opts minio.PutObjectOptions, sha256hex string) (string, error) {
+	info, err := s.Client.PutObject(ctx, s.Bucket, key, bytes.NewReader(data), int64(len(data)), opts)
 	if err != nil {
 		return "", fmt.Errorf("document: put %s: %w", key, err)
 	}

@@ -184,6 +184,12 @@ func (s Service) Upload(ctx context.Context, p *auth.Principal, requestID string
 	if !ok || c.n == 0 {
 		return View{}, invariant.New(TypeTypeNotAllowed, http.DetectContentType(c.head))
 	}
+	// The clean file is read back from quarantine and archived inside the
+	// transaction, locked only once it commits (Archive).
+	data, err := s.readQuarantined(ctx, qkey, qversion, sum)
+	if err != nil {
+		return View{}, err
+	}
 	var out View
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
 		if err := s.checkLinks(ctx, in); err != nil {
@@ -200,7 +206,7 @@ func (s Service) Upload(ctx context.Context, p *auth.Principal, requestID string
 			return err
 		}
 		key := fmt.Sprintf("%s/%s/%04d/%s%s", sc.OwnerID, in.Class, today.Year, id, ext)
-		version, err := s.Store.CopyLocked(ctx, qkey, qversion, key, contentType, sum, RetainUntil(now.In(paris()), years).Time())
+		version, err := Archive(ctx, s.Store, key, data, contentType, sum, RetainUntil(now.In(paris()), years).Time())
 		if err != nil {
 			return err
 		}
@@ -301,4 +307,22 @@ func cleanName(name string) string {
 		return ""
 	}
 	return out
+}
+
+// readQuarantined reads a scanned upload back from quarantine and checks it
+// is the file that was hashed on the way in.
+func (s Service) readQuarantined(ctx context.Context, key, version, sum string) ([]byte, error) {
+	obj, err := s.Store.Open(ctx, key, version)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = obj.Close() }()
+	data, err := io.ReadAll(io.LimitReader(obj, MaxUploadBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("document: read %s: %w", key, err)
+	}
+	if SHA256(data) != sum {
+		return nil, fmt.Errorf("%w: %s", ErrChecksum, key)
+	}
+	return data, nil
 }
