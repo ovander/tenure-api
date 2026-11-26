@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/google/uuid"
+
 	"github.com/ovander/tenure-api/internal/audit"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
@@ -19,7 +21,7 @@ import (
 // stored ones.
 var ErrChainMismatch = errors.New("audit chain mismatch")
 
-func verifyChain(ctx context.Context) (any, error) {
+func verifyChain(ctx context.Context, store document.Store) (any, error) {
 	res, err := audit.Verify(ctx)
 	if err != nil {
 		return nil, err
@@ -31,19 +33,65 @@ func verifyChain(ctx context.Context) (any, error) {
 	if err != nil {
 		return res, fmt.Errorf("%w: %v", ErrChainMismatch, err)
 	}
-	return map[string]any{"chain": res, "heads_checked": n}, nil
+	stored, err := verifyStoredHeads(ctx, store)
+	if err != nil {
+		return res, err
+	}
+	return map[string]any{"chain": res, "heads_checked": n, "stored_heads_checked": stored}, nil
+}
+
+// verifyStoredHeads reads back every version of every head object of the
+// chain from the bucket, where audit.head wrote it under compliance lock,
+// and checks it against the chain. It lists the bucket rather than the
+// audit_chain_heads table, so that a head row deleted or rewritten in the
+// database cannot hide an object from the check.
+func verifyStoredHeads(ctx context.Context, store document.Store) (int, error) {
+	sc, _ := db.ScopeFrom(ctx)
+	prefix := "platform"
+	if sc.OwnerID != uuid.Nil {
+		prefix = sc.OwnerID.String()
+	}
+	versions, err := store.Versions(ctx, prefix+"/audit/")
+	if err != nil {
+		return 0, err
+	}
+	for _, v := range versions {
+		obj, err := store.Open(ctx, v.Key, v.VersionID)
+		if err != nil {
+			return 0, err
+		}
+		var h struct {
+			OwnerID     *string `json:"owner_id"`
+			LastEventID int64   `json:"last_event_id"`
+			HeadHash    string  `json:"head_hash"`
+		}
+		err = json.NewDecoder(io.LimitReader(obj, 1<<16)).Decode(&h)
+		_ = obj.Close()
+		owner := ""
+		if h.OwnerID != nil {
+			owner = *h.OwnerID
+		}
+		if err != nil || (sc.OwnerID != uuid.Nil && owner != sc.OwnerID.String()) || (sc.OwnerID == uuid.Nil && owner != "") {
+			return 0, fmt.Errorf("%w: stored head %s (version %s) is not a head of this chain", ErrChainMismatch, v.Key, v.VersionID)
+		}
+		if err := audit.CheckStoredHead(ctx, h.LastEventID, h.HeadHash); err != nil {
+			return 0, fmt.Errorf("%w: %s (version %s): %v", ErrChainMismatch, v.Key, v.VersionID, err)
+		}
+	}
+	return len(versions), nil
 }
 
 // AuditVerify recomputes every owner's chain and the platform chain weekly and
-// checks the stored daily heads against them (RENT-BE-001 §5, §8b); a mismatch
-// fails that unit, so the run ends partial or failed, which alerts.
-func AuditVerify() Job {
+// checks the daily heads against them, both the rows and the objects locked
+// in the bucket (RENT-BE-001 §5, §8b); a mismatch fails that unit, so the run
+// ends partial or failed, which alerts.
+func AuditVerify(store document.Store) Job {
 	return Job{
 		Name:     "audit.verify",
 		Schedule: "0 5 * * 0",
 		Period:   WeekKey,
-		PerOwner: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx) },
-		Platform: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx) },
+		PerOwner: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx, store) },
+		Platform: func(ctx context.Context, _ Owner) (any, error) { return verifyChain(ctx, store) },
 	}
 }
 

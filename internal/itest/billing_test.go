@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -368,8 +369,25 @@ func TestBilling(t *testing.T) {
 		}
 		uid := uuid.MustParse(owner.ID)
 		run, _, err := env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid})
-		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), `"heads_checked":1`) {
+		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), `"heads_checked":1`) ||
+			!strings.Contains(string(run.Summary), `"stored_heads_checked":1`) {
 			t.Errorf("verify with heads: %s %s %v", run.Status, run.Summary, err)
+		}
+		// A head in the bucket that no longer matches the chain (as after a
+		// consistent rewrite of the chain in the database) fails the check,
+		// even though the head rows still match.
+		forged := fmt.Sprintf(`{"owner_id":%q,"as_of":"2000-01-01","last_event_id":%d,"head_hash":%q}`,
+			owner.ID, int64(heads.Items[0]["last_event_id"].(float64)), strings.Repeat("0", 64))
+		info, err := env.s3.PutObject(context.Background(), bucket, key, strings.NewReader(forged), int64(len(forged)), minio.PutObjectOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			_ = env.s3.RemoveObject(context.Background(), bucket, key, minio.RemoveObjectOptions{VersionID: info.VersionID})
+		})
+		run, _, err = env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid, DryRun: true})
+		if err != nil || run.Status != jobs.StatusFailed || !strings.Contains(string(run.Summary), "stored head") {
+			t.Errorf("verify with a forged stored head: %s %s %v", run.Status, run.Summary, err)
 		}
 	})
 

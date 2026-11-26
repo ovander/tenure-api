@@ -71,10 +71,11 @@ func InsertHead(ctx context.Context, h ChainHead) error {
 	return tx.Create(&h).Error
 }
 
-// VerifyHeads checks every stored head of the transaction's chain against the
-// chain: the event it names exists and has the stored hash. A database edit
-// that rewrote the chain consistently is caught here, because the heads were
-// also written under object lock (RENT-SPEC-022).
+// VerifyHeads checks every head row of the transaction's chain against the
+// chain: the event it names exists and has the stored hash. Rows live in the
+// same database as the chain, so a consistent rewrite of both passes here;
+// the job also reads the head objects back from the bucket, where they are
+// under object lock, through CheckStoredHead (RENT-SPEC-022).
 func VerifyHeads(ctx context.Context) (int, error) {
 	tx, err := db.Tx(ctx)
 	if err != nil {
@@ -145,4 +146,27 @@ func (h Handler) ListHeads(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, httpx.NewList(items, pg, total))
+}
+
+// CheckStoredHead checks a head read back from the bucket against the
+// transaction's chain: the event it names must exist with the hash it holds.
+// The object is under compliance lock, so a chain rewritten in the database,
+// however consistently, no longer matches it.
+func CheckStoredHead(ctx context.Context, lastEventID int64, headHash string) error {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	f, err := chainFilter(ctx)
+	if err != nil {
+		return err
+	}
+	var e []Event
+	if err := f(tx.Model(&Event{})).Where("id = ?", lastEventID).Limit(1).Find(&e).Error; err != nil {
+		return err
+	}
+	if len(e) == 0 || e[0].Hash != headHash {
+		return fmt.Errorf("audit: stored head (event %d) does not match the chain", lastEventID)
+	}
+	return nil
 }
