@@ -64,6 +64,13 @@
       "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
     },
     {
+      "key": "regularisation_spread_instalments",
+      "effective_from": "2026-01-01",
+      "value": 12,
+      "source": "Loi 89-462 art. 23 : régularisation tardive payable par douzièmes, à la demande du locataire ; RENT-SPEC-007",
+      "source_url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/"
+    },
+    {
       "key": "receipt_due_days_before_reminder",
       "effective_from": "2026-01-01",
       "value": 5,

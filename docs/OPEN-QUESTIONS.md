@@ -111,7 +111,9 @@ the exercise.
 **Q-16 Late regularisation spread — Open (slice 1).** The law gives the 12 monthly instalments on
 the tenant's request; RENT-SPEC-007 makes them automatic. Provisional: follow the spec. The flag
 is set when the issue date is more than `regularisation_spread_after_months` after the exercise
-end. A positive balance is split into 12 equal instalments, rounded down to the cent, with the
+end, the months counted to the same day or the month's last day (an exercise ending on
+29 February is late from 28 February). A positive balance is split into
+`regularisation_spread_instalments` (12) equal instalments, rounded down to the cent, with the
 remainder on the last one. Credits are never spread.
 
 **Q-17 Credit larger than a fee — Open (slice 1).** Provisional: `ComputeFee` caps a credit line
