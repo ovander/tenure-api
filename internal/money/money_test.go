@@ -100,7 +100,7 @@ func TestParseSeparators(t *testing.T) {
 		point bool
 		want  Cents
 	}{
-		{"1 234,56", false, 123456}, {"1.234,56", false, 123456}, {"1.234.567", false, 123456700}, {"12,5", false, 1250},
+		{"1 234,56", false, 123456}, {"1.234,56", false, 123456}, {"1.234.567", false, 123456700}, {"-123.456,78", false, -12345678}, {"12,5", false, 1250},
 		{"-3,10", false, -310}, {"1 000,00 €", false, 100000}, {"", false, 0},
 		{"1234.56", true, 123456}, {"1,234.56", true, 123456}, {"12.5", true, 1250}, {"-12.50", true, -1250},
 	}
@@ -115,7 +115,7 @@ func TestParseSeparators(t *testing.T) {
 		in    string
 		point bool
 	}{
-		{"1234.56", false}, {"12.5", false}, {"1.23,45", false}, {"1,234", false}, {",5", false}, {".234,5", false},
+		{"1234.56", false}, {"12.5", false}, {"1234.567,89", false}, {"1234.567", false}, {"1.23,45", false}, {"1,234", false}, {",5", false}, {".234,5", false},
 		{"1,5", true}, {"12,50", true}, {"1.234,56", true}, {"--5", false}, {"+5", false}, {"5-", false}, {"abc", false},
 	}
 	for _, c := range bad {

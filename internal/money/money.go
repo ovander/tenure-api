@@ -157,15 +157,22 @@ func Parse(s string, decimalPoint bool) (Cents, error) {
 }
 
 // groupedThousands reports whether every thousands separator of s stands
-// before the decimal separator and is followed by exactly three digits.
+// before the decimal separator, the first group has one to three digits,
+// and every later group exactly three.
 func groupedThousands(s, sep, thousands string) bool {
 	whole, frac, _ := strings.Cut(s, sep)
 	if strings.Contains(frac, thousands) {
 		return false
 	}
 	groups := strings.Split(whole, thousands)
-	for i, g := range groups[1:] {
-		if len(g) != 3 || (i == 0 && groups[0] == "") {
+	if len(groups) == 1 {
+		return true
+	}
+	if lead := groups[0]; lead == "" || len(lead) > 3 {
+		return false
+	}
+	for _, g := range groups[1:] {
+		if len(g) != 3 {
 			return false
 		}
 	}
