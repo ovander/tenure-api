@@ -141,14 +141,14 @@ func Parse(s string, decimalPoint bool) (Cents, error) {
 	s = strings.ReplaceAll(s, thousands, "")
 	whole, frac, _ := strings.Cut(s, sep)
 	if len(frac) > 2 || whole == "" {
-		return 0, fmt.Errorf("amount %q", s)
+		return 0, fmt.Errorf("amount %q", raw)
 	}
 	for len(frac) < 2 {
 		frac += "0"
 	}
 	n, err := strconv.ParseInt(whole+frac, 10, 64)
 	if err != nil || strings.IndexFunc(whole+frac, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
-		return 0, fmt.Errorf("amount %q", s)
+		return 0, fmt.Errorf("amount %q", raw)
 	}
 	if neg {
 		n = -n
