@@ -47,12 +47,14 @@ ss -tlnp | grep -E ':(5433|8080|3000|3310|9000|1025|8025) ' || echo "ports free"
 
 The last line must print `ports free`; if a port is taken, stop here.
 
-The repository is private. Download the release assets on your machine, with `gh release download
-$VERSION -R ovander/tenure-api` or from the release page, and copy them to `/root/tenure-$VERSION/`
-on the host (`scp -P <ssh port> …`; create the folder first with `mkdir -p /root/tenure-$VERSION`). Then:
+Download the release on the host and check it:
 
 ```bash
-cd /root/tenure-$VERSION && sha256sum --check --ignore-missing SHA256SUMS
+mkdir -p /root/tenure-$VERSION && cd /root/tenure-$VERSION
+for f in SHA256SUMS "tenure-$VERSION-linux-amd64" "tenure-deploy-$VERSION.tar.gz"; do
+  curl -fsSLO "https://github.com/ovander/tenure-api/releases/download/$VERSION/$f"
+done
+sha256sum --check --ignore-missing SHA256SUMS
 install -d /opt/tenure/deploy && tar -xzf "tenure-deploy-$VERSION.tar.gz" --strip-components=1 -C /opt/tenure/deploy
 ls /opt/tenure/deploy/test/compose.yml
 ```

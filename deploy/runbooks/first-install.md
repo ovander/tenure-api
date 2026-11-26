@@ -2,8 +2,9 @@
 
 The first production install, step by step, from an empty Scaleway project to the first real
 monthly run. `deploy/README.md` lists what each step installs; this runbook gives the order, the
-decisions to take first and the check that closes each step. Log the install in a GitHub issue
-labelled `go-live`, ticking the boxes below, with no secret in it.
+decisions to take first and the check that closes each step. Log the install in an issue
+labelled `go-live` in the private operations repository (`ops.md`), ticking the boxes below,
+with no secret in it.
 
 ## 0. Decisions before starting
 
@@ -14,6 +15,8 @@ labelled `go-live`, ticking the boxes below, with no secret in it.
       answered or knowingly accepted.
 - [ ] The accountant's answers to the questionnaire (Q-132, Q-133), or the defaults knowingly
       kept for the first year.
+- [ ] The private operations repository exists (`ops.md`), and private vulnerability reporting
+      is enabled on this repository (Settings → Security; `SECURITY.md`).
 - [ ] Who holds the offline safe, and who holds its second copy (`break-glass.md`, threat model
       A-5).
 - [ ] The alert channel: the address or tool that receives the alerts of step 8.
@@ -118,7 +121,7 @@ tenure reports a failed job, a chain mismatch, a lockout burst or an unavailable
 
 - [ ] Wait for the first nightly backup, or start `tenure-backup.service`, and read its log.
 - [ ] Restore it into a scratch database following `restore.md`, timing every step. Log the
-      result in an issue labelled `restore-test`.
+      result in an issue labelled `restore-test` (`ops.md`).
 - [ ] Decide whether that duration is acceptable before the 1st of a month; if it is not,
       plan a warm standby.
 

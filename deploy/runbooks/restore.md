@@ -4,8 +4,8 @@ The backup is nightly at 01:30 Europe/Paris: an encrypted `pg_dump` in the fr-pa
 bucket, kept 35 days (`backup/backup.sh`). The archive bucket is not restored: it is versioned
 and locked, and every document row points at its object version.
 
-**The restore is tested twice a year** (RENT-SPEC-022). Each test is logged in a GitHub issue
-labelled `restore-test`, with the backup used, the duration and the result of the checks below.
+**The restore is tested twice a year** (RENT-SPEC-022). Each test is logged in an issue labelled
+`restore-test` in the private operations repository (`ops.md`), with the backup used, the duration and the result of the checks below.
 
 ## Steps
 

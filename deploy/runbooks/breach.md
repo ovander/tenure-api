@@ -9,7 +9,8 @@ assists them and acts within hours.
 
 ## Hour 0 to 4: contain
 
-1. Open a private GitHub issue labelled `incident`, write down the time of discovery and keep
+1. Open an issue labelled `incident` in the private operations repository (`ops.md`), never
+   in this public one; write down the time of discovery and keep
    a timeline in it. Write facts only.
 2. Contain without destroying evidence:
    - revoke the leaked credentials: Socrate client secret, S3 keys, database passwords,
@@ -52,5 +53,5 @@ assists them and acts within hours.
 
 8. Record the breach in the register (`docs/rgpd/registre-des-traitements.md`, section
    « Violations »), notified or not, with the facts, effects and measures (art. 33.5).
-9. Hold a post-mortem in the issue. Each measure decided becomes its own issue, and the threat
-   model is updated.
+9. Hold a post-mortem in the issue. Each measure decided becomes its own issue (in this
+   repository only once it reveals nothing exploitable), and the threat model is updated.

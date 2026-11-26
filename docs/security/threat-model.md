@@ -85,7 +85,7 @@ or a trust boundary is added.
 | T20 | Denial of service | Request flood or large bodies | Caddy body cap; per-subject and per-address rate limits; timeouts on gotenberg | `internal/httpapi/router.go` | A single host: an outage stops the monthly run until it is back: A-4 |
 | T21 | Denial of service | A sidecar or provider down (gotenberg, ClamAV, SMTP, INSEE, Socrate) | Fail closed with 503; jobs are keyed per period and retried on the next run; no login fallback | Q-101, Q-103, `job_runs` | Visible only in logs today: A-1 |
 | T22 | Tampering | Compromised dependency or image | Pinned `go.sum` and `package-lock.json`; govulncheck and npm audit; Dependabot; SBOM per release; reproducible binary checked against the release | CI, release workflow | Sidecar images are not scanned (ASVS known gap) |
-| T23 | Elevation | Operator or break-glass abuse | Separate roles; no RLS bypass for the API; break-glass logged in an issue; corrections go through the API | `deploy/runbooks/break-glass.md` | Relies on discipline; nothing alerts on a superuser login: A-1 |
+| T23 | Elevation | Operator or break-glass abuse | Separate roles; no RLS bypass for the API; break-glass logged in an issue of the private operations repository; corrections go through the API | `deploy/runbooks/break-glass.md` | Relies on discipline; nothing alerts on a superuser login: A-1 |
 
 ## Actions
 
