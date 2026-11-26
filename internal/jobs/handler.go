@@ -50,7 +50,8 @@ func (Repository) GetRun(ctx context.Context, id uuid.UUID) (Run, error) {
 }
 
 // Handler serves GET /jobs/runs with the API database role: row-level
-// security shows platform runs and the runs of the caller's active scope.
+// security shows platform runs and the runs of the caller's active scope, and
+// Visible keeps, of a platform run, only what concerns the caller's scope.
 type Handler struct {
 	DB     *db.DB
 	Runner *Runner
@@ -139,6 +140,13 @@ func (h Handler) ListRuns(w http.ResponseWriter, r *http.Request) {
 		runs, total, err = Repository{}.ListRuns(ctx, pg.Offset(), pg.Size)
 		return err
 	})
+	var active *uuid.UUID
+	if p.Active != nil {
+		active = &p.Active.OwnerID
+	}
+	for i := range runs {
+		runs[i] = Visible(runs[i], active, p.Admin)
+	}
 	if err != nil {
 		httpx.Error(w, r, err)
 		return
