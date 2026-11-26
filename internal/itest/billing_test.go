@@ -219,6 +219,13 @@ func TestBilling(t *testing.T) {
 			}
 			return n
 		}
+		// A staged object that does not verify is removed at once.
+		if _, err := env.store.Stage(ctx, owner.ID+"/tax_summary/2000/unverified.csv", []byte("x"), "text/csv", strings.Repeat("0", 64)); !errors.Is(err, document.ErrChecksum) {
+			t.Errorf("stage with a wrong hash: %v", err)
+		}
+		if n := versions(owner.ID + "/tax_summary/2000/unverified.csv"); n != 0 {
+			t.Errorf("%d versions left after a failed verification", n)
+		}
 		// Rolled back: the object is removed, nothing stays locked.
 		rolled, err := archive("rolled-back.csv", true)
 		if err == nil || rolled.ObjectKey == "" {

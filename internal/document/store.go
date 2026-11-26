@@ -72,17 +72,29 @@ var ErrChecksum = errors.New("document: stored object does not match its checksu
 
 // Put implements Store.
 func (s *S3) Put(ctx context.Context, key string, data []byte, contentType, sha256hex string, retainUntil time.Time) (string, error) {
-	return s.put(ctx, key, data, minio.PutObjectOptions{
+	version, err := s.put(ctx, key, data, minio.PutObjectOptions{
 		ContentType: contentType, SendContentMd5: true, Mode: minio.Compliance, RetainUntilDate: retainUntil.UTC(),
 		UserMetadata: map[string]string{"sha256": sha256hex},
 	}, sha256hex)
+	if err != nil {
+		return "", err
+	}
+	return version, nil
 }
 
-// Stage implements Store.
+// Stage implements Store. A version written but not verified is removed:
+// it holds no lock yet, so nothing is left behind.
 func (s *S3) Stage(ctx context.Context, key string, data []byte, contentType, sha256hex string) (string, error) {
-	return s.put(ctx, key, data, minio.PutObjectOptions{
+	version, err := s.put(ctx, key, data, minio.PutObjectOptions{
 		ContentType: contentType, SendContentMd5: true, UserMetadata: map[string]string{"sha256": sha256hex},
 	}, sha256hex)
+	if err != nil && version != "" {
+		if derr := s.Delete(context.WithoutCancel(ctx), key, version); derr != nil {
+			return "", fmt.Errorf("%w (and the unverified version was not removed: %v)", err, derr)
+		}
+		return "", err
+	}
+	return version, err
 }
 
 // put writes data with opts and reads it back to check its hash.
@@ -91,17 +103,19 @@ func (s *S3) put(ctx context.Context, key string, data []byte, opts minio.PutObj
 	if err != nil {
 		return "", fmt.Errorf("document: put %s: %w", key, err)
 	}
+	// A verification error returns the version written, so that Stage can
+	// remove it; Put's callers ignore it, as before.
 	obj, err := s.Client.GetObject(ctx, s.Bucket, key, minio.GetObjectOptions{VersionID: info.VersionID})
 	if err != nil {
-		return "", fmt.Errorf("document: verify %s: %w", key, err)
+		return info.VersionID, fmt.Errorf("document: verify %s: %w", key, err)
 	}
 	defer func() { _ = obj.Close() }()
 	back, err := io.ReadAll(obj)
 	if err != nil {
-		return "", fmt.Errorf("document: verify %s: %w", key, err)
+		return info.VersionID, fmt.Errorf("document: verify %s: %w", key, err)
 	}
 	if SHA256(back) != sha256hex {
-		return "", fmt.Errorf("%w: %s", ErrChecksum, key)
+		return info.VersionID, fmt.Errorf("%w: %s", ErrChecksum, key)
 	}
 	return info.VersionID, nil
 }
