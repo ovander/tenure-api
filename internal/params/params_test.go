@@ -34,14 +34,15 @@ func d(y int, m time.Month, day int) period.Date { return period.NewDate(y, m, d
 func TestFixtures(t *testing.T) {
 	s := fixtures(t)
 	want := map[string]int64{
-		KeyMicroFoncierThreshold: 1500000,
-		KeyMicroFoncierAllowance: 30,
-		KeyForfait222:            2000,
-		KeyDeficitGlobalCap:      1070000,
-		KeyDeficitCarryForward:   10,
-		KeyDepositMaxUnfurnished: 1,
-		KeyDepositMaxFurnished:   2,
-		KeyRegularisationSpread:  12,
+		KeyMicroFoncierThreshold:     1500000,
+		KeyMicroFoncierAllowance:     30,
+		KeyForfait222:                2000,
+		KeyDeficitGlobalCap:          1070000,
+		KeyDeficitCarryForward:       10,
+		KeyDepositMaxUnfurnished:     1,
+		KeyDepositMaxFurnished:       2,
+		KeyRegularisationSpread:      12,
+		KeyRegularisationInstalments: 12,
 	}
 	for _, asOf := range []period.Date{d(2025, 1, 1), d(2025, 12, 31), d(2026, 6, 30)} {
 		for k, v := range want {

@@ -142,7 +142,20 @@ func Allocate(charges []Charge, leases []lease.Lease, ex Exercise, provisions ma
 	if err != nil {
 		return Allocation{}, err
 	}
-	late := ex.IssuedOn.After(ex.End.AddMonths(int(spreadAfter)))
+	// Clamped to the month's last day: an exercise ending on the 31st, or on
+	// 29 February, is late from the same day of the month, never a day later.
+	late := ex.IssuedOn.After(ex.End.AddMonthsClamped(int(spreadAfter)))
+	// The instalment count is read only for a late exercise: one issued on
+	// time never spreads, and does not depend on it.
+	var instalments int64
+	if late {
+		if instalments, err = ps.Int64(params.KeyRegularisationInstalments, ex.IssuedOn); err != nil {
+			return Allocation{}, err
+		}
+		if instalments < 1 {
+			return Allocation{}, fmt.Errorf("charge: %s must be at least 1", params.KeyRegularisationInstalments)
+		}
+	}
 	monthly, err := money.MulDivHalfUp(a.RecoverableCents, 1, 12)
 	if err != nil {
 		return Allocation{}, err
@@ -157,15 +170,16 @@ func Allocate(charges []Charge, leases []lease.Lease, ex Exercise, provisions ma
 		ln.BalanceCents = ln.AllocatedCents - ln.ProvisionsCents
 		if late && ln.BalanceCents > 0 {
 			ln.Spread = true
-			each, err := money.MulDivFloor(ln.BalanceCents, 1, 12)
+			n := int(instalments)
+			each, err := money.MulDivFloor(ln.BalanceCents, 1, instalments)
 			if err != nil {
 				return Allocation{}, err
 			}
-			ln.Instalments = make([]money.Cents, 12)
+			ln.Instalments = make([]money.Cents, n)
 			for k := range ln.Instalments {
 				ln.Instalments[k] = each
 			}
-			ln.Instalments[11] = ln.BalanceCents - 11*each
+			ln.Instalments[n-1] = ln.BalanceCents - money.Cents(instalments-1)*each
 		}
 		if l.EndOn.IsZero() || l.EndOn.After(ex.End) {
 			ln.NewProvisionCents = proposal
