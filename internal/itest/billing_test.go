@@ -180,6 +180,58 @@ func TestBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("a platform run shows each caller only their own results", func(t *testing.T) {
+		admin := token(t, subAdmin, withRole("admin"))
+		type run struct {
+			Job     string  `json:"job"`
+			Period  string  `json:"period"`
+			OwnerID *string `json:"owner_id"`
+			Summary struct {
+				Owners []struct {
+					OwnerID string `json:"owner_id"`
+					Result  any    `json:"result"`
+				} `json:"owners"`
+			} `json:"summary"`
+		}
+		runs := func(tok string) []run {
+			t.Helper()
+			r := call(t, "GET", "/jobs/runs?size=100", req{tok: tok})
+			if r.Status != 200 {
+				t.Fatalf("list runs: %d %s", r.Status, r.Body)
+			}
+			var page struct {
+				Items []run `json:"items"`
+			}
+			r.json(t, &page)
+			var out []run
+			for _, x := range page.Items {
+				if x.Job == "billing.monthly" && x.Period == "2025-03" && x.OwnerID == nil {
+					out = append(out, x)
+				}
+			}
+			if len(out) != 1 {
+				t.Fatalf("platform runs of billing.monthly 2025-03: %d", len(out))
+			}
+			return out
+		}
+		seen := false
+		for _, o := range runs(admin)[0].Summary.Owners {
+			seen = seen || o.OwnerID == owner.ID
+		}
+		if !seen {
+			t.Fatal("the admin does not see the owner's result")
+		}
+		for _, o := range runs(tokC)[0].Summary.Owners {
+			if o.OwnerID != owner.ID {
+				t.Errorf("the owner sees another owner's result: %s", o.OwnerID)
+			}
+		}
+		stranger := token(t, "itest-stranger-no-profile")
+		if got := runs(stranger)[0].Summary.Owners; len(got) != 0 {
+			t.Errorf("a caller with no scope sees %d owner results", len(got))
+		}
+	})
+
 	t.Run("issued documents are immutable", func(t *testing.T) {
 		if _, err := env.super.Exec("UPDATE billing_documents SET total_cents = 1 WHERE id = $1", rentCall.ID); err == nil {
 			t.Error("billing document updated")
