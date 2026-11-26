@@ -33,6 +33,14 @@ const (
 
 type failingPDF struct{}
 
+// noLockStore is a store whose compliance lock fails, as during an outage of
+// the object store right after a commit.
+type noLockStore struct{ document.Store }
+
+func (noLockStore) ExtendRetention(context.Context, string, string, time.Time) error {
+	return errors.New("object store down (test)")
+}
+
 func (failingPDF) Convert(context.Context, []byte, []byte) ([]byte, error) {
 	return nil, errors.New("pdf engine down (test)")
 }
@@ -227,6 +235,33 @@ func TestBilling(t *testing.T) {
 		mode, until, err := env.s3.GetObjectRetention(ctx, bucket, done.ObjectKey, done.ObjectVersion)
 		if err != nil || mode == nil || *mode != minio.Compliance || until == nil || until.Year() < time.Now().Year()+9 {
 			t.Errorf("committed object not locked: %v %v %v", mode, until, err)
+		}
+		// The lock fails after the commit: the document stays unlocked until
+		// archive.verify places the lock again.
+		issuer := env.app.Billing.Issuer
+		issuer.Store = noLockStore{env.store}
+		var unlocked document.Issued
+		if err := env.jobsDB.InScope(ctx, sc, func(ctx context.Context) error {
+			ps, err := params.Repository{}.Load(ctx)
+			if err != nil {
+				return err
+			}
+			unlocked, err = issuer.Attach(ctx, document.AttachRequest{Class: document.ClassTaxSummary, Name: "unlocked.csv",
+				Data: []byte("archive test unlocked"), ContentType: "text/csv"}, ps)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, locked, err := env.store.Locked(ctx, unlocked.ObjectKey, unlocked.ObjectVersion); err != nil || locked {
+			t.Fatalf("expected an unlocked object: %v %v", locked, err)
+		}
+		uid := uuid.MustParse(owner.ID)
+		run, _, err := env.app.Runner.Trigger(ctx, "archive.verify", jobs.Options{Owner: &uid})
+		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), unlocked.DocumentID.String()) {
+			t.Errorf("archive.verify: %s %s %v", run.Status, run.Summary, err)
+		}
+		if until, locked, err := env.store.Locked(ctx, unlocked.ObjectKey, unlocked.ObjectVersion); err != nil || !locked || until.Year() < time.Now().Year()+9 {
+			t.Errorf("not locked again by archive.verify: %v %v %v", until, locked, err)
 		}
 	})
 

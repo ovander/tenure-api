@@ -46,6 +46,9 @@ type Store interface {
 	// ExtendRetention moves one version's compliance lock to until; a
 	// compliance lock can only be extended, never shortened.
 	ExtendRetention(ctx context.Context, key, version string, until time.Time) error
+	// Locked reports whether one version is under compliance retention, and
+	// until when.
+	Locked(ctx context.Context, key, version string) (time.Time, bool, error)
 }
 
 // S3 is the Store over an S3-compatible bucket with versioning and object lock
@@ -202,4 +205,20 @@ func (s *S3) CheckLock(ctx context.Context) error {
 		return fmt.Errorf("document: bucket %s default retention is %s, not COMPLIANCE", s.Bucket, *mode)
 	}
 	return nil
+}
+
+// Locked implements Store: an object with no retention configured is
+// reported unlocked, not as an error.
+func (s *S3) Locked(ctx context.Context, key, version string) (time.Time, bool, error) {
+	mode, until, err := s.Client.GetObjectRetention(ctx, s.Bucket, key, version)
+	if err != nil {
+		if minio.ToErrorResponse(err).Code == "NoSuchObjectLockConfiguration" {
+			return time.Time{}, false, nil
+		}
+		return time.Time{}, false, fmt.Errorf("document: retention of %s: %w", key, err)
+	}
+	if mode == nil || *mode != minio.Compliance || until == nil {
+		return time.Time{}, false, nil
+	}
+	return *until, true, nil
 }
