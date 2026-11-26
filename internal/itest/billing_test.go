@@ -251,6 +251,34 @@ func TestBilling(t *testing.T) {
 		if n := versions(rolled.ObjectKey); n != 0 {
 			t.Errorf("%d versions left after a rollback", n)
 		}
+		// A panic in the transaction rolls it back, and the staged object
+		// is removed as on an error.
+		var panicked document.Issued
+		const testPanic = "test: a panic inside the transaction"
+		var recovered any
+		func() {
+			defer func() { recovered = recover() }()
+			_ = env.jobsDB.InScope(ctx, sc, func(ctx context.Context) error {
+				ps, err := params.Repository{}.Load(ctx)
+				if err != nil {
+					return err
+				}
+				if panicked, err = env.app.Billing.Issuer.Attach(ctx, document.AttachRequest{Class: document.ClassTaxSummary,
+					Name: "panicked.csv", Data: []byte("archive test panicked"), ContentType: "text/csv"}, ps); err != nil {
+					return err
+				}
+				panic(testPanic)
+			})
+		}()
+		if recovered != testPanic {
+			t.Fatalf("InScope did not propagate the test panic: %v", recovered)
+		}
+		if panicked.ObjectKey == "" {
+			t.Fatal("the archive write did not run before the panic")
+		}
+		if n := versions(panicked.ObjectKey); n != 0 {
+			t.Errorf("%d versions left after a panic", n)
+		}
 		// Committed: the object is under compliance lock.
 		done, err := archive("committed.csv", false)
 		if err != nil {

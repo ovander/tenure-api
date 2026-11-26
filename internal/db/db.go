@@ -120,6 +120,20 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 		return fn(ctx)
 	}
 	h := &hooks{}
+	// A panic in fn rolls the transaction back (gorm re-panics after it):
+	// the rollback hooks still run, so that nothing written outside the
+	// database (a staged archive object) outlives its rows.
+	returned := false
+	defer func() {
+		if !returned {
+			if r := recover(); r != nil {
+				for _, f := range h.rollback {
+					f(context.WithoutCancel(ctx))
+				}
+				panic(r)
+			}
+		}
+	}()
 	err := lockErr(d.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		owner := ""
 		if scope.OwnerID != uuid.Nil {
@@ -131,6 +145,7 @@ func (d *DB) InScope(ctx context.Context, scope Scope, fn func(ctx context.Conte
 		}
 		return fn(context.WithValue(ctx, txKey{}, txValue{tx: tx, scope: scope, hooks: h}))
 	}))
+	returned = true
 	run := h.after
 	if err != nil {
 		run = h.rollback
