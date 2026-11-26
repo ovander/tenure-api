@@ -16,6 +16,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/minio/minio-go/v7"
 
 	"github.com/ovander/tenure-api/internal/auth"
+	"github.com/ovander/tenure-api/internal/jobs"
 )
 
 const (
@@ -333,5 +335,33 @@ func TestInventoryPhotos(t *testing.T) {
 			t.Errorf("S uploads to R's inventory: %d %s", r.Status, r.Body)
 		}
 		rlsZeroRows(t, owner.ID, ownerS.ID, subR, subS, apt.ID, map[string]string{"inventory_photos": "owner_id = $1"})
+	})
+
+	t.Run("a photo whose lock failed is locked again by archive.verify", func(t *testing.T) {
+		// The upload committed but the lock after it failed (document.Archive):
+		// the object is staged, unlocked, and its row exists.
+		ctx := context.Background()
+		id := uuid.Must(uuid.NewV7())
+		key := owner.ID + "/inventory/" + l1.ID + "/" + inv + "/" + id.String() + ".jpg"
+		data := []byte("itest unlocked photo")
+		sum := sha256.Sum256(data)
+		version, err := env.store.Stage(ctx, key, data, "image/jpeg", hex.EncodeToString(sum[:]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		superExec(t, `INSERT INTO inventory_photos (id, owner_id, inventory_id, item_id, object_key, object_version, sha256, original_sha256,
+			width, height, created_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $7, 1, 1, now(), $8)`,
+			id, owner.ID, inv, item, key, version, hex.EncodeToString(sum[:]), subR)
+		if _, locked, err := env.store.Locked(ctx, key, version); err != nil || locked {
+			t.Fatalf("expected an unlocked photo: %v %v", locked, err)
+		}
+		uid := uuid.MustParse(owner.ID)
+		run, _, err := env.app.Runner.Trigger(ctx, "archive.verify", jobs.Options{Owner: &uid})
+		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), id.String()) {
+			t.Errorf("archive.verify: %s %s %v", run.Status, run.Summary, err)
+		}
+		if until, locked, err := env.store.Locked(ctx, key, version); err != nil || !locked || until.Year() < time.Now().Year()+9 {
+			t.Errorf("photo not locked again: %v %v %v", until, locked, err)
+		}
 	})
 }

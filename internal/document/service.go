@@ -118,7 +118,7 @@ func (i Issuer) Issue(ctx context.Context, req Request, ps params.Set) (Issued, 
 	sum := SHA256(pdf)
 	retain := RetainUntil(now.In(paris()), retention)
 	key := ObjectKey(sc.OwnerID, req.Class, issuedOn.Year, number)
-	version, err := i.Store.Put(ctx, key, pdf, "application/pdf", sum, retain.Time())
+	version, err := Archive(ctx, i.Store, key, pdf, "application/pdf", sum, retain.Time())
 	if err != nil {
 		return Issued{}, err
 	}
@@ -178,7 +178,7 @@ func (i Issuer) Attach(ctx context.Context, req AttachRequest, ps params.Set) (I
 	sum := SHA256(req.Data)
 	retain := RetainUntil(now.In(paris()), years)
 	key := fmt.Sprintf("%s/%s/%04d/%s", sc.OwnerID, req.Class, issuedOn.Year, req.Name)
-	version, err := i.Store.Put(ctx, key, req.Data, req.ContentType, sum, retain.Time())
+	version, err := Archive(ctx, i.Store, key, req.Data, req.ContentType, sum, retain.Time())
 	if err != nil {
 		return Issued{}, err
 	}

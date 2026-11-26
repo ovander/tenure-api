@@ -16,6 +16,7 @@ import (
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/params"
+	"github.com/ovander/tenure-api/internal/period"
 )
 
 // ErrChainMismatch reports a chain whose recomputed hashes differ from the
@@ -239,29 +240,80 @@ func ArchiveRetention(store document.Store, ps params.Repository) Job {
 }
 
 // ArchiveVerify is archive.verify (RENT-BE-001 §5): every Sunday at 04:00,
-// per owner, it re-hashes a random sample of archived objects against
-// documents.sha256; a mismatch or a missing object fails that owner's unit,
-// so the run ends partial or failed, which alerts.
-func ArchiveVerify(store document.Store) Job {
+// per owner, it re-hashes a random sample of archived objects, and every
+// document of the last eight days, against documents.sha256; a mismatch or a
+// missing object fails that owner's unit, so the run ends partial or failed,
+// which alerts. It also checks their compliance lock, placed after the commit
+// (document.Archive), and places it again where it is missing ("relocked").
+func ArchiveVerify(store document.Store, ps params.Repository, others ...document.RecentArchived) Job {
 	return Job{
 		Name:     "archive.verify",
 		Schedule: "0 4 * * 0",
 		Period:   WeekKey,
-		PerOwner: func(ctx context.Context, _ Owner) (any, error) {
-			docs, err := document.Repository{}.Sample(ctx, VerifySample)
+		PerOwner: func(ctx context.Context, o Owner) (any, error) {
+			sample, err := document.Repository{}.Sample(ctx, VerifySample)
 			if err != nil {
 				return nil, err
 			}
-			var bad []string
-			for _, d := range docs {
-				sum, err := hashObject(ctx, store, d.ObjectKey, d.ObjectVersion)
-				if err != nil || sum != d.SHA256 {
-					bad = append(bad, d.ID.String())
-				}
+			// Every object of the last eight days is checked as well, the
+			// documents and the other modules' objects (inventory photos):
+			// its compliance lock is placed after its commit
+			// (document.Archive), and one that failed is placed again here.
+			since := o.Today.AddDays(-8).Time()
+			recent, err := document.Repository{}.Recent(ctx, since)
+			if err != nil {
+				return nil, err
 			}
-			res := map[string]any{"checked": len(docs), "mismatches": bad}
+			var objects []document.Archived
+			for _, d := range append(sample, recent...) {
+				objects = append(objects, document.Archived{ID: d.ID.String(), Key: d.ObjectKey, Version: d.ObjectVersion, SHA256: d.SHA256, CreatedAt: d.CreatedAt})
+			}
+			for _, list := range others {
+				more, err := list(ctx, since)
+				if err != nil {
+					return nil, err
+				}
+				objects = append(objects, more...)
+			}
+			set, err := ps.Load(ctx)
+			if err != nil {
+				return nil, err
+			}
+			var bad, relocked []string
+			seen := map[string]bool{}
+			for _, d := range objects {
+				if seen[d.ID] {
+					continue
+				}
+				seen[d.ID] = true
+				sum, err := hashObject(ctx, store, d.Key, d.Version)
+				if err != nil || sum != d.SHA256 {
+					bad = append(bad, d.ID)
+					continue
+				}
+				created := d.CreatedAt.In(Paris())
+				years, err := set.Int64(document.KeyArchiveRetention, period.FromTime(created))
+				if err != nil {
+					return nil, err
+				}
+				want := document.RetainUntil(created, years).Time()
+				until, locked, err := store.Locked(ctx, d.Key, d.Version)
+				if err != nil {
+					return nil, err
+				}
+				if locked && !until.Before(want) {
+					continue
+				}
+				if !o.DryRun {
+					if err := store.ExtendRetention(ctx, d.Key, d.Version, want); err != nil {
+						return nil, err
+					}
+				}
+				relocked = append(relocked, d.ID)
+			}
+			res := map[string]any{"checked": len(seen), "mismatches": bad, "relocked": relocked}
 			if len(bad) > 0 {
-				return res, fmt.Errorf("%w: %d of %d objects", ErrArchiveMismatch, len(bad), len(docs))
+				return res, fmt.Errorf("%w: %d of %d objects", ErrArchiveMismatch, len(bad), len(seen))
 			}
 			return res, nil
 		},

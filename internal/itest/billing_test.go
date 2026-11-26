@@ -23,6 +23,7 @@ import (
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/jobs"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 )
 
@@ -32,6 +33,14 @@ const (
 )
 
 type failingPDF struct{}
+
+// noLockStore is a store whose compliance lock fails, as during an outage of
+// the object store right after a commit.
+type noLockStore struct{ document.Store }
+
+func (noLockStore) ExtendRetention(context.Context, string, string, time.Time) error {
+	return errors.New("object store down (test)")
+}
 
 func (failingPDF) Convert(context.Context, []byte, []byte) ([]byte, error) {
 	return nil, errors.New("pdf engine down (test)")
@@ -178,6 +187,105 @@ func TestBilling(t *testing.T) {
 		}
 		if n := superCount(t, "SELECT count(*) FROM billing_documents WHERE owner_id = $1 AND period = '2025-03'", owner.ID); n != 1 {
 			t.Errorf("documents after re-runs: %d", n)
+		}
+	})
+
+	t.Run("an archived object is locked only once its transaction commits", func(t *testing.T) {
+		ctx := context.Background()
+		sc := db.Scope{OwnerID: uuid.MustParse(owner.ID), Role: "job"}
+		archive := func(name string, fail bool) (document.Issued, error) {
+			var out document.Issued
+			err := env.jobsDB.InScope(ctx, sc, func(ctx context.Context) error {
+				ps, err := params.Repository{}.Load(ctx)
+				if err != nil {
+					return err
+				}
+				if out, err = env.app.Billing.Issuer.Attach(ctx, document.AttachRequest{Class: document.ClassTaxSummary, Name: name,
+					Data: []byte("archive test " + name), ContentType: "text/csv"}, ps); err != nil {
+					return err
+				}
+				if fail {
+					return errors.New("rolled back (test)")
+				}
+				return nil
+			})
+			return out, err
+		}
+		versions := func(key string) int {
+			n := 0
+			for o := range env.s3.ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: key, WithVersions: true}) {
+				if o.Err == nil && !o.IsDeleteMarker {
+					n++
+				}
+			}
+			return n
+		}
+		// A bucket with a default retention would lock a staged object at
+		// once, so that a rollback could not remove it: it is refused.
+		if err := env.store.CheckLock(ctx); err != nil {
+			t.Fatalf("archive bucket: %v", err)
+		}
+		withDefault := "itest-default-retention"
+		if err := env.s3.MakeBucket(ctx, withDefault, minio.MakeBucketOptions{ObjectLocking: true}); err != nil {
+			t.Fatal(err)
+		}
+		lockMode, days, unit := minio.Compliance, uint(1), minio.Days
+		if err := env.s3.SetObjectLockConfig(ctx, withDefault, &lockMode, &days, &unit); err != nil {
+			t.Fatal(err)
+		}
+		if err := (&document.S3{Client: env.s3, Bucket: withDefault}).CheckLock(ctx); err == nil {
+			t.Error("a bucket with a default compliance retention is accepted")
+		}
+		// A staged object that does not verify is removed at once.
+		if _, err := env.store.Stage(ctx, owner.ID+"/tax_summary/2000/unverified.csv", []byte("x"), "text/csv", strings.Repeat("0", 64)); !errors.Is(err, document.ErrChecksum) {
+			t.Errorf("stage with a wrong hash: %v", err)
+		}
+		if n := versions(owner.ID + "/tax_summary/2000/unverified.csv"); n != 0 {
+			t.Errorf("%d versions left after a failed verification", n)
+		}
+		// Rolled back: the object is removed, nothing stays locked.
+		rolled, err := archive("rolled-back.csv", true)
+		if err == nil || rolled.ObjectKey == "" {
+			t.Fatalf("rolled back archive: %+v %v", rolled, err)
+		}
+		if n := versions(rolled.ObjectKey); n != 0 {
+			t.Errorf("%d versions left after a rollback", n)
+		}
+		// Committed: the object is under compliance lock.
+		done, err := archive("committed.csv", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mode, until, err := env.s3.GetObjectRetention(ctx, bucket, done.ObjectKey, done.ObjectVersion)
+		if err != nil || mode == nil || *mode != minio.Compliance || until == nil || until.Year() < time.Now().Year()+9 {
+			t.Errorf("committed object not locked: %v %v %v", mode, until, err)
+		}
+		// The lock fails after the commit: the document stays unlocked until
+		// archive.verify places the lock again.
+		issuer := env.app.Billing.Issuer
+		issuer.Store = noLockStore{env.store}
+		var unlocked document.Issued
+		if err := env.jobsDB.InScope(ctx, sc, func(ctx context.Context) error {
+			ps, err := params.Repository{}.Load(ctx)
+			if err != nil {
+				return err
+			}
+			unlocked, err = issuer.Attach(ctx, document.AttachRequest{Class: document.ClassTaxSummary, Name: "unlocked.csv",
+				Data: []byte("archive test unlocked"), ContentType: "text/csv"}, ps)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, locked, err := env.store.Locked(ctx, unlocked.ObjectKey, unlocked.ObjectVersion); err != nil || locked {
+			t.Fatalf("expected an unlocked object: %v %v", locked, err)
+		}
+		uid := uuid.MustParse(owner.ID)
+		run, _, err := env.app.Runner.Trigger(ctx, "archive.verify", jobs.Options{Owner: &uid})
+		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), unlocked.DocumentID.String()) {
+			t.Errorf("archive.verify: %s %s %v", run.Status, run.Summary, err)
+		}
+		if until, locked, err := env.store.Locked(ctx, unlocked.ObjectKey, unlocked.ObjectVersion); err != nil || !locked || until.Year() < time.Now().Year()+9 {
+			t.Errorf("not locked again by archive.verify: %v %v %v", until, locked, err)
 		}
 	})
 
