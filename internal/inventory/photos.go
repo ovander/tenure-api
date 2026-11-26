@@ -161,7 +161,7 @@ func (s Service) UploadPhoto(ctx context.Context, p *auth.Principal, requestID s
 			return err
 		}
 		key := fmt.Sprintf("%s/inventory/%s/%s/%s.jpg", sc.OwnerID, lease, in.InventoryID, id)
-		version, err := s.Photos.Store.Put(ctx, key, cleaned, "image/jpeg", cleanHash, document.RetainUntil(now.In(paris()), years).Time())
+		version, err := document.Archive(ctx, s.Photos.Store, key, cleaned, "image/jpeg", cleanHash, document.RetainUntil(now.In(paris()), years).Time())
 		if err != nil {
 			return err
 		}

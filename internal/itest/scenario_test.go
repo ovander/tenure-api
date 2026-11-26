@@ -423,6 +423,11 @@ func rlsZeroRows(t *testing.T, ownerA, ownerB, subA, subB, assetA string, tables
 		if q, ok := fixtures[table]; ok && superCount(t, "SELECT count(*) FROM "+table+" WHERE "+fill(where)) == 0 {
 			if table == "audit_chain_heads" {
 				superExec(t, strings.Replace(q, "$2", "$1", 1), ownerA)
+				// The fixture head has no object in the bucket, which
+				// audit.verify rightly reports: it is removed after the check.
+				t.Cleanup(func() {
+					_, _ = env.super.Exec(`DELETE FROM audit_chain_heads WHERE owner_id = $1 AND object_key = ''`, ownerA)
+				})
 			} else {
 				superExec(t, q, uuid.Must(uuid.NewV7()), ownerA)
 			}

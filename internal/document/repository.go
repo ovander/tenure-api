@@ -361,6 +361,19 @@ func (Repository) Sample(ctx context.Context, n int) ([]documentRow, error) {
 	return rows, err
 }
 
+// Recent returns the scope's archived documents created since since: the
+// ones whose compliance lock, placed after their commit, archive.verify
+// checks every week.
+func (Repository) Recent(ctx context.Context, since time.Time) ([]documentRow, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []documentRow
+	err = tx.Where("issued_at IS NOT NULL AND created_at >= ?", since).Order("created_at, id").Find(&rows).Error
+	return rows, err
+}
+
 // TemplateUsage counts the scope's generated documents by template version,
 // with the first and last issue times.
 func (Repository) TemplateUsage(ctx context.Context) ([]TemplateUsage, error) {

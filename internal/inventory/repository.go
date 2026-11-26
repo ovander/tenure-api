@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ovander/tenure-api/internal/db"
+	"github.com/ovander/tenure-api/internal/document"
 	"github.com/ovander/tenure-api/internal/invariant"
 )
 
@@ -213,6 +214,24 @@ type photoRow struct {
 }
 
 func (photoRow) TableName() string { return "inventory_photos" }
+
+// RecentPhotos lists the scope's photos archived since a time, for
+// archive.verify (document.RecentArchived).
+func (Repository) RecentPhotos(ctx context.Context, since time.Time) ([]document.Archived, error) {
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []photoRow
+	if err := tx.Where("created_at >= ?", since).Order("created_at, id").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]document.Archived, len(rows))
+	for i, r := range rows {
+		out[i] = document.Archived{ID: r.ID.String(), Key: r.ObjectKey, Version: r.ObjectVersion, SHA256: r.SHA256, CreatedAt: r.CreatedAt}
+	}
+	return out, nil
+}
 
 // Inventory returns an inventory's id, lease and state (false when the
 // scope has none of that id).

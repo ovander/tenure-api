@@ -200,6 +200,26 @@ func TestRevise(t *testing.T) {
 	}
 }
 
+func TestReviseLeaseSignedOn29February(t *testing.T) {
+	l := baseLease()
+	l.StartOn, l.RentCents, l.RevisionMonth = d(2024, 2, 29), 70000, time.February
+	l.IRLRefQuarter, l.IRLRefValue = "2023-Q4", 14259
+	idx := Index{Quarter: "2024-Q4", Value: 14470, PublishedOn: d(2025, 1, 15)}
+	// The first anniversary in a common year is 28 February, twelve months
+	// after the start once the month is capped.
+	r, err := Revise(l, idx, d(2025, 2, 28), p(2025, 3), fixtures(t))
+	// 70000 × 14470 ÷ 14259 = 71035.84
+	if err != nil || r.Forfeited || r.NewRentCents != 71036 {
+		t.Fatalf("revision on 28 February: %+v, %v", r, err)
+	}
+	// The anniversary itself comes from the start date: DueRevision gives 28
+	// February 2025 for this lease (TestDueRevision).
+	// Applied twelve months after that anniversary, it is still allowed.
+	if r, err := Revise(l, idx, d(2025, 2, 28), p(2026, 2), fixtures(t)); err != nil || r.Forfeited {
+		t.Errorf("applied in February of the next year: %+v, %v", r, err)
+	}
+}
+
 func TestReviseAboveCeilingStillFalls(t *testing.T) {
 	l := baseLease()
 	l.StartOn, l.RentCents = d(2023, 7, 1), 70000
