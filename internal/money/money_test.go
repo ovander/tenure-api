@@ -93,3 +93,34 @@ func TestSplit(t *testing.T) {
 		t.Error("Split accepted a negative total")
 	}
 }
+
+func TestParseSeparators(t *testing.T) {
+	ok := []struct {
+		in    string
+		point bool
+		want  Cents
+	}{
+		{"1 234,56", false, 123456}, {"1.234,56", false, 123456}, {"1.234.567", false, 123456700}, {"-123.456,78", false, -12345678}, {"12,5", false, 1250},
+		{"-3,10", false, -310}, {"1 000,00 €", false, 100000}, {"", false, 0},
+		{"1234.56", true, 123456}, {"1,234.56", true, 123456}, {"12.5", true, 1250}, {"-12.50", true, -1250},
+	}
+	for _, c := range ok {
+		if got, err := Parse(c.in, c.point); err != nil || got != c.want {
+			t.Errorf("Parse(%q, %v) = %d, %v; want %d", c.in, c.point, got, err, c.want)
+		}
+	}
+	// The other separator is a thousands separator only: an amount written
+	// with the wrong decimal separator is refused, never read 100 times larger.
+	bad := []struct {
+		in    string
+		point bool
+	}{
+		{"1234.56", false}, {"12.5", false}, {"1234.567,89", false}, {"1234.567", false}, {"1.23,45", false}, {"1,234", false}, {",5", false}, {".234,5", false},
+		{"1,5", true}, {"12,50", true}, {"1.234,56", true}, {"--5", false}, {"+5", false}, {"5-", false}, {"abc", false},
+	}
+	for _, c := range bad {
+		if got, err := Parse(c.in, c.point); err == nil {
+			t.Errorf("Parse(%q, %v) = %d, accepted", c.in, c.point, got)
+		}
+	}
+}
