@@ -3,6 +3,7 @@ package bic
 import (
 	"testing"
 
+	"github.com/ovander/tenure-api/internal/money"
 	"github.com/ovander/tenure-api/internal/params"
 )
 
@@ -96,5 +97,26 @@ func TestResultsMicroYearAndStored(t *testing.T) {
 	// Back under the réel: 70 000 + 10 000 available, all deducted, then the deficit.
 	if r := rs[2]; r.DeductedCents != 80_000 || r.ResultCents != 20_000 || r.DeficitUsedCents != 5_000 || r.TaxableCents != 15_000 {
 		t.Errorf("réel again %+v", r)
+	}
+}
+
+// A share rounds a negative amount like the matching positive one, halves
+// away from zero: a deficit share is never a cent smaller than the profit
+// share of the same size (Q-18).
+func TestShareRoundsSymmetrically(t *testing.T) {
+	for _, c := range []struct {
+		amount money.Cents
+		bp     int64
+		want   money.Cents
+	}{
+		{15, FullShare / 2, 8},
+		{-15, FullShare / 2, -8},
+		{-14, FullShare / 2, -7},
+		{-1, FullShare / 3, 0},
+		{-2, FullShare / 3, -1},
+	} {
+		if got := Share(c.amount, c.bp); got != c.want {
+			t.Errorf("Share(%d, %d) = %d, want %d", c.amount, c.bp, got, c.want)
+		}
 	}
 }
