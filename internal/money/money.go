@@ -117,22 +117,28 @@ func Sum(amounts ...Cents) Cents {
 	return s
 }
 
-// Parse reads a French or plain amount ("1 234,56", "1234.56", "12 €")
-// as cents; an empty cell is zero.
+// Parse reads a French or plain amount ("1 234,56", "12 €", or with
+// decimalPoint "1,234.56") as cents; an empty cell is zero. The decimal
+// separator is the comma, or the point with decimalPoint; the other one is
+// accepted only as a thousands separator, followed by groups of three digits
+// ("1.234,56"), so that "1234.56" read with a comma separator is refused
+// rather than read as 123 456,00 €.
 func Parse(s string, decimalPoint bool) (Cents, error) {
-	s = strings.NewReplacer(" ", "", " ", "", " ", "", "€", "").Replace(strings.TrimSpace(s))
+	s = strings.NewReplacer(" ", "", "\u00a0", "", "\u202f", "", "€", "").Replace(strings.TrimSpace(s))
 	if s == "" {
 		return 0, nil
 	}
+	raw := s
 	neg := strings.HasPrefix(s, "-")
 	s = strings.TrimPrefix(s, "-")
-	sep := ","
+	sep, thousands := ",", "."
 	if decimalPoint {
-		sep = "."
-		s = strings.ReplaceAll(s, ",", "")
-	} else {
-		s = strings.ReplaceAll(s, ".", "")
+		sep, thousands = ".", ","
 	}
+	if !groupedThousands(s, sep, thousands) {
+		return 0, fmt.Errorf("amount %q", raw)
+	}
+	s = strings.ReplaceAll(s, thousands, "")
 	whole, frac, _ := strings.Cut(s, sep)
 	if len(frac) > 2 || whole == "" {
 		return 0, fmt.Errorf("amount %q", s)
@@ -141,11 +147,27 @@ func Parse(s string, decimalPoint bool) (Cents, error) {
 		frac += "0"
 	}
 	n, err := strconv.ParseInt(whole+frac, 10, 64)
-	if err != nil {
+	if err != nil || strings.IndexFunc(whole+frac, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
 		return 0, fmt.Errorf("amount %q", s)
 	}
 	if neg {
 		n = -n
 	}
 	return Cents(n), nil
+}
+
+// groupedThousands reports whether every thousands separator of s stands
+// before the decimal separator and is followed by exactly three digits.
+func groupedThousands(s, sep, thousands string) bool {
+	whole, frac, _ := strings.Cut(s, sep)
+	if strings.Contains(frac, thousands) {
+		return false
+	}
+	groups := strings.Split(whole, thousands)
+	for i, g := range groups[1:] {
+		if len(g) != 3 || (i == 0 && groups[0] == "") {
+			return false
+		}
+	}
+	return true
 }

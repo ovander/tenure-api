@@ -19,7 +19,7 @@ func TestParseCents(t *testing.T) {
 	if got, err := ParseCents("1,234.56", true); err != nil || got != 123456 {
 		t.Errorf("decimal point: %d %v", got, err)
 	}
-	for _, bad := range []string{"1,234", "abc", "1,2,3"} {
+	for _, bad := range []string{"1,234", "abc", "1,2,3", "1234.56", "12.5"} {
 		if _, err := ParseCents(bad, false); err == nil {
 			t.Errorf("%q accepted", bad)
 		}

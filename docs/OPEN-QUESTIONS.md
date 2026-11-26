@@ -2269,3 +2269,11 @@ leave the owner's deduction lower than the law allows, never higher:
 Both are put to the accountant with the questionnaire. Sources are secondary until the BOFiP
 comments are read.
 
+**Q-138 Amounts written with the other decimal separator — Answered 2026-11-26 (#220).** The
+syndic and bank CSV mappings say whether amounts use a decimal comma (the default) or a decimal
+point. `money.Parse` deleted every occurrence of the other separator, so with a comma mapping
+« 1234.56 » was read as 123 456,00 €, silently (found by the code audit of 2026-11-26). Reading
+kept, the conservative one: the other separator is accepted only as a thousands separator,
+followed by groups of exactly three digits (« 1.234,56 », « 1,234.56 »); any other use refuses the
+line, which the import reports, rather than guessing. A doubled or trailing sign is refused too.
+
