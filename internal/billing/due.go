@@ -39,7 +39,7 @@ func DueRevision(l lease.Lease, series func(quarter string) (Index, bool), today
 	if !ok {
 		return Due{}, false, nil
 	}
-	first := l.StartOn.AddMonths(12)
+	first := l.StartOn.AddMonthsClamped(12)
 	at := func(y int) period.Date {
 		p := period.Period{Year: y, Month: l.RevisionMonth}
 		return period.Date{Year: y, Month: l.RevisionMonth, Day: min(l.StartOn.Day, p.Days())}

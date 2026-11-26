@@ -21,6 +21,9 @@ func TestDueRevision(t *testing.T) {
 	}
 	july := lease.Lease{ID: "L", StartOn: d(2023, 7, 1), IRLRefQuarter: "2024-Q2", IRLRefValue: 14517, RevisionMonth: time.July}
 	mid := lease.Lease{ID: "M", StartOn: d(2025, 3, 15), IRLRefQuarter: "2024-Q4", IRLRefValue: 14464, RevisionMonth: time.March}
+	// A lease signed on 29 February: its anniversary in a common year is
+	// 28 February, twelve months after it once the month is capped.
+	leap := lease.Lease{ID: "F", StartOn: d(2024, 2, 29), IRLRefQuarter: "2023-Q4", IRLRefValue: 14259, RevisionMonth: time.February}
 	cases := []struct {
 		name  string
 		l     lease.Lease
@@ -37,6 +40,7 @@ func TestDueRevision(t *testing.T) {
 		{"before the anniversary", july, series(d(2025, 4, 15), "2025-Q2"), d(2025, 6, 30), false, period.Date{}, period.Period{}},
 		{"first anniversary of a mid-month start", mid, series(d(2025, 4, 15), "2025-Q4"), d(2026, 3, 20), true, d(2026, 3, 15), p(2026, 4)},
 		{"not before twelve months", mid, series(d(2025, 4, 15), "2025-Q4"), d(2026, 3, 14), false, period.Date{}, period.Period{}},
+		{"started on 29 February: first anniversary on the 28th", leap, series(d(2025, 1, 15), "2024-Q4"), d(2025, 3, 1), true, d(2025, 2, 28), p(2025, 3)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
