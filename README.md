@@ -32,4 +32,5 @@ Docker, Go and Node, and a built web bundle: either `./scripts/fetch-web.sh` or
 running dev stack first.
 
 ## Licence
-Proprietary — see [LICENSE](LICENSE).
+Copyright © 2026 Olivier Vandermoten. Licensed under the Apache License, Version 2.0; see
+[LICENSE](LICENSE). SPDX-License-Identifier: Apache-2.0

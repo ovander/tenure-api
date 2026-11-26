@@ -49,6 +49,16 @@ type Store interface {
 	// Locked reports whether one version is under compliance retention, and
 	// until when.
 	Locked(ctx context.Context, key, version string) (time.Time, bool, error)
+	// Versions lists every version of every object under prefix, so that a
+	// verification reads what the bucket holds, not what a table says it
+	// holds.
+	Versions(ctx context.Context, prefix string) ([]ObjectVersion, error)
+}
+
+// ObjectVersion is one version of an object.
+type ObjectVersion struct {
+	Key       string
+	VersionID string
 }
 
 // S3 is the Store over an S3-compatible bucket with versioning and object lock
@@ -238,4 +248,19 @@ func (s *S3) Locked(ctx context.Context, key, version string) (time.Time, bool, 
 		return time.Time{}, false, nil
 	}
 	return *until, true, nil
+}
+
+// Versions implements Store; delete markers are skipped.
+func (s *S3) Versions(ctx context.Context, prefix string) ([]ObjectVersion, error) {
+	var out []ObjectVersion
+	for o := range s.Client.ListObjects(ctx, s.Bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true, WithVersions: true}) {
+		if o.Err != nil {
+			return nil, fmt.Errorf("document: list %s: %w", prefix, o.Err)
+		}
+		if o.IsDeleteMarker {
+			continue
+		}
+		out = append(out, ObjectVersion{Key: o.Key, VersionID: o.VersionID})
+	}
+	return out, nil
 }

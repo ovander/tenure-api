@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -288,6 +289,57 @@ func TestBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("a platform run shows each caller only their own results", func(t *testing.T) {
+		admin := token(t, subAdmin, withRole("admin"))
+		type run struct {
+			Job     string  `json:"job"`
+			Period  string  `json:"period"`
+			OwnerID *string `json:"owner_id"`
+			Summary struct {
+				Owners []struct {
+					OwnerID string `json:"owner_id"`
+					Result  any    `json:"result"`
+				} `json:"owners"`
+			} `json:"summary"`
+		}
+		runs := func(tok string) []run {
+			t.Helper()
+			r := call(t, "GET", "/jobs/runs?size=100", req{tok: tok})
+			if r.Status != 200 {
+				t.Fatalf("list runs: %d %s", r.Status, r.Body)
+			}
+			var page struct {
+				Items []run `json:"items"`
+			}
+			r.json(t, &page)
+			var out []run
+			for _, x := range page.Items {
+				if x.Job == "billing.monthly" && x.Period == "2025-03" && x.OwnerID == nil {
+					out = append(out, x)
+				}
+			}
+			if len(out) != 1 {
+				t.Fatalf("platform runs of billing.monthly 2025-03: %d", len(out))
+			}
+			return out
+		}
+		seen := false
+		for _, o := range runs(admin)[0].Summary.Owners {
+			seen = seen || o.OwnerID == owner.ID
+		}
+		if !seen {
+			t.Fatal("the admin does not see the owner's result")
+		}
+		mine := runs(tokC)[0].Summary.Owners
+		if len(mine) != 1 || mine[0].OwnerID != owner.ID || mine[0].Result == nil {
+			t.Errorf("the owner should see exactly their own result: %+v", mine)
+		}
+		stranger := token(t, "itest-stranger-no-profile")
+		if got := runs(stranger)[0].Summary.Owners; len(got) != 0 {
+			t.Errorf("a caller with no scope sees %d owner results", len(got))
+		}
+	})
+
 	t.Run("issued documents are immutable", func(t *testing.T) {
 		if _, err := env.super.Exec("UPDATE billing_documents SET total_cents = 1 WHERE id = $1", rentCall.ID); err == nil {
 			t.Error("billing document updated")
@@ -476,8 +528,38 @@ func TestBilling(t *testing.T) {
 		}
 		uid := uuid.MustParse(owner.ID)
 		run, _, err := env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid})
-		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), `"heads_checked":1`) {
+		if err != nil || run.Status != jobs.StatusSucceeded || !strings.Contains(string(run.Summary), `"heads_checked":1`) ||
+			!strings.Contains(string(run.Summary), `"stored_heads_checked":1`) {
 			t.Errorf("verify with heads: %s %s %v", run.Status, run.Summary, err)
+		}
+		// A head in the bucket that no longer matches the chain (as after a
+		// consistent rewrite of the chain in the database) fails the check,
+		// even though the head rows still match.
+		forged := fmt.Sprintf(`{"owner_id":%q,"as_of":"2000-01-01","last_event_id":%d,"head_hash":%q}`,
+			owner.ID, int64(heads.Items[0]["last_event_id"].(float64)), strings.Repeat("0", 64))
+		info, err := env.s3.PutObject(context.Background(), bucket, key, strings.NewReader(forged), int64(len(forged)), minio.PutObjectOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			_ = env.s3.RemoveObject(context.Background(), bucket, key, minio.RemoveObjectOptions{VersionID: info.VersionID})
+		})
+		run, _, err = env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid, DryRun: true})
+		if err != nil || run.Status != jobs.StatusFailed || !strings.Contains(string(run.Summary), "stored head") {
+			t.Errorf("verify with a forged stored head: %s %s %v", run.Status, run.Summary, err)
+		}
+		_ = env.s3.RemoveObject(context.Background(), bucket, key, minio.RemoveObjectOptions{VersionID: info.VersionID})
+		// A head row whose object is missing from the bucket fails the check
+		// too, though the row itself matches the chain.
+		superExec(t, `INSERT INTO audit_chain_heads (owner_id, as_of, last_event_id, head_hash, object_key)
+			SELECT owner_id, as_of - 1, last_event_id, head_hash, owner_id::text || '/audit/missing.json' FROM audit_chain_heads
+			WHERE owner_id = $1 ORDER BY as_of DESC LIMIT 1`, owner.ID)
+		t.Cleanup(func() {
+			_, _ = env.super.Exec(`DELETE FROM audit_chain_heads WHERE owner_id = $1 AND object_key LIKE '%/audit/missing.json'`, owner.ID)
+		})
+		run, _, err = env.app.Runner.Trigger(context.Background(), "audit.verify", jobs.Options{Owner: &uid, DryRun: true})
+		if err != nil || run.Status != jobs.StatusFailed || !strings.Contains(string(run.Summary), "missing from the bucket") {
+			t.Errorf("verify with a head object missing: %s %s %v", run.Status, run.Summary, err)
 		}
 	})
 

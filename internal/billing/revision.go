@@ -90,12 +90,12 @@ func Revise(l lease.Lease, idx Index, anniversary period.Date, from period.Perio
 	if l.IRLRefValue <= 0 || idx.Value <= 0 {
 		return Revision{}, errors.New("billing: index values must be positive")
 	}
-	if anniversary.Before(l.StartOn.AddMonths(12)) || from.Last().Before(anniversary) {
+	if anniversary.Before(l.StartOn.AddMonthsClamped(12)) || from.Last().Before(anniversary) {
 		return Revision{}, ErrRevisionTooSoon
 	}
 	r := Revision{LeaseID: l.ID, Anniversary: anniversary, EffectiveFrom: from, OldRentCents: l.RentCents,
 		NewRefQuarter: idx.Quarter, NewRefValue: idx.Value}
-	if from.First().After(anniversary.AddMonths(12)) {
+	if from.First().After(anniversary.AddMonthsClamped(12)) {
 		r.Forfeited = true
 		r.IndexedRentCents, r.NewRentCents = l.RentCents, l.RentCents
 		return r, nil
