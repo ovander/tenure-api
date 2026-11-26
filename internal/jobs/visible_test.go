@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -9,7 +10,7 @@ import (
 
 func TestVisible(t *testing.T) {
 	a, b := uuid.New(), uuid.New()
-	summary, _ := json.Marshal(map[string]any{
+	summary, err := json.Marshal(map[string]any{
 		"platform": ownerResult{OK: true, Result: map[string]any{"index": 14567}},
 		"owners": []ownerResult{
 			{OwnerID: a.String(), OK: true, Result: map[string]any{"total_cents": 120000}},
@@ -17,6 +18,9 @@ func TestVisible(t *testing.T) {
 		},
 		"units": 3, "failures": 1,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	platform := Run{Job: "billing.monthly", Status: StatusPartial, Summary: summary}
 	read := func(r Run) (owners []ownerResult, units, failures int, platformOK *bool) {
 		var s struct {
@@ -49,6 +53,9 @@ func TestVisible(t *testing.T) {
 	owners, units, failures, ok := read(got)
 	if len(owners) != 1 || owners[0].OwnerID != a.String() || units != 2 || failures != 0 || ok == nil || !*ok || got.Status != StatusSucceeded {
 		t.Errorf("owner a: %s %s", got.Summary, got.Status)
+	}
+	if strings.Contains(string(got.Summary), b.String()) || strings.Contains(string(got.Summary), "owner b") {
+		t.Errorf("owner a reads something of owner b: %s", got.Summary)
 	}
 	// Owner b sees their failure.
 	got = Visible(platform, &b, false)

@@ -221,10 +221,9 @@ func TestBilling(t *testing.T) {
 		if !seen {
 			t.Fatal("the admin does not see the owner's result")
 		}
-		for _, o := range runs(tokC)[0].Summary.Owners {
-			if o.OwnerID != owner.ID {
-				t.Errorf("the owner sees another owner's result: %s", o.OwnerID)
-			}
+		mine := runs(tokC)[0].Summary.Owners
+		if len(mine) != 1 || mine[0].OwnerID != owner.ID || mine[0].Result == nil {
+			t.Errorf("the owner should see exactly their own result: %+v", mine)
 		}
 		stranger := token(t, "itest-stranger-no-profile")
 		if got := runs(stranger)[0].Summary.Owners; len(got) != 0 {
