@@ -145,12 +145,16 @@ func Allocate(charges []Charge, leases []lease.Lease, ex Exercise, provisions ma
 	// Clamped to the month's last day: an exercise ending on the 31st, or on
 	// 29 February, is late from the same day of the month, never a day later.
 	late := ex.IssuedOn.After(ex.End.AddMonthsClamped(int(spreadAfter)))
-	instalments, err := ps.Int64(params.KeyRegularisationInstalments, ex.IssuedOn)
-	if err != nil {
-		return Allocation{}, err
-	}
-	if instalments < 1 {
-		return Allocation{}, fmt.Errorf("charge: %s must be at least 1", params.KeyRegularisationInstalments)
+	// The instalment count is read only for a late exercise: one issued on
+	// time never spreads, and does not depend on it.
+	var instalments int64
+	if late {
+		if instalments, err = ps.Int64(params.KeyRegularisationInstalments, ex.IssuedOn); err != nil {
+			return Allocation{}, err
+		}
+		if instalments < 1 {
+			return Allocation{}, fmt.Errorf("charge: %s must be at least 1", params.KeyRegularisationInstalments)
+		}
 	}
 	monthly, err := money.MulDivHalfUp(a.RecoverableCents, 1, 12)
 	if err != nil {

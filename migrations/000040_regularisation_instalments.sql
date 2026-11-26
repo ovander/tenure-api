@@ -9,4 +9,4 @@ INSERT INTO legal_params (key, effective_from, value, source, source_url) VALUES
 -- seed:legal_params:end
 
 -- +goose Down
-DELETE FROM legal_params WHERE key = 'regularisation_spread_instalments';
+DELETE FROM legal_params WHERE key = 'regularisation_spread_instalments' AND effective_from IN ('2025-01-01', '2026-01-01');

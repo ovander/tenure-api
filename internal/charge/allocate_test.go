@@ -112,12 +112,31 @@ func TestAllocateLateSpread(t *testing.T) {
 	}
 	ln := a.Lines[0]
 	if !ln.Spread || int64(len(ln.Instalments)) != n || money.Sum(ln.Instalments...) != ln.BalanceCents ||
-		ln.Instalments[0] != 2527 || ln.Instalments[11] != 2531 {
+		ln.Instalments[0] != 2527 || ln.Instalments[len(ln.Instalments)-1] != 2531 {
 		t.Errorf("spread %+v", ln)
 	}
 	credit, err := Allocate(charges2023(), leases, late, map[string]money.Cents{"new": 200000}, ps)
 	if err != nil || credit.Lines[0].Spread || credit.Lines[0].BalanceCents >= 0 {
 		t.Errorf("a credit is never spread: %+v, %v", credit.Lines, err)
+	}
+}
+
+// An exercise issued on time does not read the instalment count.
+func TestAllocateOnTimeWithoutInstalments(t *testing.T) {
+	s := fixtures(t)
+	var ps params.Set
+	for _, e := range s.Entries() {
+		if e.Key != params.KeyRegularisationInstalments {
+			var err error
+			if ps, err = ps.With(e); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	ex := Exercise{AssetID: "A2", Start: d(2023, 1, 1), End: d(2023, 12, 31), IssuedOn: d(2024, 3, 1)}
+	if _, err := Allocate(charges2023(), []lease.Lease{mkLease("new", d(2023, 6, 1), period.Date{})}, ex,
+		map[string]money.Cents{"new": 84000}, ps); err != nil {
+		t.Errorf("on time, without the instalment count: %v", err)
 	}
 }
 
@@ -132,13 +151,19 @@ func TestAllocateLateFromLeapDay(t *testing.T) {
 	}
 	ex := Exercise{AssetID: "A2", Start: d(2023, 3, 1), End: d(2024, 2, 29)}
 	limit := ex.End.AddMonthsClamped(int(after))
-	ex.IssuedOn = limit.AddDays(1)
-	a, err := Allocate(charges2023(), leases, ex, map[string]money.Cents{"new": 84000}, ps)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !a.Lines[0].Spread {
-		t.Errorf("issued on %s, the day after %s: not spread", ex.IssuedOn, limit)
+	// Issued on the limit: on time. The day after: late.
+	for _, c := range []struct {
+		on     period.Date
+		spread bool
+	}{{limit, false}, {limit.AddDays(1), true}} {
+		ex.IssuedOn = c.on
+		a, err := Allocate(charges2023(), leases, ex, map[string]money.Cents{"new": 84000}, ps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Lines[0].Spread != c.spread {
+			t.Errorf("issued on %s (limit %s): spread %v, want %v", c.on, limit, a.Lines[0].Spread, c.spread)
+		}
 	}
 }
 

@@ -148,3 +148,31 @@ func TestEveryMigrationHasUpAndDown(t *testing.T) {
 		}
 	}
 }
+
+// downDeletesBySeedDate is the first migration whose Down must name the
+// effective dates it seeded: a rollback removes its own rows only, never an
+// entry a later migration added under the same key. Earlier migrations are
+// applied and left as they are.
+const downDeletesBySeedDate = "000040"
+
+// TestDownDeletesOnlyItsSeed checks that, from downDeletesBySeedDate on,
+// every legal_params deletion in a Down section is scoped by effective_from.
+func TestDownDeletesOnlyItsSeed(t *testing.T) {
+	entries, err := FS.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasSuffix(name, ".sql") || name[:6] < downDeletesBySeedDate {
+			continue
+		}
+		b, _ := FS.ReadFile(name)
+		_, down, _ := strings.Cut(string(b), "-- +goose Down")
+		for _, stmt := range strings.Split(down, ";") {
+			if strings.Contains(stmt, "DELETE FROM legal_params") && !strings.Contains(stmt, "effective_from") {
+				t.Errorf("%s: %s: scope the deletion by effective_from", name, strings.TrimSpace(stmt))
+			}
+		}
+	}
+}
