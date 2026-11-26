@@ -197,8 +197,13 @@ func TestArchive(t *testing.T) {
 		if r := call(t, "GET", "/documents", req{tok: tokAcc, scope: owner.ID}); r.Status != 200 {
 			t.Fatalf("accountant before revoke: %d", r.Status)
 		}
-		if _, err := env.super.Exec(`UPDATE owner_grants SET role = 'co_owner' WHERE id = $1`, grant.ID); err == nil {
-			t.Error("a live grant's role changed")
+		// refusedByTrigger tells the grant trigger's refusal from any other
+		// error: a broken statement must not pass for the guard.
+		refusedByTrigger := func(err error) bool {
+			return err != nil && strings.Contains(err.Error(), "grant") && strings.Contains(err.Error(), "42501")
+		}
+		if _, err := env.super.Exec(`UPDATE owner_grants SET role = 'co_owner' WHERE id = $1`, grant.ID); !refusedByTrigger(err) {
+			t.Errorf("a live grant's role changed, or failed otherwise: %v", err)
 		}
 		audited(t, seen, "DELETE /grants/{id}", 200, func() resp {
 			return call(t, "DELETE", "/grants/"+grant.ID, req{tok: freshV()})
@@ -212,15 +217,16 @@ func TestArchive(t *testing.T) {
 		if n := superCount(t, "SELECT count(*) FROM owner_grants WHERE id = $1 AND revoked_at IS NOT NULL", grant.ID); n != 1 {
 			t.Error("a revoked grant is kept, never deleted")
 		}
-		// The database itself refuses to revive, edit or delete a grant, for
-		// every role; only setting revoked_at once is allowed.
+		// The database itself refuses to revive, edit or delete a grant; the
+		// trigger runs for every database role, the superuser used here
+		// included. Only setting revoked_at once is allowed.
 		for name, q := range map[string]string{
 			"revive":        `UPDATE owner_grants SET revoked_at = NULL WHERE id = $1`,
 			"move the date": `UPDATE owner_grants SET revoked_at = now() WHERE id = $1`,
 			"delete":        `DELETE FROM owner_grants WHERE id = $1`,
 		} {
-			if _, err := env.super.Exec(q, grant.ID); err == nil {
-				t.Errorf("%s a revoked grant: accepted", name)
+			if _, err := env.super.Exec(q, grant.ID); !refusedByTrigger(err) {
+				t.Errorf("%s a revoked grant: not refused by the trigger: %v", name, err)
 			}
 		}
 	})
