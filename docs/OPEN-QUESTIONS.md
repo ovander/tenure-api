@@ -1618,6 +1618,16 @@ amount and period, then manual », with CAF/APL and third-party payers. Provisio
   - The line becomes matched.
   - A credit worth more than the calls owe leaves the surplus unapplied on the payment, where
     the payments screen shows it.
+- **A payment already recorded** (#256, found on the test install). The owner may enter a rent
+  by hand and import the statement later. The credit then has no rent call to pay, and matching
+  it would record the rent twice. Instead, it is linked:
+  - suggested: the payments that name no bank line, of at most the credit's amount, paid within
+    `window_days` of the line's day; the exact amount first, then the nearest day;
+  - the linked payments add up to exactly the credit. They now name the line, nothing else of
+    them changes (their matches, receipts and journal entries stay), and the line becomes
+    matched;
+  - a payment names one line at most. Linking is never automatic: an amount and a date alone
+    are not sure enough.
 - **Not built yet:**
   - debits matched to charges (part 14c);
   - undoing a match (for now, edit the payment while no receipt covers it);
