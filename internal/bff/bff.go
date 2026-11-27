@@ -117,7 +117,8 @@ func (s *Server) Mount(r chi.Router) {
 // Login starts a sign-in: a PKCE pair, a state and a browser binding are kept
 // server-side, and the browser goes to Socrate. ?return_to= is the same-origin
 // path to come back to; ?step_up=1 asks Socrate for a fresh authentication
-// (prompt=login, max_age=0), which the step_up routes need (Q-85).
+// with prompt=login, which the step_up routes need (Q-85). max_age=0 is not
+// sent: Socrate answers it with login_required instead of a login page.
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	p, state := kit.NewPKCE(), kit.RandomToken(32)
 	err := s.pending.Put(r.Context(), state, kit.PendingLogin{Verifier: p.Verifier, Nonce: s.login.Begin(w),
@@ -131,7 +132,6 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		"scope": {"openid profile email"}, "state": {state}, "code_challenge": {p.Challenge}, "code_challenge_method": {"S256"}}
 	if r.URL.Query().Get("step_up") == "1" {
 		q.Set("prompt", "login")
-		q.Set("max_age", "0")
 	}
 	http.Redirect(w, r, s.cfg.Issuer+"/oauth/authorize?"+q.Encode(), http.StatusFound)
 }

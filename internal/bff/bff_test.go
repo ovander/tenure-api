@@ -134,7 +134,8 @@ func TestLoginRedirect(t *testing.T) {
 	}
 	step := x.do("GET", "/bff/login?step_up=1", nil, nil)
 	sq, _ := url.Parse(step.Header().Get("Location"))
-	if sq.Query().Get("prompt") != "login" || sq.Query().Get("max_age") != "0" {
+	// prompt=login alone: Socrate answers max_age=0 with login_required (Q-85).
+	if sq.Query().Get("prompt") != "login" || sq.Query().Has("max_age") {
 		t.Errorf("step-up login %v", sq.Query())
 	}
 }

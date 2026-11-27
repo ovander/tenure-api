@@ -640,13 +640,18 @@ reconciliation (`charge_ids`) and in each statement.
 
 ## Raised by the BFF
 
-**Q-85 Step-up through the BFF — Open (BFF), Socrate to confirm.** The step_up routes need
+**Q-85 Step-up through the BFF — Resolved (Socrate, #252).** The step_up routes need
 `auth_time` at most 5 minutes old and `mfa` in `amr` (Q-02). With the BFF, the browser cannot ask
-Socrate for that itself. Provisional:
-- `/bff/login?step_up=1` adds the standard OIDC `prompt=login` and `max_age=0`;
-- the new session replaces the old one;
-- whether Socrate honours both parameters is to be confirmed; until then, the API still refuses a
-  token that is not fresh, so the route fails closed.
+Socrate for that itself:
+- `/bff/login?step_up=1` adds the standard OIDC `prompt=login`, and the new session replaces the
+  old one;
+- Socrate (2026-11-27): `prompt=login` always shows the login page and sets a new `auth_time`;
+  `max_age=0` hits a bug there and comes back as `login_required`, so tenure does not send it
+  (first sent until v0.1.40, which broke every step-up); `acr_values` is not read;
+- the tokens carry that sign-in's `auth_time`, `amr` (`["pwd","otp","mfa"]` with a second
+  factor) and `acr`. Socrate cannot require MFA for one request: an account without MFA gets no
+  `mfa`, and the API keeps refusing its token (`auth/step-up-required`), so the route fails
+  closed.
 
 **Q-86 Session storage and logins — Open (BFF).** Provisional:
 - sessions and pending logins are kept by backendkit's PostgreSQL stores in two tables of
