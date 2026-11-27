@@ -217,6 +217,62 @@ func (h Handler) MatchLine(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, v)
 }
 
+// PaymentSuggestions godoc
+//
+//	@Summary		The payments already recorded that a bank credit may be
+//	@Description	Payments entered by hand that name no bank line yet, of at most the credit's amount, paid within bank.matching's window of the line's day; the exact amount first, then the nearest day. Linking one instead of matching the line to rent keeps a payment from being recorded twice. A debit, or a line already matched or ignored, has none.
+//	@Tags			payment
+//	@Produce		json
+//	@Param			id				path		string	true	"bank line id"
+//	@Param			X-Owner-Scope	header		string	false	"owner scope"
+//	@Success		200				{array}		View
+//	@Failure		401,403,404		{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/payment-suggestions [get]
+func (h Handler) PaymentSuggestions(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	v, err := h.Service.PaymentSuggestions(r.Context(), caller(r), httpx.RequestID(r), id)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
+// LinkPayments godoc
+//
+//	@Summary		Link a bank credit to payments already recorded
+//	@Description	The credit is payments the owner already entered by hand: payments of the scope that name no bank line, adding up to exactly its amount, now name it, and no payment is recorded. The line becomes matched.
+//	@Tags			payment
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string				true	"bank line id"
+//	@Param			body			body		LinkPaymentsInput	true	"payments"
+//	@Param			X-Owner-Scope	header		string				false	"owner scope"
+//	@Success		200				{object}	MatchLineResult
+//	@Failure		400,401,403,404,409,412,415,422	{object}	problem.Body
+//	@Security		BearerAuth
+//	@Router			/bank-lines/{id}/payments [post]
+func (h Handler) LinkPayments(w http.ResponseWriter, r *http.Request) {
+	id, ok := httpx.UUIDParam(w, r, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	var in LinkPaymentsInput
+	if !httpx.Decode(w, r, &in) {
+		return
+	}
+	v, err := h.Service.LinkPayments(r.Context(), caller(r), httpx.RequestID(r), id, in)
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, v)
+}
+
 // AutoMatch godoc
 //
 //	@Summary		Match the sure bank credits

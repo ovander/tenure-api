@@ -79,6 +79,7 @@ POST /payments/import
 POST /bank-accounts
 POST /bank-lines/{id}/status
 POST /bank-lines/{id}/match +
+POST /bank-lines/{id}/payments +
 POST /bank-lines/auto +
 POST /bank-lines/{id}/charges +
 POST /loans

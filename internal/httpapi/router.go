@@ -227,6 +227,8 @@ func Routes(d Deps) []Route {
 		{"POST", "/bank-lines/{id}/status", GuardScopeOwnerW, false, h(d.Payments.SetLineStatus)},
 		{"GET", "/bank-lines/{id}/suggestions", GuardScopeOwnerW, false, h(d.Payments.Suggestions)},
 		{"POST", "/bank-lines/{id}/match", GuardScopeOwnerW, false, h(d.Payments.MatchLine)},
+		{"GET", "/bank-lines/{id}/payment-suggestions", GuardScopeOwnerW, false, h(d.Payments.PaymentSuggestions)},
+		{"POST", "/bank-lines/{id}/payments", GuardScopeOwnerW, false, h(d.Payments.LinkPayments)},
 		{"POST", "/bank-lines/auto", GuardScopeOwnerW, false, h(d.Payments.AutoMatch)},
 		{"GET", "/bank-lines/{id}/charge-suggestions", GuardScopeOwnerW, false, h(d.Charges.ChargeSuggestions)},
 		{"POST", "/bank-lines/{id}/charges", GuardScopeOwnerW, false, h(d.Charges.MatchCharges)},

@@ -234,3 +234,46 @@ func (Repository) LinePayments(ctx context.Context, line uuid.UUID) ([]paymentRo
 	err = t.Where("bank_line_id = ?", line.String()).Order("created_at").Find(&rows).Error
 	return rows, err
 }
+
+// UnlinkedPayments returns the payments that name no bank line, of at most
+// maxCents, paid from from to to (#256).
+func (Repository) UnlinkedPayments(ctx context.Context, maxCents int64, from, to time.Time) ([]paymentRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []paymentRow
+	err = t.Where("bank_line_id IS NULL AND amount_cents > 0 AND amount_cents <= ? AND paid_on BETWEEN ? AND ?", maxCents, from, to).
+		Order("paid_on, id").Find(&rows).Error
+	return rows, err
+}
+
+// PaymentsForUpdate returns the scope's payments among ids, locked until the
+// transaction ends.
+func (Repository) PaymentsForUpdate(ctx context.Context, ids []uuid.UUID) ([]paymentRow, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []paymentRow
+	err = t.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id IN ?", ids).Order("paid_on, id").Find(&rows).Error
+	return rows, err
+}
+
+// LinkBankLine makes a payment name the bank line it came in on, when version
+// matches.
+func (Repository) LinkBankLine(ctx context.Context, id uuid.UUID, version int, line uuid.UUID, at time.Time, by string) error {
+	t, err := tx(ctx)
+	if err != nil {
+		return err
+	}
+	res := t.Model(&paymentRow{}).Where("id = ? AND version = ? AND bank_line_id IS NULL", id, version).
+		Updates(map[string]any{"bank_line_id": line.String(), "version": version + 1, "updated_at": at, "updated_by": by})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return invariant.ErrStale
+	}
+	return nil
+}
