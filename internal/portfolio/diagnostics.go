@@ -11,6 +11,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -87,9 +88,58 @@ type DiagnosticView struct {
 	ID      uuid.UUID `json:"id"`
 	AssetID uuid.UUID `json:"asset_id"`
 	DiagnosticInput
-	Version   int       `json:"version"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// ExpiresOn is the last day the diagnostic is valid, when it expires:
+	// the earlier of valid_until and its legal validity from legal_params
+	// (an ERP is valid 6 months whatever its report says), as the lease
+	// blockers and the calendar read it.
+	ExpiresOn *period.Date `json:"expires_on,omitempty" swaggertype:"string" format:"date"`
+	Version   int          `json:"version"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+}
+
+// Expiry returns the last day a diagnostic is valid, and false when it does
+// not expire: the earlier of the date its report states and its legal
+// validity from legal_params; a DPE made before dpe_min_done_on is void.
+func Expiry(d DiagnosticInput, rule params.Diagnostics) (period.Date, bool) {
+	if d.DoneOn == nil {
+		return period.Date{}, false
+	}
+	if d.Kind == DiagnosticDPE && !rule.DPEMinDoneOn.IsZero() && d.DoneOn.Before(rule.DPEMinDoneOn) {
+		return d.DoneOn.AddDays(-1), true
+	}
+	var exp period.Date
+	expires := false
+	if m := rule.ValidityMonths[string(d.Kind)]; m > 0 {
+		exp, expires = d.DoneOn.AddMonths(m).AddDays(-1), true
+	}
+	if d.ValidUntil != nil && (!expires || d.ValidUntil.Before(exp)) {
+		exp, expires = *d.ValidUntil, true
+	}
+	return exp, expires
+}
+
+// withExpiry sets each view's ExpiresOn, with the diagnostics rule in force
+// today.
+func (s Service) withExpiry(ctx context.Context, vs []DiagnosticView) error {
+	if len(vs) == 0 {
+		return nil
+	}
+	ps, err := s.Params.Load(ctx)
+	if err != nil {
+		return err
+	}
+	rule, err := ps.Diagnostics(period.FromTime(s.Now().In(paris())))
+	if err != nil {
+		return err
+	}
+	for i := range vs {
+		vs[i].ExpiresOn = nil
+		if exp, ok := Expiry(vs[i].DiagnosticInput, rule); ok {
+			vs[i].ExpiresOn = &exp
+		}
+	}
+	return nil
 }
 
 func diagnosticView(d diagnosticRow) DiagnosticView {
@@ -172,10 +222,13 @@ func (s Service) Diagnostics(ctx context.Context, p *auth.Principal, requestID s
 			return err
 		}
 		rows, err := s.Repo.Diagnostics(ctx, []uuid.UUID{assetID})
+		if err != nil {
+			return err
+		}
 		for _, d := range rows {
 			out = append(out, diagnosticView(d))
 		}
-		return err
+		return s.withExpiry(ctx, out)
 	})
 	return out, err
 }
@@ -184,11 +237,14 @@ func (s Service) Diagnostics(ctx context.Context, p *auth.Principal, requestID s
 // transaction (used by the lease service for its blockers).
 func (s Service) DiagnosticsInTx(ctx context.Context, assetIDs []uuid.UUID) ([]DiagnosticView, error) {
 	rows, err := s.Repo.Diagnostics(ctx, assetIDs)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]DiagnosticView, 0, len(rows))
 	for _, d := range rows {
 		out = append(out, diagnosticView(d))
 	}
-	return out, err
+	return out, s.withExpiry(ctx, out)
 }
 
 func (s Service) checkDiagnosticDocument(ctx context.Context, assetID uuid.UUID, doc *uuid.UUID) error {
@@ -233,7 +289,15 @@ func (s Service) CreateDiagnostic(ctx context.Context, p *auth.Principal, reques
 			return err
 		}
 		out = diagnosticView(d)
-		return audit.Record(ctx, "diagnostic.create", audit.Entity{Type: "diagnostic", ID: d.ID.String()}, nil, out)
+		if err := audit.Record(ctx, "diagnostic.create", audit.Entity{Type: "diagnostic", ID: d.ID.String()}, nil, out); err != nil {
+			return err
+		}
+		vs := []DiagnosticView{out}
+		if err := s.withExpiry(ctx, vs); err != nil {
+			return err
+		}
+		out = vs[0]
+		return nil
 	})
 	return out, err
 }
@@ -273,7 +337,15 @@ func (s Service) UpdateDiagnostic(ctx context.Context, p *auth.Principal, reques
 			return err
 		}
 		out = diagnosticView(d)
-		return audit.Record(ctx, "diagnostic.update", audit.Entity{Type: "diagnostic", ID: id.String()}, before, out)
+		if err := audit.Record(ctx, "diagnostic.update", audit.Entity{Type: "diagnostic", ID: id.String()}, before, out); err != nil {
+			return err
+		}
+		vs := []DiagnosticView{out}
+		if err := s.withExpiry(ctx, vs); err != nil {
+			return err
+		}
+		out = vs[0]
+		return nil
 	})
 	return out, err
 }

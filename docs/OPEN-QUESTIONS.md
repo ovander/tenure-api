@@ -92,7 +92,10 @@ when `assets.controlled_zone` is set. That boolean column is added to `assets` i
 is not applied retroactively." Provisional: a revision never creates arrears for past months. It
 takes effect from the first period the run applies it to. If the anniversary date is more than
 12 months before that period, the revision for that anniversary is forfeited. "Current IRL" means
-the latest published index of the lease's reference quarter.
+the latest published index of the lease's reference quarter. The lease carries the revised rent
+from the day the notice is issued, so a rent call of an earlier period cancelled and reissued
+afterwards is reissued at the rent its period was billed at, the revision's old rent (#258,
+found by the e2e once the IRL was cached at start).
 
 **Q-14 Index and share scales — Open (slice 1).** Provisional: IRL values are stored as integer
 hundredths (e.g. 145,47 → 14547). Ownership shares are integer basis points in Go

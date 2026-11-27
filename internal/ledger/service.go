@@ -140,7 +140,13 @@ func (s Service) inputs(ctx context.Context, from, to time.Time) (Inputs, error)
 			PaidOn: period.FromTime(c.PaidOn), AmountCents: money.Cents(c.AmountCents), RecoverableCents: money.Cents(c.RecoverableCents),
 			DocumentID: idString(c.DocumentID)})
 	}
-	is, err := s.Repo.Instalments(ctx, from, to)
+	// A loan instalment is a debit the bank has not made before its due
+	// day: the journal is on a cash basis (#258).
+	upto := to
+	if t := s.today().Time(); t.Before(upto) {
+		upto = t
+	}
+	is, err := s.Repo.Instalments(ctx, from, upto)
 	if err != nil {
 		return in, err
 	}
@@ -331,6 +337,16 @@ func (s Service) Export(ctx context.Context, p *auth.Principal, requestID string
 			map[string]any{"year": year, "kind": kind, "closed": y.Closed, "sha256": document.SHA256(out.Data)})
 	})
 	return out, err
+}
+
+// today is the day in Europe/Paris; the real clock when Now is not set (the
+// BIC result reads the journal through a zero Service).
+func (s Service) today() period.Date {
+	now := time.Now
+	if s.Now != nil {
+		now = s.Now
+	}
+	return period.FromTime(now().In(paris()))
 }
 
 func paris() *time.Location {

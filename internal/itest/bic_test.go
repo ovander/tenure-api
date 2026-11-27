@@ -213,6 +213,10 @@ func TestBIC(t *testing.T) {
 	if r := call(t, "POST", "/bic/declarations", req{tok: token(t, subBIC, stepUp(time.Minute)), body: map[string]any{"year": 2024, "regime": "reel"}}); r.problemType(t) != "bic/declaration-order" {
 		t.Errorf("an earlier year after a later one: %d %s", r.Status, r.Body)
 	}
+	// The current year is not over: its receipts and depreciation are not final (#258).
+	if r := call(t, "POST", "/bic/declarations", req{tok: token(t, subBIC, stepUp(time.Minute)), body: map[string]any{"year": today().Year, "regime": "reel"}}); r.problemType(t) != "bic/year-open" {
+		t.Errorf("the current year declared: %d %s", r.Status, r.Body)
+	}
 	if r := call(t, "PUT", "/assets/"+a.ID+"/bic-grid", req{tok: tok, ifMatch: etag(2), body: body}); r.problemType(t) != "bic/grid-frozen" {
 		t.Errorf("a frozen grid changed: %d %s", r.Status, r.Body)
 	}

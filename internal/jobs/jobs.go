@@ -82,6 +82,11 @@ type Job struct {
 	// Check, when set, runs first in the platform scope; an error fails the
 	// whole run before any owner is processed (tax.annual's line-map check).
 	Check func(ctx context.Context, o Owner) error
+	// AtStart, when set, is asked once when the scheduler starts: true runs
+	// the job right away, again over a finished run of its key (irl.cache
+	// on an empty IRL cache, so a new install proposes the IRL before the
+	// next quarter's irl.fetch).
+	AtStart func(ctx context.Context) (bool, error)
 }
 
 // Options are the options of a triggered run.
@@ -212,6 +217,23 @@ func (r *Runner) Trigger(ctx context.Context, name string, opts Options) (run Ru
 		slog.ErrorContext(ctx, "job did not succeed", "job", name, "period", run.Period, "status", status, "run_id", run.ID)
 	}
 	return run, true, nil
+}
+
+// runAtStart runs a job whose AtStart asks for it; a failure is logged, and
+// the job keeps its schedule.
+func (r *Runner) runAtStart(ctx context.Context, name string, j Job) {
+	need, err := j.AtStart(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "job start check failed", "job", name, "error", err)
+		return
+	}
+	if !need {
+		return
+	}
+	slog.InfoContext(ctx, "job run at start", "job", name)
+	if _, _, err := r.Trigger(ctx, name, Options{Rerun: true}); err != nil {
+		slog.ErrorContext(ctx, "job at start failed", "job", name, "error", err)
+	}
 }
 
 func (r *Runner) claim(ctx context.Context, run Run) (Run, bool, error) {
@@ -394,6 +416,12 @@ func (r *Runner) Start(ctx context.Context) error {
 		}
 	}
 	r.cron.Start()
+	for name, j := range r.Jobs {
+		if j.AtStart == nil {
+			continue
+		}
+		go r.runAtStart(ctx, name, j)
+	}
 	<-ctx.Done()
 	<-r.cron.Stop().Done()
 	return nil

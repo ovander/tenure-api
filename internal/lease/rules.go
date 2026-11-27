@@ -239,22 +239,9 @@ func Family(a portfolio.AssetView) string {
 // Expiry returns the last day a diagnostic is valid, and false when it does
 // not expire: the earlier of the date its report states and its legal
 // validity from legal_params; a DPE made before dpe_min_done_on is void.
+// It is portfolio.Expiry, which the asset's diagnostics report as expires_on.
 func Expiry(d portfolio.DiagnosticView, rule params.Diagnostics) (period.Date, bool) {
-	if d.DoneOn == nil {
-		return period.Date{}, false
-	}
-	if d.Kind == portfolio.DiagnosticDPE && !rule.DPEMinDoneOn.IsZero() && d.DoneOn.Before(rule.DPEMinDoneOn) {
-		return d.DoneOn.AddDays(-1), true
-	}
-	var exp period.Date
-	expires := false
-	if m := rule.ValidityMonths[string(d.Kind)]; m > 0 {
-		exp, expires = d.DoneOn.AddMonths(m).AddDays(-1), true
-	}
-	if d.ValidUntil != nil && (!expires || d.ValidUntil.Before(exp)) {
-		exp, expires = *d.ValidUntil, true
-	}
-	return exp, expires
+	return portfolio.Expiry(d.DiagnosticInput, rule)
 }
 
 // worse returns the worse of two DPE classes ("" when unknown).
