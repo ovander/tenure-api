@@ -99,7 +99,7 @@ type Options struct {
 	// instead of returning it: for a job whose owner step only does what is
 	// still missing (billing.monthly skips a lease whose rent call exists), so
 	// a lease activated after the period's run gets its rent call. A run still
-	// running is returned unchanged.
+	// running is returned unchanged, unless its process left it (StaleRun).
 	Rerun bool
 }
 
@@ -241,8 +241,14 @@ func (r *Runner) claim(ctx context.Context, run Run) (Run, bool, error) {
 	return out, created, err
 }
 
+// StaleRun is how long a run may stay running before a rerun takes it over:
+// longer than any job takes, so only a run its process left behind (a crash,
+// a deploy) is restarted.
+const StaleRun = time.Hour
+
 // restart takes a finished run back to running, in its row, so a rerun keeps
-// the key's lock: only one caller wins it, and a run still running is left.
+// the key's lock: only one caller wins it. A run still running is left,
+// unless it started more than StaleRun ago.
 func (r *Runner) restart(ctx context.Context, run Run, now time.Time) (bool, error) {
 	restarted := false
 	err := r.DB.InScope(ctx, db.Scope{Role: "job"}, func(ctx context.Context) error {
@@ -250,7 +256,7 @@ func (r *Runner) restart(ctx context.Context, run Run, now time.Time) (bool, err
 		if err != nil {
 			return err
 		}
-		res := tx.Model(&Run{}).Where("id = ? AND status <> ?", run.ID, StatusRunning).Updates(map[string]any{
+		res := tx.Model(&Run{}).Where("id = ? AND (status <> ? OR started_at < ?)", run.ID, StatusRunning, now.Add(-StaleRun)).Updates(map[string]any{
 			"status": StatusRunning, "started_at": now, "finished_at": nil, "summary": json.RawMessage("{}")})
 		restarted = res.RowsAffected == 1
 		return res.Error

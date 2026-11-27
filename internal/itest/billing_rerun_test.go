@@ -53,4 +53,17 @@ func TestBillingRerun(t *testing.T) {
 	if n := superCount(t, "SELECT count(*) FROM job_runs WHERE job = 'billing.monthly' AND period = '2025-05' AND NOT dry_run AND status = 'succeeded' AND owner_id = (SELECT id FROM owners WHERE legal_name = 'Bailleur Relance')"); n != 1 {
 		t.Errorf("job_runs rows for the period: %d", n)
 	}
+
+	// A run still running is left to it; one its process left behind (a
+	// crash during a rerun) is taken over once it is stale.
+	third := lease("3 rue de la Relance, Lyon")
+	key := "job = 'billing.monthly' AND period = '2025-05' AND NOT dry_run AND owner_id = (SELECT id FROM owners WHERE legal_name = 'Bailleur Relance')"
+	superExec(t, "UPDATE job_runs SET status = 'running', started_at = now(), finished_at = NULL WHERE "+key)
+	if status, v := run(); status != 200 || len(v.Fees) != 0 {
+		t.Errorf("rerun over a live run: %d %+v", status, v.Fees)
+	}
+	superExec(t, "UPDATE job_runs SET started_at = now() - interval '2 hours' WHERE "+key)
+	if status, v := run(); status != 201 || len(v.Fees) != 1 || v.Fees[0].LeaseID != third {
+		t.Errorf("rerun over a stale run: %d %+v", status, v.Fees)
+	}
 }
