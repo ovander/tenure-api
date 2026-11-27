@@ -28,24 +28,36 @@ Socrate instance online, a DNS name for tenure. Plan for at least 2 GB of RAM pl
 ClamAV alone holds about 1.2 GB of signatures, and the PDF engine about 0.6 GB. On such a host,
 PDFs and scans are slow but they work.
 
-Every command runs as root. Set your own values once:
+Every command runs as root, in one `tmux` session: steps 2 to 4 keep the database passwords in
+shell variables, which a dropped SSH connection would lose. `tmux attach -t tenure` gets the
+session back. Set your own values once:
+
+```bash
+tmux new -s tenure
+```
+
+Then, inside it:
 
 ```bash
 DOMAIN=tenure.example.fr          # the DNS name of the test instance
-VERSION=v0.1.38                   # a tenure release that has deploy/test (v0.1.38 or later)
+VERSION=v0.1.40                   # a tenure release that has deploy/test (v0.1.38 or later)
 ```
 
 ## 1. Swap, Docker and the release
 
 ```bash
-fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab
+swapon --show | grep -q . || {
+  fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+}
 apt-get update && apt-get install -y docker.io docker-compose-v2 curl
 systemctl enable --now docker
 ss -tlnp | grep -E ':(5433|8080|3000|3310|9000|1025|8025) ' || echo "ports free"
 ```
 
-The last line must print `ports free`; if a port is taken, stop here.
+The first block keeps a swap the host already has. If Docker is already installed from Docker's
+own repository (`docker-ce`), keep it and skip `docker.io`. The last line must print
+`ports free`; if a port is taken, stop here.
 
 Download the release on the host and check it:
 
@@ -81,14 +93,29 @@ runuser -u postgres -- psql -p 5433 -d tenure -v db=tenure \
 ```
 
 Steps 2 to 4 run in the same shell: the three passwords are only in its variables until step 4
-writes them to `/etc/tenure/tenure.env`.
+writes them to `/etc/tenure/tenure.env`. Check them without printing them, and the roles:
+
+```bash
+echo ${#MIGRATE_PW} ${#API_PW} ${#JOBS_PW}                 # 48 48 48
+runuser -u postgres -- psql -p 5433 -d tenure -c '\du tenure*'
+```
+
+The roles are `tenure_api`, `tenure_jobs`, `tenure_migrate`, and `tenure_rls`, which cannot log
+in: it only owns the function that the row-level-security policies call.
 
 ## 3. Socrate
 
 In Socrate's console:
 - register tenure as a **confidential client**, with redirect URI `https://$DOMAIN/bff/callback`;
 - check that your account has MFA;
+- leave the magic-link page and the extra audiences empty: tenure has no magic link, and an
+  extra audience would make its tokens valid for another service;
+- allow the scopes `openid email profile`, the ones tenure asks for;
 - keep the block of client settings the console gives (issuer, JWKS URL, client id, secret).
+  The secret is shown once, at creation.
+
+A separate app for the test instance keeps its secret apart from a development one. Reusing a
+development app means adding the test redirect URI to it.
 
 ## 4. The configuration and the sidecars
 
@@ -136,8 +163,18 @@ chown root:tenure /etc/tenure/tenure.env && chmod 0640 /etc/tenure/tenure.env
 ```
 
 Then add Socrate's block to the end of `/etc/tenure/tenure.env`, as the console gives it:
-`SOCRATE_ISSUER`, `SOCRATE_JWKS_URL`, `SOCRATE_CLIENT_ID`, `SOCRATE_CLIENT_SECRET`. Use an
-editor, not the shell history.
+`SOCRATE_ISSUER`, `SOCRATE_JWKS_URL`, `SOCRATE_CLIENT_ID`, `SOCRATE_CLIENT_SECRET` (uncomment it
+and set the value kept at creation). Use an editor, not the shell history. tenure ignores the
+console's `SOCRATE_BASE_URL`, `SOCRATE_ADMIN_BASE_URL` and `SOCRATE_APP_ID`.
+
+Check the file without printing a secret: each key has a length (44, 11 and 48), the client
+secret is set, and the host reaches Socrate.
+
+```bash
+awk -F= '/KEY=/{print $1, length(substr($0, index($0,"=")+1))}' /etc/tenure/tenure.env
+grep '^SOCRATE_' /etc/tenure/tenure.env | sed -E 's/(SECRET)=(.+)/\1=*** (set)/'
+. <(grep '^SOCRATE_ISSUER=' /etc/tenure/tenure.env) && curl -fsS "$SOCRATE_ISSUER/.well-known/openid-configuration" >/dev/null && echo "Socrate reachable"
+```
 
 Start the sidecars and create the archive bucket:
 
@@ -149,7 +186,13 @@ docker compose ps
 ```
 
 ClamAV takes several minutes to load its signatures. Wait until `docker compose ps` shows it
-`healthy`.
+`healthy`; RustFS has no health check and shows `Up`. Check that the bucket has object lock:
+
+```bash
+docker compose --profile init run --rm --entrypoint sh archive-init -c 'AWS_ACCESS_KEY_ID=$RUSTFS_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$RUSTFS_SECRET_KEY AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url http://127.0.0.1:9000 s3api get-object-lock-configuration --bucket tenure-test'
+```
+
+It prints `"ObjectLockEnabled": "Enabled"`.
 
 ## 5. tenure as a service
 
@@ -173,22 +216,41 @@ cat > /etc/systemd/system/tenure.service.d/test.conf <<'EOF'
 After=postgresql@17-main.service
 EOF
 systemctl daemon-reload && systemctl enable --now tenure-sidecars
-cd /root/tenure-$VERSION && /opt/tenure/deploy/deploy.sh "$VERSION" .
-systemctl enable tenure
+systemctl is-active tenure-sidecars
 ```
 
-`deploy.sh` applies the migrations, starts tenure and waits for `/readyz`. If it fails, read
-`journalctl -u tenure -n 50`: tenure names any setting it refuses.
+The last line prints `active`. `deploy.sh` needs the units installed above: it applies the
+migrations, starts tenure and waits for `/readyz`.
+
+```bash
+cd /root/tenure-$VERSION && /opt/tenure/deploy/deploy.sh "$VERSION" .
+systemctl enable tenure
+curl -fsS http://127.0.0.1:8080/readyz; echo
+```
+
+It ends with `deploy: <version> ready`, and the journal's `listening` line names the version,
+the schema and the web bundle. If it fails, read `journalctl -u tenure -n 50`: tenure names any
+setting it refuses.
 
 ## 6. Caddy
 
-Add the tenure site to the existing Caddy, leaving its other sites as they are:
+Add the tenure site to the existing Caddy, leaving its other sites as they are. The site's
+access log is created first, owned by `caddy`: `caddy validate`, run as root, would otherwise
+create it owned by root, and the reload would fail with `permission denied` (the old
+configuration keeps serving).
 
 ```bash
+cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-before-tenure
+install -o caddy -g caddy -m 0640 /dev/null /var/log/caddy/tenure.access.log
 sed "s/TENURE_DOMAIN/$DOMAIN/" /opt/tenure/deploy/test/tenure.caddy > /etc/caddy/tenure.caddy
 grep -q 'import /etc/caddy/tenure.caddy' /etc/caddy/Caddyfile || echo 'import /etc/caddy/tenure.caddy' >> /etc/caddy/Caddyfile
 caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
 ```
+
+If the validation or the reload fails, put the Caddyfile back
+(`cp /etc/caddy/Caddyfile.bak-before-tenure /etc/caddy/Caddyfile`) and read
+`journalctl -u caddy -n 30`. If Caddy runs in a container rather than as a host service, it
+cannot reach tenure on the host's loopback: this runbook does not cover that case.
 
 With the DNS record of `$DOMAIN` pointing at the host, Caddy gets the certificate on the first
 request.
@@ -199,7 +261,7 @@ Check that the instance answers without a session:
 
 ## 7. First login and a test run
 
-1. Open `https://$DOMAIN`. You are redirected to Socrate and asked for MFA. Complete your profile.
+1. Open `https://$DOMAIN`; follow the server side with `journalctl -u tenure -f`. You are redirected to Socrate and asked for MFA. Complete your profile.
 2. Enter a fictitious asset, tenant and lease, then issue a rent call.
 3. Read the e-mails through a tunnel: run `ssh -p <ssh port> -L 8025:127.0.0.1:8025 <host>` from
    your machine, then open `http://127.0.0.1:8025`.
