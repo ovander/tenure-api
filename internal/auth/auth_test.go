@@ -81,6 +81,8 @@ func TestRefusal(t *testing.T) {
 		"stale":         {Claims{AuthTime: now.Add(-10 * time.Minute), AMR: []string{"pwd", "otp", "mfa"}}, "auth_time_stale"},
 		"future":        {Claims{AuthTime: now.Add(2 * time.Minute), AMR: []string{"pwd", "otp", "mfa"}}, "auth_time_stale"},
 		"recent no mfa": {Claims{AuthTime: now.Add(-20 * time.Second), AMR: []string{"pwd"}}, "mfa_missing"},
+		"fresh":         {Claims{AuthTime: now.Add(-20 * time.Second), AMR: []string{"pwd", "otp", "mfa"}}, ""},
+		"stale, no mfa": {Claims{AuthTime: now.Add(-10 * time.Minute), AMR: []string{"pwd"}}, "auth_time_stale"},
 	}
 	for name, c := range cases {
 		if got := refusal(c.c, now, 5*time.Minute); got != c.want {

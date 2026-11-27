@@ -42,7 +42,7 @@ type Message struct {
 var catalogue = map[string]Message{
 	Unauthenticated:      {401, "Authentification requise.", "Authentication required."},
 	StepUpRequired:       {401, "Veuillez vous authentifier à nouveau avec un second facteur.", "Please authenticate again with a second factor."},
-	MFARequired:          {403, "Cette action exige une connexion avec double authentification : activez-la sur votre compte Socrate, puis recommencez.", "This action needs a sign-in with a second factor: turn it on in your Socrate account, then try again."},
+	MFARequired:          {403, "Cette action exige une connexion avec double authentification, que votre compte Socrate n’a pas utilisée : activez-la dans votre compte Socrate si ce n’est pas déjà fait, puis recommencez.", "This action needs a sign-in with a second factor, which your Socrate account did not use: turn it on in your Socrate account if it is not, then try again."},
 	Forbidden:            {403, "Action non autorisée pour votre rôle.", "Action not allowed for your role."},
 	ScopeForbidden:       {403, "Vous n’avez pas accès à ce portefeuille.", "You have no access to this portfolio."},
 	NoScope:              {403, "Aucun portefeuille n’est associé à votre compte.", "No portfolio is linked to your account."},
