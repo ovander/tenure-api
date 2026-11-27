@@ -81,7 +81,7 @@ func New(d Deps) (*App, error) {
 		d.Now = time.Now
 	}
 	newID := func() uuid.UUID { return uuid.Must(uuid.NewV7()) }
-	pf := portfolio.Service{DB: d.API, Now: d.Now, NewID: newID}
+	pf := portfolio.Service{DB: d.API, Params: params.Repository{}, Now: d.Now, NewID: newID}
 	issuer := document.Issuer{PDF: d.PDF, Store: d.Store, Now: d.Now, NewID: newID}
 	ls := lease.Service{DB: d.API, Portfolio: pf, Issuer: issuer, Now: d.Now, NewID: newID,
 		Drafts: inventory.Drafter{NewID: newID}}

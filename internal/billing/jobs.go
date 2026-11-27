@@ -42,7 +42,9 @@ func MonthlyJob(s Service, d *db.DB) jobs.Job {
 
 // IRLFetchJob is irl.fetch (RENT-BE-001 §5): on the 15th of January, April,
 // July and October at 07:00, cache the newly published IRL values, then apply
-// every revision now due and send its notices.
+// every revision now due and send its notices. It also runs when tenure
+// starts with no IRL cached (a new install, #258), so a lease's reference
+// quarter is proposed from the first day.
 func IRLFetchJob(s Service, d *db.DB, src params.INSEE) jobs.Job {
 	return jobs.Job{
 		Name:     "irl.fetch",
@@ -72,6 +74,15 @@ func IRLFetchJob(s Service, d *db.DB, src params.INSEE) jobs.Job {
 			return s.RevisionsOwner(ctx, o.Today, o.DryRun)
 		},
 		AfterCommit: deliverAfter(s, d),
+		AtStart: func(ctx context.Context) (bool, error) {
+			empty := false
+			err := d.InScope(ctx, db.Scope{Role: "job"}, func(ctx context.Context) error {
+				series, err := s.Params.IRLSeries(ctx)
+				empty = len(series) == 0
+				return err
+			})
+			return empty, err
+		},
 	}
 }
 

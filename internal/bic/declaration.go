@@ -3,6 +3,7 @@ package bic
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ const (
 	TypeDeclared   = "bic/declared"
 	TypeOrder      = "bic/declaration-order"
 	TypeMicroShut  = "bic/micro-closed"
+	TypeYearOpen   = "bic/year-open"
 )
 
 func init() {
@@ -32,6 +34,8 @@ func init() {
 			"A later year is already declared: years are declared in order."),
 		TypeMicroShut: problem.M(422, "Les recettes dépassent le seuil du micro-BIC : seul le régime réel est ouvert.",
 			"The receipts exceed the micro-BIC threshold: only the réel is open."),
+		TypeYearOpen: problem.M(409, "Cette année n’est pas close : sa déclaration se fait après le 31 décembre.",
+			"This year is not over: it is declared after 31 December."),
 	})
 }
 
@@ -130,6 +134,10 @@ func (s Service) Issue(ctx context.Context, p *auth.Principal, requestID string,
 	}
 	if p.Active.IsSCI() {
 		return Declaration{}, invariant.New(tax.TypePersonOnly, "")
+	}
+	if in.Year >= s.today().Year {
+		// Its receipts and depreciation are not final (#258).
+		return Declaration{}, invariant.New(TypeYearOpen, strconv.Itoa(in.Year))
 	}
 	var out Declaration
 	err = s.DB.InScope(ctx, sc, func(ctx context.Context) error {
