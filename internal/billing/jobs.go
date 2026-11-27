@@ -42,47 +42,63 @@ func MonthlyJob(s Service, d *db.DB) jobs.Job {
 
 // IRLFetchJob is irl.fetch (RENT-BE-001 §5): on the 15th of January, April,
 // July and October at 07:00, cache the newly published IRL values, then apply
-// every revision now due and send its notices. It also runs when tenure
-// starts with no IRL cached (a new install, #258), so a lease's reference
-// quarter is proposed from the first day.
+// every revision now due and send its notices.
 func IRLFetchJob(s Service, d *db.DB, src params.INSEE) jobs.Job {
 	return jobs.Job{
 		Name:     "irl.fetch",
 		Schedule: "0 7 15 1,4,7,10 *",
 		Period:   jobs.QuarterKey,
-		Platform: func(ctx context.Context, o jobs.Owner) (any, error) {
-			series, err := src.Fetch(ctx)
-			if err != nil {
-				return nil, err
-			}
-			added := []string{}
-			for q, v := range series {
-				if o.DryRun {
-					continue
-				}
-				ok, err := s.Params.InsertIRL(ctx, q, v, params.EstimatedPublication(q, o.Today).Time(), "insee")
-				if err != nil {
-					return nil, fmt.Errorf("irl %s: %w", q, err)
-				}
-				if ok {
-					added = append(added, q)
-				}
-			}
-			return map[string]any{"published": len(series), "added": added}, nil
-		},
+		Platform: cacheIRL(s, src),
 		PerOwner: func(ctx context.Context, o jobs.Owner) (any, error) {
 			return s.RevisionsOwner(ctx, o.Today, o.DryRun)
 		},
 		AfterCommit: deliverAfter(s, d),
+	}
+}
+
+// IRLCacheJob is irl.cache (#258): irl.fetch's caching of the published IRL
+// values, without the revisions. It runs when tenure starts with no IRL
+// cached (a new install), so a lease's reference quarter is proposed from the
+// first day; no rent is revised and no notice sent before irl.fetch's own
+// schedule.
+func IRLCacheJob(s Service, d *db.DB, src params.INSEE) jobs.Job {
+	return jobs.Job{
+		Name:     "irl.cache",
+		Period:   jobs.QuarterKey,
+		Platform: cacheIRL(s, src),
 		AtStart: func(ctx context.Context) (bool, error) {
-			empty := false
+			var n int
 			err := d.InScope(ctx, db.Scope{Role: "job"}, func(ctx context.Context) error {
 				series, err := s.Params.IRLSeries(ctx)
-				empty = len(series) == 0
+				n = len(series)
 				return err
 			})
-			return empty, err
+			return err == nil && n == 0, err
 		},
+	}
+}
+
+// cacheIRL stores the IRL values INSEE publishes that are not cached yet.
+func cacheIRL(s Service, src params.INSEE) func(ctx context.Context, o jobs.Owner) (any, error) {
+	return func(ctx context.Context, o jobs.Owner) (any, error) {
+		series, err := src.Fetch(ctx)
+		if err != nil {
+			return nil, err
+		}
+		added := []string{}
+		for q, v := range series {
+			if o.DryRun {
+				continue
+			}
+			ok, err := s.Params.InsertIRL(ctx, q, v, params.EstimatedPublication(q, o.Today).Time(), "insee")
+			if err != nil {
+				return nil, fmt.Errorf("irl %s: %w", q, err)
+			}
+			if ok {
+				added = append(added, q)
+			}
+		}
+		return map[string]any{"published": len(series), "added": added}, nil
 	}
 }
 

@@ -83,9 +83,9 @@ type Job struct {
 	// whole run before any owner is processed (tax.annual's line-map check).
 	Check func(ctx context.Context, o Owner) error
 	// AtStart, when set, is asked once when the scheduler starts: true runs
-	// the job right away, again over a finished run of its key (irl.fetch
+	// the job right away, again over a finished run of its key (irl.cache
 	// on an empty IRL cache, so a new install proposes the IRL before the
-	// next quarter's run).
+	// next quarter's irl.fetch).
 	AtStart func(ctx context.Context) (bool, error)
 }
 

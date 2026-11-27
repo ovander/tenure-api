@@ -12,7 +12,7 @@ import (
 )
 
 // TestJobsAtStart: a job whose AtStart asks for it runs when the scheduler
-// starts, and irl.fetch asks only while no IRL is cached (#258).
+// starts, and irl.cache asks only while no IRL is cached (#258).
 func TestJobsAtStart(t *testing.T) {
 	var ran atomic.Int32
 	r := &jobs.Runner{DB: env.jobsDB, Now: time.Now, Jobs: map[string]jobs.Job{
@@ -37,13 +37,13 @@ func TestJobsAtStart(t *testing.T) {
 		t.Errorf("at start: ran %d times", ran.Load())
 	}
 
-	irl := env.app.Runner.Jobs["irl.fetch"]
+	irl := env.app.Runner.Jobs["irl.cache"]
 	if irl.AtStart == nil {
-		t.Fatal("irl.fetch has no AtStart")
+		t.Fatal("irl.cache has no AtStart")
 	}
 	if n := superCount(t, "SELECT count(*) FROM irl_index"); n > 0 {
 		if need, err := irl.AtStart(context.Background()); err != nil || need {
-			t.Errorf("irl.fetch at start with %d quarters cached: %v %v", n, need, err)
+			t.Errorf("irl.cache at start with %d quarters cached: %v %v", n, need, err)
 		}
 	}
 	// With none cached it asks to run; the rows are put back.
@@ -54,6 +54,6 @@ func TestJobsAtStart(t *testing.T) {
 		superExec(t, "DROP TABLE itest_irl_keep")
 	})
 	if need, err := irl.AtStart(context.Background()); err != nil || !need {
-		t.Errorf("irl.fetch at start with no IRL cached: %v %v", need, err)
+		t.Errorf("irl.cache at start with no IRL cached: %v %v", need, err)
 	}
 }

@@ -98,6 +98,7 @@ func New(d Deps) (*App, error) {
 		jobs.ArchiveVerify(d.Store, params.Repository{}, inventory.Repository{}.RecentPhotos),
 		billing.MonthlyJob(bs, d.Jobs),
 		billing.IRLFetchJob(bs, d.Jobs, d.INSEE),
+		billing.IRLCacheJob(bs, d.Jobs, d.INSEE),
 		billing.ReceiptsJob(bs, d.Jobs),
 		billing.RemindersJob(bs, d.Jobs),
 		charge.ReconcileJob(cs),
