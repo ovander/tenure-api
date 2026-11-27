@@ -8,7 +8,7 @@ One Go binary, `tenure`, serves the API and runs the scheduler; it is cut into n
 
 | Module | Package | Owns | Depends on |
 | --- | --- | --- | --- |
-| portfolio | `internal/portfolio` | Owner, Asset, Tenant, ownership shares | — |
+| portfolio | `internal/portfolio` | Owner, Asset, Tenant, ownership shares; a diagnostic's expiry (`expires_on`, from the diagnostics rule) | params |
 | lease | `internal/lease` | Lease, Guarantee, Inventory, lifecycle state machine, contract generation (RENT-SPEC-008) | portfolio, document, params |
 | billing | `internal/billing` | Monthly fee, rent call, receipt, revision, arrears (RENT-SPEC-003) | lease, payment, document, params |
 | charge | `internal/charge` | Charges ledger, syndic import, reconciliation (RENT-SPEC-007) | portfolio, lease, billing, document |
@@ -137,7 +137,7 @@ A caller with several scopes (own portfolio plus a grant) selects the active sco
 
 ## 5. Scheduler and jobs
 
-Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run. The owner's own billing run (`POST /billing/runs`) is the exception: a second run of a finished period runs again in the same `job_runs` row and issues only the rent calls still missing, such as a lease activated since (#254).
+Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run. The owner's own billing run (`POST /billing/runs`) is the exception: a second run of a finished period runs again in the same `job_runs` row and issues only the rent calls still missing, such as a lease activated since (#254). A job may also run when the scheduler starts (`jobs.Job.AtStart`): `irl.cache` does when no IRL is cached, so a new install proposes the IRL from its first day; it only caches the values, and no rent is revised before `irl.fetch`'s own schedule (#258).
 
 | Job | Schedule (Europe/Paris) | Period key | Does |
 | --- | --- | --- | --- |
@@ -145,6 +145,7 @@ Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job,
 | billing.reminders | daily, 08:00 | YYYY-MM-DD | Reminder e-mails at due day + 5; arrears flags |
 | billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run, and partial receipts for new partial matches (Q-61) |
 | irl.fetch | 15th of Jan/Apr/Jul/Oct, 07:00 | YYYY-Qn | Fetches INSEE IRL; applies due revisions and issues notices |
+| irl.cache | at start, with no IRL cached | YYYY-Qn | Fetches INSEE IRL only (a new install, #258) |
 | charges.reconcile | on demand | `<asset id>/<year>` | Allocates the asset's reconciliation of that exercise year (draft or allocated); issuing stays an owner action (Q-83) |
 | tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the income year; then drafts every owner’s summary for the previous year; owner issues it |
 | archive.retention | 1st, 03:00 | YYYY-MM | Starts the retention clock of lease documents of ended leases and of charge supporting documents (retain\_until, object lock extended, never shortened); lists documents past retain\_until for manual review; deletes nothing (Q-95) |
@@ -311,6 +312,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-26 | 2.56 | An archived object is written without retention in its transaction and locked in compliance mode once the transaction commits, or removed if it rolls back (#226): `document.Archive`, `db.AfterCommit`, `db.OnRollback`, `Store.Stage`; `archive.verify` also checks the lock of every document and inventory photo of the last eight days and places it again where it is missing (`Store.Locked`, `document.RecentArchived`); `/readyz` refuses an archive bucket with any default retention, which would lock a staged object before its commit |
 | 2026-11-26 | 2.57 | Late regularisation: the delay after the exercise end is counted with the month capped at its last day, and the number of instalments comes from `legal_params` (`regularisation_spread_instalments`, migration 000040) instead of the code (Q-16) |
 | 2026-11-26 | 2.58 | A panic inside a scoped transaction runs its rollback hooks before it propagates, so a staged archive object is removed as on an error (`db.InScope`) |
+| 2026-11-27 | 2.63 | Test install findings (#258): a diagnostic carries `expires_on` (portfolio reads the diagnostics rule); `POST /bic/declarations` refuses the current year (409 `bic/year-open`); the journal posts the loan instalments due up to today; `irl.cache` caches the IRL at start on an empty cache, without revising any rent (`jobs.Job.AtStart`); a rent call cancelled and reissued after a revision issued for a later period is reissued at the rent in force in its own period |
 | 2026-11-27 | 2.62 | Bank (Q-124, #256): a credit is linked to payments already recorded by hand, `GET /bank-lines/{id}/payment-suggestions` and `POST /bank-lines/{id}/payments` (problem `payment/bank-payments-invalid`), instead of being recorded as a second payment |
 | 2026-11-27 | 2.61 | Billing (#254): the owner's second run of a period runs again in its `job_runs` row (`jobs.Options.Rerun`) and issues the rent calls still missing; `POST /billing/runs` lists the fees issued by the run, not only those of a dry run |
 | 2026-11-27 | 2.60 | Step-up (Q-85 resolved, #252): `/bff/login?step_up=1` sends `prompt=login` alone; Socrate answered `max_age=0` with `login_required` |

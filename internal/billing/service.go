@@ -584,6 +584,13 @@ func (s Service) Cancel(ctx context.Context, p *auth.Principal, requestID string
 		if err != nil {
 			return err
 		}
+		// A revision issued since takes effect after this period: the call is
+		// reissued at the rent in force in it, as the monthly run billed it.
+		if old, ok, err := s.Repo.RentBefore(ctx, cur.LeaseID, cur.Period); err != nil {
+			return err
+		} else if ok {
+			l.RentCents = money.Cents(old)
+		}
 		opts, post, err := s.regularisationFor(ctx, cur.LeaseID, per)
 		if err != nil {
 			return err
