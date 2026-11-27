@@ -114,10 +114,12 @@ func (s *Server) Mount(r chi.Router) {
 	r.Post("/bff/logout", s.Logout)
 }
 
-// StepUp is the step-up sign-in the step_up routes need: a fresh sign-in
-// with a second factor (backendkit bff.StepUp, Q-85). Socrate meets max_age=0
-// from v1.16.2; internal/auth checks the token it gives (auth.Fresh).
-var StepUp = kit.StepUp{RequireMFA: true}
+// stepUpParams are the /oauth/authorize parameters of the step-up sign-in
+// the step_up routes need: a fresh sign-in with a second factor (backendkit
+// bff.StepUp, Q-85). Socrate meets max_age=0 from v1.16.2; internal/auth
+// checks the token it gives (auth.Fresh). A function, so no code can change
+// them at run time.
+func stepUpParams() url.Values { return kit.StepUp{RequireMFA: true}.AuthorizeParams() }
 
 // Login starts a sign-in: a PKCE pair, a state and a browser binding are kept
 // server-side, and the browser goes to Socrate. ?return_to= is the same-origin
@@ -136,7 +138,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	q := url.Values{"response_type": {"code"}, "client_id": {s.cfg.ClientID}, "redirect_uri": {s.redirectURI()},
 		"scope": {"openid profile email"}, "state": {state}, "code_challenge": {p.Challenge}, "code_challenge_method": {"S256"}}
 	if r.URL.Query().Get("step_up") == "1" {
-		for k, v := range StepUp.AuthorizeParams() {
+		for k, v := range stepUpParams() {
 			q[k] = v
 		}
 	}
