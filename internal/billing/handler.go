@@ -93,7 +93,8 @@ type RunInput struct {
 	DryRun bool   `json:"dry_run"`
 }
 
-// RunView is a billing run: the job run and, for a dry run, the computed fees.
+// RunView is a billing run: the job run and its fees, computed (dry run) or
+// issued by this run; empty when an earlier run is returned unchanged.
 type RunView struct {
 	Run    jobs.Run `json:"run"`
 	DryRun bool     `json:"dry_run"`
@@ -103,7 +104,7 @@ type RunView struct {
 // CreateRun godoc
 //
 //	@Summary		Run the monthly billing of the scope for a period
-//	@Description	dry_run returns the computed fees without issuing; otherwise rent calls are issued, archived and e-mailed. A second run of the same period issues nothing new.
+//	@Description	dry_run returns the computed fees without issuing; otherwise rent calls are issued, archived and e-mailed, and fees lists those issued by this run. A second run of the same period issues only the rent calls still missing (a lease activated since); while one runs, it is returned (200).
 //	@Tags			billing
 //	@Accept			json
 //	@Produce		json
@@ -127,13 +128,13 @@ func (h Handler) CreateRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	owner := p.Active.OwnerID
-	run, ran, err := h.Runner.Trigger(r.Context(), "billing.monthly", jobs.Options{Owner: &owner, DryRun: in.DryRun, Period: in.Period, ActorSub: p.Sub})
+	run, ran, err := h.Runner.Trigger(r.Context(), "billing.monthly", jobs.Options{Owner: &owner, DryRun: in.DryRun, Period: in.Period, ActorSub: p.Sub, Rerun: true})
 	if err != nil {
 		httpx.Error(w, r, err)
 		return
 	}
 	out := RunView{Run: run, DryRun: in.DryRun, Fees: []Fee{}}
-	if in.DryRun {
+	if in.DryRun || ran {
 		var sum struct {
 			Owners []struct {
 				Result OwnerResult `json:"result"`
@@ -142,7 +143,9 @@ func (h Handler) CreateRun(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = json.Unmarshal(run.Summary, &sum)
 		for _, o := range sum.Owners {
-			out.Fees = append(out.Fees, o.Result.Fees...)
+			if o.Error == "" { // a failed owner's transaction rolled back
+				out.Fees = append(out.Fees, o.Result.Fees...)
+			}
 		}
 	}
 	status := http.StatusOK
