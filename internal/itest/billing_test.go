@@ -177,9 +177,13 @@ func TestBilling(t *testing.T) {
 	})
 
 	t.Run("re-running the period issues nothing", func(t *testing.T) {
+		// The owner's second run of the period runs again (#254) and issues
+		// nothing: the lease's rent call exists.
+		var again billing.RunView
 		r := call(t, "POST", "/billing/runs", req{tok: tokC, body: map[string]any{"period": "2025-03"}})
-		if r.Status != 200 {
-			t.Errorf("second run of the same key: %d", r.Status)
+		r.json(t, &again)
+		if r.Status != 201 || len(again.Fees) != 0 {
+			t.Errorf("second run of the same key: %d, %d fees", r.Status, len(again.Fees))
 		}
 		admin := token(t, subAdmin, withRole("admin"))
 		if r := call(t, "POST", "/jobs/billing.monthly/trigger", req{tok: admin, body: map[string]any{"period": "2025-03"}}); r.Status != 201 {

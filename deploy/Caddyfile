@@ -36,8 +36,10 @@
 	@internal path /metrics /metrics/*
 	respond @internal 404
 
+	# Caddy sets X-Forwarded-For itself: the client address, appended to the
+	# incoming value only from a proxy in its trusted_proxies. tenure reads the
+	# right-most entry that is not one of TENURE_TRUSTED_PROXIES.
 	reverse_proxy 127.0.0.1:8080 {
-		header_up X-Forwarded-For {remote_host}
 		health_uri /healthz
 		health_interval 30s
 	}

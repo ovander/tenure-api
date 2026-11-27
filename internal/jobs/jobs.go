@@ -3,7 +3,8 @@
 // period[, owner]), owners iterated one by one under their own row-level
 // security scope as tenure_jobs, failures kept per owner so a run ends
 // partial rather than stopping. A second start of the same key is a no-op that
-// returns the existing run; a dry run computes and records nothing.
+// returns the existing run, unless the caller asks for a rerun of a finished
+// one (Options.Rerun); a dry run computes and records nothing.
 package jobs
 
 import (
@@ -94,6 +95,12 @@ type Options struct {
 	ActorSub string
 	// Period replaces the current period key.
 	Period string
+	// Rerun runs again a finished non-dry run of the same key, in its row,
+	// instead of returning it: for a job whose owner step only does what is
+	// still missing (billing.monthly skips a lease whose rent call exists), so
+	// a lease activated after the period's run gets its rent call. A run still
+	// running is returned unchanged, unless its process left it (StaleRun).
+	Rerun bool
 }
 
 // Runner runs jobs against the tenure_jobs database role.
@@ -155,7 +162,8 @@ var ErrInvalidPeriod = errors.New("jobs: invalid period")
 // Trigger runs name now (RENT-BE-001 §5). With Options.Owner the run is
 // limited to that owner; with DryRun it computes without writing and is not
 // recorded. When a non-dry run of the same (job, period, owner) exists, it is
-// returned unchanged and nothing runs again (ran is false).
+// returned unchanged and nothing runs again (ran is false), unless
+// Options.Rerun asks to run a finished one again.
 func (r *Runner) Trigger(ctx context.Context, name string, opts Options) (run Run, ran bool, err error) {
 	j, ok := r.Jobs[name]
 	if !ok {
@@ -176,8 +184,18 @@ func (r *Runner) Trigger(ctx context.Context, name string, opts Options) (run Ru
 		StartedAt: now, Status: StatusRunning, Summary: json.RawMessage("{}")}
 	if !opts.DryRun {
 		existing, created, err := r.claim(ctx, run)
-		if err != nil || !created {
+		if err != nil {
 			return existing, false, err
+		}
+		if !created {
+			if !opts.Rerun {
+				return existing, false, nil
+			}
+			restarted, err := r.restart(ctx, existing, now)
+			if err != nil || !restarted {
+				return existing, false, err
+			}
+			run.ID = existing.ID
 		}
 	}
 	summary, status := r.execute(ctx, j, run, opts, period.FromTime(now.In(Paris())))
@@ -221,6 +239,29 @@ func (r *Runner) claim(ctx context.Context, run Run) (Run, bool, error) {
 		return q.First(&out).Error
 	})
 	return out, created, err
+}
+
+// StaleRun is how long a run may stay running before a rerun takes it over:
+// longer than any job takes, so only a run its process left behind (a crash,
+// a deploy) is restarted.
+const StaleRun = time.Hour
+
+// restart takes a finished run back to running, in its row, so a rerun keeps
+// the key's lock: only one caller wins it. A run still running is left,
+// unless it started more than StaleRun ago.
+func (r *Runner) restart(ctx context.Context, run Run, now time.Time) (bool, error) {
+	restarted := false
+	err := r.DB.InScope(ctx, db.Scope{Role: "job"}, func(ctx context.Context) error {
+		tx, err := db.Tx(ctx)
+		if err != nil {
+			return err
+		}
+		res := tx.Model(&Run{}).Where("id = ? AND (status <> ? OR started_at < ?)", run.ID, StatusRunning, now.Add(-StaleRun)).Updates(map[string]any{
+			"status": StatusRunning, "started_at": now, "finished_at": nil, "summary": json.RawMessage("{}")})
+		restarted = res.RowsAffected == 1
+		return res.Error
+	})
+	return restarted, err
 }
 
 func (r *Runner) finish(ctx context.Context, run Run) error {
