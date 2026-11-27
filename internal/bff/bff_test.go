@@ -134,8 +134,9 @@ func TestLoginRedirect(t *testing.T) {
 	}
 	step := x.do("GET", "/bff/login?step_up=1", nil, nil)
 	sq, _ := url.Parse(step.Header().Get("Location"))
-	// prompt=login alone: Socrate answers max_age=0 with login_required (Q-85).
-	if sq.Query().Get("prompt") != "login" || sq.Query().Has("max_age") {
+	// A fresh sign-in with a second factor (backendkit bff.StepUp; Socrate
+	// v1.16.2 meets max_age=0, Q-85).
+	if sq.Query().Get("prompt") != "login" || sq.Query().Get("max_age") != "0" || sq.Query().Get("acr_values") != "mfa" {
 		t.Errorf("step-up login %v", sq.Query())
 	}
 }

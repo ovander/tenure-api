@@ -114,11 +114,16 @@ func (s *Server) Mount(r chi.Router) {
 	r.Post("/bff/logout", s.Logout)
 }
 
+// StepUp is the step-up sign-in the step_up routes need: a fresh sign-in
+// with a second factor (backendkit bff.StepUp, Q-85). Socrate meets max_age=0
+// from v1.16.2; internal/auth checks the token it gives (auth.Fresh).
+var StepUp = kit.StepUp{RequireMFA: true}
+
 // Login starts a sign-in: a PKCE pair, a state and a browser binding are kept
 // server-side, and the browser goes to Socrate. ?return_to= is the same-origin
 // path to come back to; ?step_up=1 asks Socrate for a fresh authentication
-// with prompt=login, which the step_up routes need (Q-85). max_age=0 is not
-// sent: Socrate answers it with login_required instead of a login page.
+// with a second factor (StepUp: prompt=login, max_age=0, acr_values=mfa),
+// which the step_up routes need (Q-85).
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	p, state := kit.NewPKCE(), kit.RandomToken(32)
 	err := s.pending.Put(r.Context(), state, kit.PendingLogin{Verifier: p.Verifier, Nonce: s.login.Begin(w),
@@ -131,7 +136,9 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	q := url.Values{"response_type": {"code"}, "client_id": {s.cfg.ClientID}, "redirect_uri": {s.redirectURI()},
 		"scope": {"openid profile email"}, "state": {state}, "code_challenge": {p.Challenge}, "code_challenge_method": {"S256"}}
 	if r.URL.Query().Get("step_up") == "1" {
-		q.Set("prompt", "login")
+		for k, v := range StepUp.AuthorizeParams() {
+			q[k] = v
+		}
 	}
 	http.Redirect(w, r, s.cfg.Issuer+"/oauth/authorize?"+q.Encode(), http.StatusFound)
 }

@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ovander/backendkit/apierror"
+	kitbff "github.com/ovander/backendkit/bff"
 	"github.com/ovander/backendkit/ctxutil"
 	"github.com/ovander/backendkit/jwtauth"
 	"github.com/sirupsen/logrus"
@@ -341,9 +342,13 @@ func authAge(c Claims, now time.Time) int64 {
 
 // Fresh reports whether c proves a strong authentication within maxAge of now.
 func Fresh(c Claims, now time.Time, maxAge time.Duration) bool {
-	if c.AuthTime.IsZero() || !slices.Contains(c.AMR, "mfa") {
+	if c.AuthTime.IsZero() {
 		return false
 	}
-	age := now.Sub(c.AuthTime)
-	return age >= -time.Minute && age <= maxAge // one minute of clock skew into the future
+	return stepUp.Satisfied(c.AuthTime.Unix(), c.AMR, maxAge, now)
 }
+
+// stepUp is the check of backendkit's bff.StepUp with a second factor, the
+// one the BFF asks Socrate for: auth_time at most maxAge old (one minute of
+// clock skew into the future, bff.StepUpClockSkew) and mfa in amr.
+var stepUp = kitbff.StepUp{RequireMFA: true}
