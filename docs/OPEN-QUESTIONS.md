@@ -92,7 +92,10 @@ when `assets.controlled_zone` is set. That boolean column is added to `assets` i
 is not applied retroactively." Provisional: a revision never creates arrears for past months. It
 takes effect from the first period the run applies it to. If the anniversary date is more than
 12 months before that period, the revision for that anniversary is forfeited. "Current IRL" means
-the latest published index of the lease's reference quarter.
+the latest published index of the lease's reference quarter. The lease carries the revised rent
+from the day the notice is issued, so a rent call of an earlier period cancelled and reissued
+afterwards is reissued at the rent its period was billed at, the revision's old rent (#258,
+found by the e2e once the IRL was cached at start).
 
 **Q-14 Index and share scales — Open (slice 1).** Provisional: IRL values are stored as integer
 hundredths (e.g. 145,47 → 14547). Ownership shares are integer basis points in Go
@@ -650,10 +653,14 @@ browser cannot ask Socrate for that itself:
   the browser.
 - Socrate: `max_age=0` failed before v1.16.2 (it was checked when the user allowed the consent
   page), so tenure sent `prompt=login` alone from v0.1.41 (#252). **This version needs Socrate
-  v1.16.2 or later**: with an older Socrate every step-up comes back as `login_required`.
-- Under `ACR_VALUES_MODE=enforce` (v1.16.2), Socrate itself refuses a sign-in without a second
-  factor (`unmet_authentication_requirements`); otherwise an account without MFA gets no `mfa`
-  and the API refuses its token (`auth/step-up-required`). Either way the route fails closed.
+  v1.16.2 or later** (in production since 2026-11-27): with an older Socrate every step-up
+  comes back as `login_required`.
+- The tokens carry that sign-in's `auth_time`, `amr` (`["pwd","otp","mfa"]` with a second
+  factor) and `acr`. Socrate refuses a sign-in without a second factor
+  (`unmet_authentication_requirements`) only under `ACR_VALUES_MODE=enforce`, which is `off`
+  for now; an account without MFA then gets no `mfa`, and the API answers 403
+  `auth/mfa-required` rather than another `auth/step-up-required`, since signing in again
+  changes nothing (#262). Either way the route fails closed.
 
 **Q-86 Session storage and logins — Open (BFF).** Provisional:
 - sessions and pending logins are kept by backendkit's PostgreSQL stores in two tables of

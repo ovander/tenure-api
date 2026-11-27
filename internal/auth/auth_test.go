@@ -68,3 +68,28 @@ func TestGuards(t *testing.T) {
 		}
 	}
 }
+
+// TestRefusal: a step-up refused says why, and a recent sign-in without a
+// second factor is told apart: signing in again would not help (#262).
+func TestRefusal(t *testing.T) {
+	now := time.Date(2025, 9, 1, 12, 0, 0, 0, time.UTC)
+	cases := map[string]struct {
+		c    Claims
+		want string
+	}{
+		"no auth_time":  {Claims{AMR: []string{"pwd", "otp", "mfa"}}, "auth_time_missing"},
+		"stale":         {Claims{AuthTime: now.Add(-10 * time.Minute), AMR: []string{"pwd", "otp", "mfa"}}, "auth_time_stale"},
+		"future":        {Claims{AuthTime: now.Add(2 * time.Minute), AMR: []string{"pwd", "otp", "mfa"}}, "auth_time_stale"},
+		"recent no mfa": {Claims{AuthTime: now.Add(-20 * time.Second), AMR: []string{"pwd"}}, "mfa_missing"},
+		"fresh":         {Claims{AuthTime: now.Add(-20 * time.Second), AMR: []string{"pwd", "otp", "mfa"}}, ""},
+		"stale, no mfa": {Claims{AuthTime: now.Add(-10 * time.Minute), AMR: []string{"pwd"}}, "auth_time_stale"},
+	}
+	for name, c := range cases {
+		if got := refusal(c.c, now, 5*time.Minute); got != c.want {
+			t.Errorf("%s: %s; want %s", name, got, c.want)
+		}
+	}
+	if authAge(Claims{}, now) != -1 || authAge(Claims{AuthTime: now.Add(-20 * time.Second)}, now) != 20 {
+		t.Error("authAge")
+	}
+}

@@ -16,6 +16,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"slices"
 	"time"
@@ -284,21 +285,59 @@ func RequireAdmin(next http.Handler) http.Handler {
 }
 
 // StepUp guards a route tagged step_up (tax issue, grants, params, exports):
-// auth_time at most StepUpMaxAge old and mfa in amr, otherwise 401
-// auth/step-up-required. A token without auth_time is refused (Q-02).
+// auth_time at most StepUpMaxAge old and mfa in amr. Otherwise 401
+// auth/step-up-required, which a new sign-in answers, or 403
+// auth/mfa-required for a recent sign-in without mfa, which a new sign-in
+// does not (#262). A token without auth_time is refused (Q-02). Each
+// refusal is logged with its reason.
 func (m *Middleware) StepUp(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, ok := principal(w, r)
 		if !ok {
 			return
 		}
-		if !Fresh(p.Claims, m.opts.Now(), m.opts.StepUpMaxAge) {
-			w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", acr_values="mfa"`)
-			problem.Write(w, r, problem.StepUpRequired, p.Language, "", nil)
+		now := m.opts.Now()
+		reason := refusal(p.Claims, now, m.opts.StepUpMaxAge)
+		if reason == "" {
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+		slog.InfoContext(r.Context(), "step-up refused", "sub", p.Sub, "reason", reason, "mfa", slices.Contains(p.Claims.AMR, "mfa"),
+			"auth_age_s", authAge(p.Claims, now))
+		w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", acr_values="mfa"`)
+		if reason == "mfa_missing" {
+			// A recent sign-in without a second factor: Socrate gives mfa
+			// only to an account with MFA on, so signing in again would not
+			// help (#262).
+			problem.Write(w, r, problem.MFARequired, p.Language, "", nil)
+			return
+		}
+		problem.Write(w, r, problem.StepUpRequired, p.Language, "", nil)
 	})
+}
+
+// refusal names why c fails the step-up at now, or is empty when c passes
+// it (Fresh): no auth_time, a sign-in outside Fresh's window, or a sign-in
+// inside it without mfa in amr. The window is Fresh's own, read once.
+func refusal(c Claims, now time.Time, maxAge time.Duration) string {
+	switch {
+	case Fresh(c, now, maxAge):
+		return ""
+	case c.AuthTime.IsZero():
+		return "auth_time_missing"
+	case !Fresh(Claims{AuthTime: c.AuthTime, AMR: []string{"mfa"}}, now, maxAge):
+		return "auth_time_stale"
+	default:
+		return "mfa_missing"
+	}
+}
+
+// authAge is the age of c's sign-in in seconds, -1 when it is unknown.
+func authAge(c Claims, now time.Time) int64 {
+	if c.AuthTime.IsZero() {
+		return -1
+	}
+	return int64(now.Sub(c.AuthTime).Seconds())
 }
 
 // Fresh reports whether c proves a strong authentication within maxAge of now.

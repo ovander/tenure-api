@@ -53,8 +53,36 @@ func TestCalendar(t *testing.T) {
 	rule, _ := ps.Diagnostics(today())
 	months := rule.ValidityMonths["erp"]
 	done := today().AddMonths(-months).AddDays(20)
-	if r := call(t, "POST", "/assets/"+asset+"/diagnostics", req{tok: tok, body: map[string]any{"kind": "erp", "done_on": done.String()}}); r.Status != 201 {
+	// The report states a later date than the legal validity: the earlier
+	// one is the diagnostic's expires_on, as on the calendar (#258).
+	r := call(t, "POST", "/assets/"+asset+"/diagnostics", req{tok: tok, body: map[string]any{"kind": "erp", "done_on": done.String(), "valid_until": "2099-12-31"}})
+	if r.Status != 201 {
 		t.Fatalf("diagnostic: %d %s", r.Status, r.Body)
+	}
+	var diag struct {
+		ExpiresOn string `json:"expires_on"`
+	}
+	r.json(t, &diag)
+	var listed []struct {
+		Kind      string `json:"kind"`
+		ExpiresOn string `json:"expires_on"`
+	}
+	call(t, "GET", "/assets/"+asset+"/diagnostics", req{tok: tok}).json(t, &listed)
+	want := done.AddMonths(months).AddDays(-1).String()
+	if diag.ExpiresOn != want {
+		t.Errorf("expires_on %q; want %s", diag.ExpiresOn, want)
+	}
+	erp := 0
+	for _, d := range listed {
+		if d.Kind == "erp" {
+			erp++
+			if d.ExpiresOn != want {
+				t.Errorf("listed ERP expires_on %q; want %s", d.ExpiresOn, want)
+			}
+		}
+	}
+	if erp != 1 {
+		t.Errorf("listed %+v", listed)
 	}
 	superExec(t, `UPDATE leases SET state = 'active', start_on = current_date - 300 WHERE id = $1`, lease)
 

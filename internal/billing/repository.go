@@ -168,6 +168,38 @@ func (Repository) Live(ctx context.Context, leaseID uuid.UUID, kind Kind, p stri
 	return nil, rows[0].Generation, nil
 }
 
+// RentBefore returns the rent a revision replaced, when a live revision notice
+// of the lease takes effect after period p: the rent in force in p, since the
+// lease carries the revised one from the moment the notice is issued. The
+// earliest such notice tells it; ok is false when none does.
+func (Repository) RentBefore(ctx context.Context, leaseID uuid.UUID, p string) (int64, bool, error) {
+	t, err := tx(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	var rows []docRow
+	if err := t.Select(withCancelled).Where("lease_id = ? AND kind = ? AND period > ?", leaseID, string(KindRevisionNotice), p).
+		Order("period, generation DESC").Find(&rows).Error; err != nil {
+		return 0, false, err
+	}
+	for _, r := range rows {
+		if r.CancelledBy != nil {
+			continue
+		}
+		var snap struct {
+			Revision Revision `json:"revision"`
+		}
+		if err := json.Unmarshal(r.InputSnapshot, &snap); err != nil {
+			return 0, false, err
+		}
+		if snap.Revision.Forfeited {
+			continue
+		}
+		return int64(snap.Revision.OldRentCents), true, nil
+	}
+	return 0, false, nil
+}
+
 // Insert records a billing document.
 func (Repository) Insert(ctx context.Context, d docRow) error {
 	t, err := tx(ctx)

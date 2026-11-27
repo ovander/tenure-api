@@ -500,6 +500,31 @@ func TestBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("a reissue after a revision bills the rent in force in its period", func(t *testing.T) {
+		// The lease now carries the revised rent, effective after March 2025:
+		// March reissued again keeps its own rent (the e2e found 907,14 for 900).
+		var list struct{ Items []billing.DocView }
+		call(t, "GET", "/billing/documents?period=2025-03&kind=rent_call", req{tok: tokC}).json(t, &list)
+		var live *billing.DocView
+		for i := range list.Items {
+			if list.Items[i].CancelledBy == nil {
+				live = &list.Items[i]
+			}
+		}
+		if live == nil {
+			t.Fatalf("no live March call: %+v", list.Items)
+		}
+		var res billing.CancelResult
+		if r := call(t, "POST", "/billing/documents/"+live.ID.String()+"/cancel", req{tok: tokC, body: map[string]any{"reason": "libellé"}}); r.Status != 201 {
+			t.Fatalf("cancel: %d %s", r.Status, r.Body)
+		} else {
+			r.json(t, &res)
+		}
+		if res.Reissued == nil || res.Reissued.TotalCents != live.TotalCents {
+			t.Errorf("reissued after the revision: %+v; want %d", res.Reissued, live.TotalCents)
+		}
+	})
+
 	t.Run("manual IRL override", func(t *testing.T) {
 		admin := token(t, subAdmin, withRole("admin"), stepUp(time.Minute))
 		audited(t, seen, "PUT /params/irl/{quarter}", 201, func() resp {

@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/tax"
 )
@@ -86,6 +88,19 @@ func TestTax(t *testing.T) {
 			r := call(t, "POST", "/tax/summaries", req{tok: tok, body: map[string]any{"year": 2025}})
 			if r.problemType(t) != "auth/step-up-required" {
 				t.Errorf("without step-up: %s", r.Body)
+			}
+			return r
+		})
+		// A recent sign-in without a second factor: no point signing in
+		// again, the account needs MFA (#262).
+		noMFA := func(c jwt.MapClaims) {
+			c["auth_time"] = time.Now().Add(-20 * time.Second).Unix()
+			c["amr"] = []string{"pwd"}
+		}
+		audited(t, seen, "POST /tax/summaries", 403, func() resp {
+			r := call(t, "POST", "/tax/summaries", req{tok: token(t, subT, noMFA), body: map[string]any{"year": 2025}})
+			if r.problemType(t) != "auth/mfa-required" {
+				t.Errorf("recent sign-in without mfa: %d %s", r.Status, r.Body)
 			}
 			return r
 		})

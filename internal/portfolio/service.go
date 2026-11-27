@@ -13,6 +13,7 @@ import (
 	"github.com/ovander/tenure-api/internal/auth"
 	"github.com/ovander/tenure-api/internal/db"
 	"github.com/ovander/tenure-api/internal/invariant"
+	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/period"
 	"github.com/ovander/tenure-api/internal/problem"
 )
@@ -156,7 +157,9 @@ type MeView struct {
 type Service struct {
 	DB   *db.DB
 	Repo Repository
-	Now  func() time.Time
+	// Params reads the diagnostics rule (a diagnostic's expiry).
+	Params params.Repository
+	Now    func() time.Time
 	// NewID returns a new UUIDv7.
 	NewID func() uuid.UUID
 }

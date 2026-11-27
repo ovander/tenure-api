@@ -8,7 +8,7 @@ One Go binary, `tenure`, serves the API and runs the scheduler; it is cut into n
 
 | Module | Package | Owns | Depends on |
 | --- | --- | --- | --- |
-| portfolio | `internal/portfolio` | Owner, Asset, Tenant, ownership shares | — |
+| portfolio | `internal/portfolio` | Owner, Asset, Tenant, ownership shares; a diagnostic's expiry (`expires_on`, from the diagnostics rule) | params |
 | lease | `internal/lease` | Lease, Guarantee, Inventory, lifecycle state machine, contract generation (RENT-SPEC-008) | portfolio, document, params |
 | billing | `internal/billing` | Monthly fee, rent call, receipt, revision, arrears (RENT-SPEC-003) | lease, payment, document, params |
 | charge | `internal/charge` | Charges ledger, syndic import, reconciliation (RENT-SPEC-007) | portfolio, lease, billing, document |
@@ -137,7 +137,7 @@ A caller with several scopes (own portfolio plus a grant) selects the active sco
 
 ## 5. Scheduler and jobs
 
-Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run. The owner's own billing run (`POST /billing/runs`) is the exception: a second run of a finished period runs again in the same `job_runs` row and issues only the rent calls still missing, such as a lease activated since (#254).
+Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run. The owner's own billing run (`POST /billing/runs`) is the exception: a second run of a finished period runs again in the same `job_runs` row and issues only the rent calls still missing, such as a lease activated since (#254). A job may also run when the scheduler starts (`jobs.Job.AtStart`): `irl.cache` does when no IRL is cached, so a new install proposes the IRL from its first day; it only caches the values, and no rent is revised before `irl.fetch`'s own schedule (#258).
 
 | Job | Schedule (Europe/Paris) | Period key | Does |
 | --- | --- | --- | --- |
@@ -145,6 +145,7 @@ Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job,
 | billing.reminders | daily, 08:00 | YYYY-MM-DD | Reminder e-mails at due day + 5; arrears flags |
 | billing.receipts | hourly | YYYY-MM-DD-HH | Issues receipts for months fully matched since last run, and partial receipts for new partial matches (Q-61) |
 | irl.fetch | 15th of Jan/Apr/Jul/Oct, 07:00 | YYYY-Qn | Fetches INSEE IRL; applies due revisions and issues notices |
+| irl.cache | at start, with no IRL cached | YYYY-Qn | Fetches INSEE IRL only (a new install, #258) |
 | charges.reconcile | on demand | `<asset id>/<year>` | Allocates the asset's reconciliation of that exercise year (draft or allocated); issuing stays an owner action (Q-83) |
 | tax.annual | 10 Jan, 06:00 | YYYY | Pre-check: fails if form\_2044\_line\_map has no map for the income year; then drafts every owner’s summary for the previous year; owner issues it |
 | archive.retention | 1st, 03:00 | YYYY-MM | Starts the retention clock of lease documents of ended leases and of charge supporting documents (retain\_until, object lock extended, never shortened); lists documents past retain\_until for manual review; deletes nothing (Q-95) |
@@ -222,7 +223,7 @@ Every service write emits one audit event in the same transaction through `audit
 - Chain: `hash = sha256(prev_hash ‖ canonical JSON)` computed in Go, not in SQL, with an advisory lock per owner to serialise inserts; `audit.verify` job weekly, `audit.head` job daily writes `audit_chain_heads` to `<owner_id>/audit/<date>.json` under object lock.
 - Read access to audit events: owner and accountant through `GET /audit/events?entity=&from=&to=`; export as CSV with the chain hashes.
 - Browser sessions: the BFF of §4; no token in the browser, `__Host-` HttpOnly SameSite=Strict cookie, CSRF token on unsafe methods, encrypted server-side sessions (Q-86).
-- Authentication: backendkit validates tokens and exposes `auth_time` and `amr`; routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most 5 minutes old and `mfa` in `amr`, otherwise 401 with `type: auth/step-up-required`; a token without `auth_time` is refused on those routes; MFA enforced by Socrate policy for owner and admin realms.
+- Authentication: backendkit validates tokens and exposes `auth_time` and `amr`; routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most 5 minutes old and `mfa` in `amr`, otherwise 401 with `type: auth/step-up-required`, or 403 `auth/mfa-required` when the sign-in is recent but without a second factor (the account has no MFA: signing in again would not help, #262); every refusal is logged with its reason (`auth_time_missing`, `auth_time_stale`, `mfa_missing`); a token without `auth_time` is refused on those routes; MFA enforced by Socrate policy for owner and admin realms.
 - Headers: HSTS (backendkit's 2 years, Caddy adds 1 year only where missing); CSP set by tenure per surface: `default-src 'none'` on the API, `default-src 'self'` without inline script on the embedded web app, its `index.html` allowing the styles that carry a per-response nonce (Q-96), `X-Content-Type-Options`, `Referrer-Policy`, frame denial; API refuses non-JSON content types.
 - Rate limiting: Chi middleware, 60 write requests/min per subject, 600 reads/min, 10 failed auth/15 min per IP before lockout; limits logged and alerted.
 - Uploads: `POST /documents` streams to a quarantine prefix, ClamAV scan (sidecar) then move to the archive prefix; MIME sniffed server-side; max 25 MB; infected files rejected and logged. The quarantine prefix `quarantine/<owner_id>/` holds objects without retention (the bucket has no default retention rule) and every quarantined object is deleted after the scan; the scan runs before the type check so that every infected file is logged (warning log and `document.reject` audit event); no scanner answer refuses the upload with 503 (fail closed); accepted types are PDF, JPEG, PNG, and CSV or OFX by extension (Q-67).
@@ -302,7 +303,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-15 | 2.47 | Loans for SCI parts and the consolidation per person (RENT-SPEC-019 part 19e, #196, Q-133): loan `kind` (asset, parts) and `sci_name`, `tax.PartsLoan`, `OwnerSummary.parts_loans`; the dashboard's estimate lists the SCI shares, the loans for parts, `sci_pending` and the BIC result (`bic.ResultInTx`), none in an SCI's scope (`entity/sci`); migration 000037 (problem type `loan/parts-person-only`) |
 | 2026-11-17 | 2.48 | Legal parameters corrected by the tax review (#203, Q-134): `bic.micro` from 2026 (receipts threshold 83 600 €), `ledger.chart` from 2025 (penalties on 658200, the PCG 2025 reform); migration 000038 |
 | 2026-11-17 | 2.49 | The 2044 lines of an associate's SCI shares (#204, Q-135): parameter `form_2044_sci_line_map`, `sci_lines` in the tax summary (section 110, lines 111 to 114), CSV rows `sci`; migration 000039 |
-| 2026-11-27 | 2.64 | Step-up through backendkit v1.29.0's `bff.StepUp` (Q-85): `/bff/login?step_up=1` asks `prompt=login&max_age=0&acr_values=mfa`, `auth.Fresh` checks with the same rule; needs Socrate v1.16.2 |
+| 2026-11-27 | 2.65 | Step-up through backendkit v1.29.0's `bff.StepUp` (Q-85): `/bff/login?step_up=1` asks `prompt=login&max_age=0&acr_values=mfa`, `auth.Fresh` checks with the same rule; needs Socrate v1.16.2 |
 | 2026-11-20 | 2.50 | CSV exports neutralise spreadsheet formulas (#211, threat model A-2): `internal/csvx` |
 | 2026-11-20 | 2.51 | gotenberg's Chromium reaches no URL but the conversion's files and runs no script (#212, threat model A-3): `--chromium-deny-list`, `--chromium-disable-javascript` |
 | 2026-11-26 | 2.52 | A platform job run shows each caller only their own scope's results (#218, Q-137): `jobs.Visible` on `GET /jobs/runs`; an admin sees it whole |
@@ -312,6 +313,8 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-26 | 2.56 | An archived object is written without retention in its transaction and locked in compliance mode once the transaction commits, or removed if it rolls back (#226): `document.Archive`, `db.AfterCommit`, `db.OnRollback`, `Store.Stage`; `archive.verify` also checks the lock of every document and inventory photo of the last eight days and places it again where it is missing (`Store.Locked`, `document.RecentArchived`); `/readyz` refuses an archive bucket with any default retention, which would lock a staged object before its commit |
 | 2026-11-26 | 2.57 | Late regularisation: the delay after the exercise end is counted with the month capped at its last day, and the number of instalments comes from `legal_params` (`regularisation_spread_instalments`, migration 000040) instead of the code (Q-16) |
 | 2026-11-26 | 2.58 | A panic inside a scoped transaction runs its rollback hooks before it propagates, so a staged archive object is removed as on an error (`db.InScope`) |
+| 2026-11-27 | 2.64 | Step-up refusals (#262): a recent sign-in without `mfa` gets 403 `auth/mfa-required`, every refusal is logged with its reason |
+| 2026-11-27 | 2.63 | Test install findings (#258): a diagnostic carries `expires_on` (portfolio reads the diagnostics rule); `POST /bic/declarations` refuses the current year (409 `bic/year-open`); the journal posts the loan instalments due up to today; `irl.cache` caches the IRL at start on an empty cache, without revising any rent (`jobs.Job.AtStart`); a rent call cancelled and reissued after a revision issued for a later period is reissued at the rent in force in its own period |
 | 2026-11-27 | 2.62 | Bank (Q-124, #256): a credit is linked to payments already recorded by hand, `GET /bank-lines/{id}/payment-suggestions` and `POST /bank-lines/{id}/payments` (problem `payment/bank-payments-invalid`), instead of being recorded as a second payment |
 | 2026-11-27 | 2.61 | Billing (#254): the owner's second run of a period runs again in its `job_runs` row (`jobs.Options.Rerun`) and issues the rent calls still missing; `POST /billing/runs` lists the fees issued by the run, not only those of a dry run |
 | 2026-11-27 | 2.60 | Step-up (Q-85 resolved, #252): `/bff/login?step_up=1` sends `prompt=login` alone; Socrate answered `max_age=0` with `login_required` |
