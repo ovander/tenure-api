@@ -16,6 +16,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"slices"
 	"time"
@@ -292,12 +293,43 @@ func (m *Middleware) StepUp(next http.Handler) http.Handler {
 			return
 		}
 		if !Fresh(p.Claims, m.opts.Now(), m.opts.StepUpMaxAge) {
+			reason := refusal(p.Claims, m.opts.Now(), m.opts.StepUpMaxAge)
+			slog.InfoContext(r.Context(), "step-up refused", "sub", p.Sub, "reason", reason, "mfa", slices.Contains(p.Claims.AMR, "mfa"),
+				"auth_age_s", authAge(p.Claims, m.opts.Now()))
 			w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", acr_values="mfa"`)
+			if reason == "mfa_missing" {
+				// A recent sign-in without a second factor: Socrate gives mfa
+				// only to an account with MFA on, so signing in again would
+				// not help (#262).
+				problem.Write(w, r, problem.MFARequired, p.Language, "", nil)
+				return
+			}
 			problem.Write(w, r, problem.StepUpRequired, p.Language, "", nil)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// refusal names why c fails the step-up, for the log and the problem type:
+// no auth_time, a sign-in older than maxAge (or in the future), or no mfa in
+// amr on a recent sign-in.
+func refusal(c Claims, now time.Time, maxAge time.Duration) string {
+	if c.AuthTime.IsZero() {
+		return "auth_time_missing"
+	}
+	if age := now.Sub(c.AuthTime); age < -time.Minute || age > maxAge {
+		return "auth_time_stale"
+	}
+	return "mfa_missing"
+}
+
+// authAge is the age of c's sign-in in seconds, -1 when it is unknown.
+func authAge(c Claims, now time.Time) int64 {
+	if c.AuthTime.IsZero() {
+		return -1
+	}
+	return int64(now.Sub(c.AuthTime).Seconds())
 }
 
 // Fresh reports whether c proves a strong authentication within maxAge of now.
