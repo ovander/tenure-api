@@ -2248,6 +2248,12 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {

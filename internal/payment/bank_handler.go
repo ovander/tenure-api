@@ -226,7 +226,7 @@ func (h Handler) MatchLine(w http.ResponseWriter, r *http.Request) {
 //	@Param			id				path		string	true	"bank line id"
 //	@Param			X-Owner-Scope	header		string	false	"owner scope"
 //	@Success		200				{array}		View
-//	@Failure		401,403,404		{object}	problem.Body
+//	@Failure		400,401,403,404		{object}	problem.Body
 //	@Security		BearerAuth
 //	@Router			/bank-lines/{id}/payment-suggestions [get]
 func (h Handler) PaymentSuggestions(w http.ResponseWriter, r *http.Request) {
