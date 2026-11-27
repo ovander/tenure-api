@@ -171,7 +171,8 @@ testdata/inventory/            inventory templates (French), the seed of invento
   and `internal/bff` turns the session into a bearer in front of `internal/auth`.
 - Routes tagged `step_up` (tax issue, grants, params, exports) require `auth_time` at most
   5 minutes old and `mfa` in `amr` (read through `internal/auth`'s accessor over backendkit's
-  `ctxutil`), otherwise 401 `type: auth/step-up-required`; a missing `auth_time` is refused.
+  `ctxutil`), otherwise 401 `type: auth/step-up-required` (403 `auth/mfa-required` for a recent
+  sign-in without `mfa`); a missing `auth_time` is refused.
 
 ## Money, time and legal constants
 

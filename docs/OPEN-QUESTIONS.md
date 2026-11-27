@@ -653,8 +653,10 @@ Socrate for that itself:
   (first sent until v0.1.40, which broke every step-up); `acr_values` is not read;
 - the tokens carry that sign-in's `auth_time`, `amr` (`["pwd","otp","mfa"]` with a second
   factor) and `acr`. Socrate cannot require MFA for one request: an account without MFA gets no
-  `mfa`, and the API keeps refusing its token (`auth/step-up-required`), so the route fails
-  closed.
+  `mfa`, and the API refuses its token, so the route fails
+  closed. A recent sign-in without `mfa` gets 403 `auth/mfa-required` rather than another
+  `auth/step-up-required`: the first test install looped on the step-up of an account with no
+  MFA, since signing in again changed nothing (#262).
 
 **Q-86 Session storage and logins — Open (BFF).** Provisional:
 - sessions and pending logins are kept by backendkit's PostgreSQL stores in two tables of
