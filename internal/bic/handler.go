@@ -242,7 +242,7 @@ func (h Handler) ListDeclarations(w http.ResponseWriter, r *http.Request) {
 // IssueDeclaration godoc
 //
 //	@Summary		Issue a year's BIC declaration
-//	@Description	Issues the year under the regime chosen (step_up): its figures, computed from the declarations before it, are stored as they are, and the grid versions they used are frozen; a frozen grid takes no new version (409 bic/grid-frozen). A year is declared once it is over (409 bic/year-open), once (409 bic/declared), after the years before it (409 bic/declaration-order); the micro is open up to its receipts threshold (422 bic/micro-closed). Under the micro, the year carries no depreciation of its own and passes the earlier carry on (Q-132).
+//	@Description	Issues the year under the regime chosen (step_up): its figures, computed from the declarations before it, are stored as they are, and the grid versions they used are frozen; a frozen grid takes no new version (409 bic/grid-frozen). A year is declared after it is over (409 bic/year-open), a single time (409 bic/declared), and after the years before it (409 bic/declaration-order); the micro is open up to its receipts threshold (422 bic/micro-closed). Under the micro, the year carries no depreciation of its own and passes the earlier carry on (Q-132).
 //	@Tags			bic
 //	@Accept			json
 //	@Produce		json
