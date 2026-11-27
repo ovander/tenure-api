@@ -137,7 +137,7 @@ A caller with several scopes (own portfolio plus a grant) selects the active sco
 
 ## 5. Scheduler and jobs
 
-Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run.
+Jobs run in-process on a cron schedule, take a lock in `job_runs` keyed on (job, period), iterate owners one by one under their RLS scope, and record a summary; a second start for the same key is a no-op that returns the existing run. The owner's own billing run (`POST /billing/runs`) is the exception: a second run of a finished period runs again in the same `job_runs` row and issues only the rent calls still missing, such as a lease activated since (#254).
 
 | Job | Schedule (Europe/Paris) | Period key | Does |
 | --- | --- | --- | --- |
@@ -311,6 +311,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-26 | 2.56 | An archived object is written without retention in its transaction and locked in compliance mode once the transaction commits, or removed if it rolls back (#226): `document.Archive`, `db.AfterCommit`, `db.OnRollback`, `Store.Stage`; `archive.verify` also checks the lock of every document and inventory photo of the last eight days and places it again where it is missing (`Store.Locked`, `document.RecentArchived`); `/readyz` refuses an archive bucket with any default retention, which would lock a staged object before its commit |
 | 2026-11-26 | 2.57 | Late regularisation: the delay after the exercise end is counted with the month capped at its last day, and the number of instalments comes from `legal_params` (`regularisation_spread_instalments`, migration 000040) instead of the code (Q-16) |
 | 2026-11-26 | 2.58 | A panic inside a scoped transaction runs its rollback hooks before it propagates, so a staged archive object is removed as on an error (`db.InScope`) |
+| 2026-11-27 | 2.61 | Billing (#254): the owner's second run of a period runs again in its `job_runs` row (`jobs.Options.Rerun`) and issues the rent calls still missing; `POST /billing/runs` lists the fees issued by the run, not only those of a dry run |
 | 2026-11-26 | 2.59 | `owner_grants`: a trigger refuses to delete a grant, to change a revoked one (revive it, move its date) or to change anything of a live one but `revoked_at` and the `updated_*` columns (migration 000041) |
 | 2026-11-12 | 2.33 | Year-end exports (RENT-SPEC-014 part 15c, #158, Q-128): the pure `ledger.CSV`, `ledger.BalancesCSV`, `ledger.FEC` (LPF art. A47 A-1, closed years only, problem `ledger/year-open`), `ledger.Pieces` and `ledger.Pack`; `GET /ledger/journal.csv`, `/ledger/fec.txt`, `/ledger/pack.zip`, step-up, audited `ledger.export` |
 | 2026-11-12 | 2.32 | The owner's journal and the period lock (RENT-SPEC-014 part 15b, #156, Q-127): module `ledger`, the pure `ledger.Journal`, `GET /ledger`, parameter `ledger.chart`; migration 000025 adds the triggers that refuse a write into a year whose tax summary is issued (SQLSTATE TL001, problem `ledger/period-locked`, mapped by `internal/db`) |

@@ -2810,7 +2810,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "dry_run returns the computed fees without issuing; otherwise rent calls are issued, archived and e-mailed. A second run of the same period issues nothing new.",
+                "description": "dry_run returns the computed fees without issuing; otherwise rent calls are issued, archived and e-mailed, and fees lists those issued by this run. A second run of the same period issues only the rent calls still missing (a lease activated since); while one runs, it is returned (200).",
                 "consumes": [
                     "application/json"
                 ],
