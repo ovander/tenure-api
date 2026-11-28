@@ -32,7 +32,7 @@ Fourteen screens cover phase 1; later phases add screens under the same hubs rat
 
 | # | Screen | Purpose | Key actions | Phase |
 | --- | --- | --- | --- | --- |
-| S01 | Home | What needs attention this month: to-dos, arrears, last job runs, next obligations | Open item, run billing (dry run) | 1 |
+| S01 | Home — month cockpit | Where the month stands, step by step (rent calls, payments, receipts, bank, recovery), then the anomalies by severity, the next dates and the last job runs (§4b) | Open the step's screen, open an anomaly, switch month | 1 (cockpit: 3) |
 | S02 | Assets list | All assets with kind, tenant, rent, status | Add asset, open asset | 1 |
 | S03 | Asset hub | Overview, leases, charges, documents, activity, audit tabs | New lease, add charge, upload document | 1 |
 | S04 | Asset form | Create or edit an asset, attach a box to a dwelling, ownership shares | Save | 1 |
@@ -62,6 +62,63 @@ Each flow ends on a read-only document or a dated event, so the user always know
 3. **Charge reconciliation**: S10 « import syndic statement » → S11 step 1 maps columns and shows recoverable split per line → step 2 allocation per lease, days and amounts visible → step 3 balances with sign and the 12-month spread flag → step 4 issue RG-… → step 5 new provision proposed per lease, apply from next month.
 4. **Tax year**: S12 for year N shows micro vs réel totals, each 2044 line expandable to its charges and payments, orange rows for charges without document → « Issue » → RF-… PDF and CSV in S13.
 5. **Correction**: any issued document shows « Cancel and reissue »; the app explains it creates a cancelling document and a new one, both archived.
+
+## 4b. Month cockpit (S01)
+
+An owner opens Tenure a few times a month and must see at once where the month stands and what is
+wrong, without opening five screens. S01 becomes a cockpit: the monthly cycle as steps, then the
+anomalies, then the existing next dates and job runs. It replaces the to-dos the app used to
+compute in the browser from several calls: one call, `GET /overview/month` (RENT-BE-001 §3),
+serves it, and the API applies the rules below.
+
+**Period.** The current month (Europe/Paris) by default; arrows switch to the previous and next
+months, kept in the URL (`/?period=2026-11`). A past month shows how it ended; a future month
+shows only its rent calls to come.
+
+**Steps.** Five cards in this order, each with a state, two or three counts and one action that
+opens the screen where the step is done. States: *done* (green), *to do* (amber, the owner
+acts), *waiting* (grey, a job or the tenants act), *nothing to do* (no lease concerned).
+
+| Step | Counts | State rule | Action |
+| --- | --- | --- | --- |
+| 1. Rent calls | billable leases; live rent calls issued; leases without one | *done* when every billable lease (active or under notice, occupied in the period) has a live rent call; *to do* otherwise, after the 1st (the monthly run issues them on the 1st at 06:00); *waiting* before | « Ouvrir la facturation » → S08 of the period |
+| 2. Payments | amount called; amount received and applied; calls paid, partly paid, unpaid; of which past their due day | *done* when every call of the period is paid; *to do* when one is past its due day and not paid; *waiting* otherwise | « Enregistrer un paiement » → S09 |
+| 3. Receipts | paid calls; receipts issued; paid calls without one | *done* when every paid call has its receipt; *waiting* while the hourly job has not run since the payment; *to do* when one is still missing after `overview.receipt_delay_hours` | « Émettre les quittances » → S08 |
+| 4. Bank | accounts; last statement imported (date); lines unmatched, the oldest one's age | *nothing to do* with no account; *to do* when a line is unmatched past `bank.unmatched_alert_days` or no statement covers the period's last `overview.statement_gap_days`; *done* otherwise | « Rapprocher » → Bank screen |
+| 5. Recovery | leases in arrears; reminders sent in the period; cases at a formal stage | *done* when no lease is in arrears; *to do* when a lease's next recovery step is due; *waiting* when reminders are sent and not yet due again | « Voir les impayés » → the lease's recovery tab, or a list when several |
+
+When the five steps are *done* or *nothing to do*, a line says « Novembre 2026 est à jour ».
+
+**Anomalies.** Below the steps, one list sorted by severity, then by date; each item names its
+lease or asset, says what is wrong and since when, and links to the screen that fixes it. The API
+detects them; the app shows them as given.
+
+| Kind | Severity | Rule |
+| --- | --- | --- |
+| `rent_call_missing` | blocking | a billable lease has no live rent call after the period's monthly run |
+| `job_failed` | blocking | a job run ended failed or partial in the last `overview.job_window_days` |
+| `payment_overdue` | to act | a call is past its due day by more than `overview.overdue_grace_days` and not fully paid (amount left, days late) |
+| `bank_line_stale` | to act | a bank line unmatched for more than `bank.unmatched_alert_days` |
+| `receipt_missing` | to act | a paid call without its receipt after `overview.receipt_delay_hours` |
+| `irl_revision_due` | to act | a lease's IRL revision is due and not applied (the calendar's rule) |
+| `regularisation_due` | to act | an exercise of a leased asset ended more than `overview.regularisation_after_days` ago without an issued reconciliation |
+| `inventory_missing` | to act | an active lease without an issued entry inventory |
+| `diagnostic_expiring` | to watch | a diagnostic of a let asset expires (its `expires_on`) within `overview.expiring_days`, or has expired |
+| `deposit_deadline` | to watch | a deposit to return by its legal date, from the calendar |
+
+Severity is the order, never a colour alone: each item also carries its words (« Bloquant »,
+« À traiter », « À surveiller »). The thresholds are business rules, kept with the others in
+`legal_params` (`overview.*`), never in code (Q-139).
+
+**Roles.** The owner sees every action; a co-owner and an accountant see the same cockpit, every
+step and anomaly included, read only (the actions open the screens, which are read only for
+them; decided 2026-11-28, Q-139). An SCI's scope has the same
+cockpit; its steps cover its own leases.
+
+**Below the cockpit.** The next dates (90 days, S16) and the last job runs stay, as today.
+
+**Not in this cockpit:** the onboarding checklist and the « next step » cards of the asset and
+lease hubs (a later spec), and notifications by e-mail.
 
 ## 5. Roles and visibility
 
@@ -133,3 +190,4 @@ The app is a Vue 3 + TypeScript 6 single-page PWA built with Vite 8 in its own r
 | 2026-11-01 | 1.0 | FE-OD-01 to 03 decided (tabs, inline pdf.js viewer, tablet-only in phase 1); baseline for the phase 1 implementation plan |
 | 2026-11-01 | 1.1 | Login through tenure's Backend-for-Frontend: no OIDC client or token in the app, session cookie and CSRF token |
 | 2026-11-05 | 1.2 | Phase 2 CSP: `img-src` adds `blob:` and the bucket host for inventory photos (RENT-INV-001, INV-OD-12) |
+| 2026-11-28 | 1.3 | S01 becomes the month cockpit (§4b): the monthly cycle as five steps and the anomalies by severity, served by `GET /overview/month` (RENT-BE-001, Q-139) |

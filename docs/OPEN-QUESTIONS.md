@@ -2323,3 +2323,30 @@ kept, the conservative one: the other separator is accepted only as a thousands 
 followed by groups of exactly three digits (« 1.234,56 », « 1,234.56 »); any other use refuses the
 line, which the import reports, rather than guessing. A doubled or trailing sign is refused too.
 
+**Q-139 The month cockpit — Decided (owner, 2026-11-28; spec #272).** A test user found the app hard to follow: every
+screen works, but nothing says where the month stands or what to do next. RENT-FE-001 §4b makes
+S01 a cockpit of the monthly cycle, served by `GET /overview/month`. Provisional:
+- **Five steps**: rent calls, payments, receipts, bank, recovery. Each has a state (`done`,
+  `to_do`, `waiting`, `nothing`) and counts, computed by the API from the facts it already holds;
+  the app no longer derives its to-dos from several calls.
+- **Anomalies** by severity (`blocking`, `to_act`, `to_watch`), each with what it concerns and
+  since when. Only facts tenure holds: a missing rent call, a failed job, an overdue payment, a
+  stale bank line, a missing receipt, an IRL revision due, a regularisation due, a missing entry
+  inventory, an expiring diagnostic, a deposit deadline.
+- **Thresholds** in `legal_params` under `overview` (business rules, sans base légale, like
+  `bank.matching`), with these starting values to confirm: `receipt_delay_hours` 2,
+  `statement_gap_days` 35, `overdue_grace_days` 0 (late the day after the due day),
+  `job_window_days` 7, `regularisation_after_days` 120, `expiring_days` 60.
+  `bank.unmatched_alert_days` is reused.
+- **Roles**: every role of the scope reads it; only the screens it opens act. An SCI's scope has
+  the same cockpit over its own leases.
+- **Slices**: (a) API: `internal/overview` with pure `Steps` and `Anomalies`, table tests per
+  rule, the parameters by migration, an integration test per step and per anomaly, the route
+  read only (no audit event, as for every read); (b) web: S01 rebuilt on it, the old to-dos
+  removed, the period in the URL, Playwright per state and per severity.
+- **Later, not here**: the onboarding checklist and the « next step » cards on the asset and
+  lease hubs, and e-mail notifications.
+- **The owner's answers (2026-11-28)**: the five steps, in this order; the starting thresholds
+  as above; a co-owner sees everything, the recovery step included (read only, as every role
+  but the owner).
+
