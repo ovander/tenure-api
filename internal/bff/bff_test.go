@@ -184,6 +184,9 @@ func TestSessionAndBearer(t *testing.T) {
 		strings.Contains(r.Body.String(), "refresh-1") {
 		t.Fatalf("session view leaks a token or is not signed in: %s", r.Body)
 	}
+	if !strings.Contains(r.Body.String(), `"account_security_url":"https://socrate.example.test/account/security"`) {
+		t.Errorf("no link to Socrate's second factor page: %s", r.Body)
+	}
 	sess, _ := x.store.Get(c.Value)
 	csrf := sess.CSRF()
 

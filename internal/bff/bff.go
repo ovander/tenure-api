@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -181,6 +182,10 @@ type SessionView struct {
 	Authenticated bool          `json:"authenticated"`
 	User          *kit.UserInfo `json:"user,omitempty"`
 	CSRF          string        `json:"csrf,omitempty"`
+	// AccountSecurityURL is the Socrate page where the user turns on their
+	// second factor (the issuer's /account/security): a step-up needs it
+	// (Q-85, #270).
+	AccountSecurityURL string `json:"account_security_url,omitempty"`
 }
 
 // Session reports the browser's session.
@@ -188,7 +193,8 @@ func (s *Server) Session(w http.ResponseWriter, r *http.Request) {
 	v := SessionView{}
 	if sess, ok := s.gw.SessionFromRequest(r); ok {
 		u := sess.User()
-		v = SessionView{Authenticated: true, User: &u, CSRF: sess.CSRF()}
+		v = SessionView{Authenticated: true, User: &u, CSRF: sess.CSRF(),
+			AccountSecurityURL: strings.TrimRight(s.cfg.Issuer, "/") + "/account/security"}
 	}
 	writeJSON(w, http.StatusOK, v)
 }

@@ -126,7 +126,7 @@ Socrate issues the OIDC token, backendkit validates it and populates the request
 
 - `GET /bff/login?return_to=&step_up=1` runs authorization code + PKCE with a state and a browser binding; with step-up it asks for a fresh authentication (Q-85);
 - `GET /bff/callback` exchanges the code server-side;
-- `GET /bff/session` returns who is signed in and the CSRF token, never a token;
+- `GET /bff/session` returns who is signed in, the CSRF token and, for a signed-in user, `account_security_url`, Socrate's page where they turn on their second factor (the issuer's `/account/security`, #270), never a token;
 - `POST /bff/logout` needs the CSRF token, revokes the refresh token and deletes the session.
 
 Sessions and pending logins live in PostgreSQL (`bff_store_sessions`, `bff_store_pending_logins`), encrypted under `TENURE_SESSION_KEY`; a session ends after 30 minutes idle and 8 hours at most. The browser holds only the `__Host-tenure_session` cookie (HttpOnly, SameSite=Strict, Secure). On `/api/v1`, a request carrying that cookie and no `Authorization` header is turned into a bearer in process, in front of `internal/auth`: an unsafe method needs `X-CSRF-Token` (403 `bff/csrf-failed`), the access token is refreshed when about to expire, and a refresh Socrate rejects ends the session (401 `auth/session-expired`). `internal/auth` then validates the token as for any bearer, so RLS, roles, step-up and audit are unchanged; machine clients keep sending bearers. Token calls to Socrate carry the resolved client address (client attribution).
@@ -303,6 +303,7 @@ Legal calculations are tested against golden files per tax year, so a parameter 
 | 2026-11-15 | 2.47 | Loans for SCI parts and the consolidation per person (RENT-SPEC-019 part 19e, #196, Q-133): loan `kind` (asset, parts) and `sci_name`, `tax.PartsLoan`, `OwnerSummary.parts_loans`; the dashboard's estimate lists the SCI shares, the loans for parts, `sci_pending` and the BIC result (`bic.ResultInTx`), none in an SCI's scope (`entity/sci`); migration 000037 (problem type `loan/parts-person-only`) |
 | 2026-11-17 | 2.48 | Legal parameters corrected by the tax review (#203, Q-134): `bic.micro` from 2026 (receipts threshold 83 600 €), `ledger.chart` from 2025 (penalties on 658200, the PCG 2025 reform); migration 000038 |
 | 2026-11-17 | 2.49 | The 2044 lines of an associate's SCI shares (#204, Q-135): parameter `form_2044_sci_line_map`, `sci_lines` in the tax summary (section 110, lines 111 to 114), CSV rows `sci`; migration 000039 |
+| 2026-11-28 | 2.66 | `GET /bff/session` gives `account_security_url`, Socrate's second factor page (#270) |
 | 2026-11-27 | 2.65 | Step-up through backendkit v1.29.0's `bff.StepUp` (Q-85): `/bff/login?step_up=1` asks `prompt=login&max_age=0&acr_values=mfa`, `auth.Fresh` checks with the same rule; needs Socrate v1.16.2 |
 | 2026-11-20 | 2.50 | CSV exports neutralise spreadsheet formulas (#211, threat model A-2): `internal/csvx` |
 | 2026-11-20 | 2.51 | gotenberg's Chromium reaches no URL but the conversion's files and runs no script (#212, threat model A-3): `--chromium-deny-list`, `--chromium-disable-javascript` |

@@ -661,6 +661,9 @@ browser cannot ask Socrate for that itself:
   for now; an account without MFA then gets no `mfa`, and the API answers 403
   `auth/mfa-required` rather than another `auth/step-up-required`, since signing in again
   changes nothing (#262). Either way the route fails closed.
+- A user turns their second factor on at Socrate's `/account/security`. `GET /bff/session` gives
+  that address, built from `SOCRATE_ISSUER`, as `account_security_url`, and the web links to it
+  from its settings and from `auth/mfa-required` (#270).
 
 **Q-86 Session storage and logins — Open (BFF).** Provisional:
 - sessions and pending logins are kept by backendkit's PostgreSQL stores in two tables of
