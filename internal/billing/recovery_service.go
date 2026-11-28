@@ -157,6 +157,14 @@ func (s Service) recovery(ctx context.Context, leaseID uuid.UUID) (recoveryState
 	return st, err
 }
 
+// RecoveryInTx returns where the recovery of a lease's unpaid rent stands, in
+// the caller's scoped transaction, for any role of the scope (the month
+// cockpit reads it; nothing is written).
+func (s Service) RecoveryInTx(ctx context.Context, leaseID uuid.UUID) (RecoveryView, error) {
+	st, err := s.recovery(ctx, leaseID)
+	return st.view, err
+}
+
 // RecoveryFor returns where the recovery of a lease's unpaid rent stands
 // (RENT-SPEC-011, Q-121): the arrears, the steps done, the next ones with the
 // day each falls due, and the clause résolutoire's day once a commandement
