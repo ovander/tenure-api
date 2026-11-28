@@ -110,8 +110,9 @@ Severity is the order, never a colour alone: each item also carries its words (�
 « À traiter », « À surveiller »). The thresholds are business rules, kept with the others in
 `legal_params` (`overview.*`), never in code (Q-139).
 
-**Roles.** The owner sees every action; a co-owner and an accountant see the same cockpit read
-only (the actions open the screens, which are read only for them). An SCI's scope has the same
+**Roles.** The owner sees every action; a co-owner and an accountant see the same cockpit, every
+step and anomaly included, read only (the actions open the screens, which are read only for
+them; decided 2026-11-28, Q-139). An SCI's scope has the same
 cockpit; its steps cover its own leases.
 
 **Below the cockpit.** The next dates (90 days, S16) and the last job runs stay, as today.

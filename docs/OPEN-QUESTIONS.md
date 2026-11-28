@@ -2323,7 +2323,7 @@ kept, the conservative one: the other separator is accepted only as a thousands 
 followed by groups of exactly three digits (« 1.234,56 », « 1,234.56 »); any other use refuses the
 line, which the import reports, rather than guessing. A doubled or trailing sign is refused too.
 
-**Q-139 The month cockpit — Open (spec, #272).** A test user found the app hard to follow: every
+**Q-139 The month cockpit — Decided (owner, 2026-11-28; spec #272).** A test user found the app hard to follow: every
 screen works, but nothing says where the month stands or what to do next. RENT-FE-001 §4b makes
 S01 a cockpit of the monthly cycle, served by `GET /overview/month`. Provisional:
 - **Five steps**: rent calls, payments, receipts, bank, recovery. Each has a state (`done`,
@@ -2346,6 +2346,7 @@ S01 a cockpit of the monthly cycle, served by `GET /overview/month`. Provisional
   removed, the period in the URL, Playwright per state and per severity.
 - **Later, not here**: the onboarding checklist and the « next step » cards on the asset and
   lease hubs, and e-mail notifications.
-- **Questions for the owner**: are the five steps the right ones, and in this order? Are the
-  starting thresholds right? Should a co-owner see the recovery step?
+- **The owner's answers (2026-11-28)**: the five steps, in this order; the starting thresholds
+  as above; a co-owner sees everything, the recovery step included (read only, as every role
+  but the owner).
 
