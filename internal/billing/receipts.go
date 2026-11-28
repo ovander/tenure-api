@@ -26,6 +26,13 @@ const ReceiptTemplate = "v1"
 var methodsFR = map[string]string{"transfer": "virement", "direct_debit": "prélèvement", "cheque": "chèque",
 	"cash": "espèces", "card": "carte", "caf": "allocation logement (CAF)", "other": "autre"}
 
+// CallsInTx returns the live rent calls of a lease with their matches and
+// due days, in the caller's scoped transaction (the month cockpit reads
+// them; nothing is written or locked).
+func (s Service) CallsInTx(ctx context.Context, leaseID uuid.UUID) ([]Call, error) {
+	return s.calls(ctx, leaseID)
+}
+
 // calls returns the live rent calls of a lease with their matches, as of the
 // arrears calculation.
 func (s Service) calls(ctx context.Context, leaseID uuid.UUID) ([]Call, error) {

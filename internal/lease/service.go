@@ -796,6 +796,18 @@ func (s Service) DomainInTx(ctx context.Context, id uuid.UUID) (Lease, View, err
 	return l, v, err
 }
 
+// DomainReadInTx is DomainInTx without the lock: a read for any role of the
+// scope (the month cockpit), which never writes the lease.
+func (s Service) DomainReadInTx(ctx context.Context, id uuid.UUID) (Lease, View, error) {
+	st, err := s.Repo.Get(ctx, id, false)
+	if err != nil {
+		return Lease{}, View{}, err
+	}
+	v := view(st)
+	l, _, err := s.domain(ctx, id, v.Input, State(st.lease.State))
+	return l, v, err
+}
+
 // SetProvisionInTx records a new monthly provision validated by the owner
 // after a charge reconciliation (RENT-SPEC-007 step 8), inside the current
 // transaction, with its audit event lease.provision; it applies from the next

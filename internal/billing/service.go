@@ -424,6 +424,39 @@ func (s Service) RevisionsOwner(ctx context.Context, today period.Date, dry bool
 	return out, nil
 }
 
+// RevisionsDueInTx lists the IRL revisions due on today and not applied, as
+// billing.revisions would apply them, for any role of the scope: it reads
+// the leases without locking them and writes nothing (the month cockpit).
+func (s Service) RevisionsDueInTx(ctx context.Context, today period.Date) ([]RevisionResult, error) {
+	ps, err := s.Params.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	series, err := s.Repo.IRLSeries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids, err := s.Repo.LeaseIDsInState(ctx, "active", "notice")
+	if err != nil {
+		return nil, err
+	}
+	var out []RevisionResult
+	for _, id := range ids {
+		l, v, err := s.Lease.DomainReadInTx(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		_, rr, _, err := s.revise(ctx, l, v, Record{}, today, series, ps, true)
+		if err != nil {
+			return nil, fmt.Errorf("lease %s revision: %w", id, err)
+		}
+		if rr != nil {
+			out = append(out, *rr)
+		}
+	}
+	return out, nil
+}
+
 // StatementDoc prepares the delivery of a document another module issued for
 // a lease (the regularisation statement of the charge module), inside the
 // current transaction: one pending delivery per tenant with an e-mail. The

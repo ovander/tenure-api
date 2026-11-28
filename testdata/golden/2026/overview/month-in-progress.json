@@ -1,0 +1,237 @@
+{
+  "case": "month-in-progress",
+  "description": "Mid-November 2026, three leases. l1 paid on the 5th, its quittance issued; l2 paid this morning, its quittance not yet due; l3 has no rent call although the monthly run finished. October's call of l2 is still partly unpaid, a formal notice recorded and the commandement due. One bank line unmatched for weeks, the last statement recent. A receipts run failed three days ago; an IRL revision due on the 1st; the 2025 exercise of a1 not regularised; a DPE expiring in a month; a deposit deadline in a week.",
+  "facts": {
+    "period": "2026-11",
+    "today": "2026-11-15",
+    "now": "2026-11-15T09:30:00Z",
+    "monthly_ran": true,
+    "billable": [
+      {
+        "id": "l1",
+        "asset_id": "a1",
+        "called": true
+      },
+      {
+        "id": "l2",
+        "asset_id": "a2",
+        "called": true
+      },
+      {
+        "id": "l3",
+        "asset_id": "a3"
+      }
+    ],
+    "calls": [
+      {
+        "id": "c1",
+        "lease_id": "l1",
+        "asset_id": "a1",
+        "period": "2026-11",
+        "due_on": "2026-11-05",
+        "total_cents": 90000,
+        "paid_cents": 90000,
+        "paid_at": "2026-11-05T08:00:00Z",
+        "receipted": true
+      },
+      {
+        "id": "c2",
+        "lease_id": "l2",
+        "asset_id": "a2",
+        "period": "2026-11",
+        "due_on": "2026-11-10",
+        "total_cents": 65000,
+        "paid_cents": 65000,
+        "paid_at": "2026-11-15T08:30:00Z"
+      },
+      {
+        "id": "c0",
+        "lease_id": "l2",
+        "asset_id": "a2",
+        "period": "2026-10",
+        "due_on": "2026-10-10",
+        "total_cents": 65000,
+        "paid_cents": 20000
+      }
+    ],
+    "bank": {
+      "accounts": 1,
+      "last_booked_on": "2026-11-12",
+      "unmatched": [
+        {
+          "id": "b1",
+          "booked_on": "2026-10-20",
+          "amount_cents": 4500
+        }
+      ]
+    },
+    "recovery": [
+      {
+        "lease_id": "l2",
+        "asset_id": "a2",
+        "formal": true,
+        "step_due": true
+      }
+    ],
+    "reminders_sent": 1,
+    "jobs": [
+      {
+        "id": "j1",
+        "job": "billing.receipts",
+        "status": "failed",
+        "finished_at": "2026-11-12T06:00:00Z"
+      }
+    ],
+    "revisions": [
+      {
+        "lease_id": "l1",
+        "asset_id": "a1",
+        "on": "2026-11-01"
+      }
+    ],
+    "exercises": [
+      {
+        "asset_id": "a1",
+        "ref": "2025",
+        "on": "2025-12-31"
+      }
+    ],
+    "diagnostics": [
+      {
+        "asset_id": "a2",
+        "ref": "dpe",
+        "on": "2026-12-15"
+      }
+    ],
+    "deposit_deadlines": [
+      {
+        "lease_id": "l9",
+        "asset_id": "a9",
+        "on": "2026-11-22"
+      }
+    ]
+  },
+  "expected": {
+    "up_to_date": false,
+    "steps": [
+      {
+        "key": "rent_calls",
+        "state": "to_do",
+        "counts": {
+          "billable": 3,
+          "issued": 2,
+          "missing": 1
+        }
+      },
+      {
+        "key": "payments",
+        "state": "waiting",
+        "counts": {
+          "called_cents": 155000,
+          "late": 0,
+          "paid": 2,
+          "partly_paid": 0,
+          "received_cents": 155000,
+          "unpaid": 0
+        }
+      },
+      {
+        "key": "receipts",
+        "state": "waiting",
+        "counts": {
+          "issued": 1,
+          "missing": 1,
+          "paid": 2
+        }
+      },
+      {
+        "key": "bank",
+        "state": "to_do",
+        "counts": {
+          "accounts": 1,
+          "oldest_unmatched_days": 26,
+          "stale": 1,
+          "unmatched": 1
+        },
+        "on": "2026-11-12"
+      },
+      {
+        "key": "recovery",
+        "state": "to_do",
+        "counts": {
+          "due": 1,
+          "formal": 1,
+          "in_arrears": 1,
+          "reminders_sent": 1
+        }
+      }
+    ],
+    "anomalies": [
+      {
+        "kind": "rent_call_missing",
+        "severity": "blocking",
+        "lease_id": "l3",
+        "asset_id": "a3",
+        "since": "2026-11-01",
+        "days": 14
+      },
+      {
+        "kind": "job_failed",
+        "severity": "blocking",
+        "ref": "billing.receipts",
+        "since": "2026-11-12",
+        "days": 3
+      },
+      {
+        "kind": "regularisation_due",
+        "severity": "to_act",
+        "asset_id": "a1",
+        "ref": "2025",
+        "since": "2025-12-31",
+        "days": 319
+      },
+      {
+        "kind": "payment_overdue",
+        "severity": "to_act",
+        "lease_id": "l2",
+        "asset_id": "a2",
+        "document_id": "c0",
+        "amount_cents": 45000,
+        "since": "2026-10-10",
+        "days": 36
+      },
+      {
+        "kind": "bank_line_stale",
+        "severity": "to_act",
+        "ref": "b1",
+        "amount_cents": 4500,
+        "since": "2026-10-20",
+        "days": 26
+      },
+      {
+        "kind": "irl_revision_due",
+        "severity": "to_act",
+        "lease_id": "l1",
+        "asset_id": "a1",
+        "since": "2026-11-01",
+        "days": 14
+      },
+      {
+        "kind": "deposit_deadline",
+        "severity": "to_watch",
+        "lease_id": "l9",
+        "asset_id": "a9",
+        "since": "2026-11-22",
+        "days": -7
+      },
+      {
+        "kind": "diagnostic_expiring",
+        "severity": "to_watch",
+        "asset_id": "a2",
+        "ref": "dpe",
+        "since": "2026-12-15",
+        "days": -30
+      }
+    ]
+  }
+}

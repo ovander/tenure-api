@@ -2349,4 +2349,20 @@ S01 a cockpit of the monthly cycle, served by `GET /overview/month`. Provisional
 - **The owner's answers (2026-11-28)**: the five steps, in this order; the starting thresholds
   as above; a co-owner sees everything, the recovery step included (read only, as every role
   but the owner).
+- **Readings taken in slice (a) (#274)**, the conservative way:
+  - the thresholds are one parameter, `overview.cockpit`, effective from 2024-01-01;
+  - the rent calls, payments and receipts steps are the period's. The bank, the recovery and
+    the anomalies stand as of today, except `rent_call_missing`, which is the period's. A past
+    month is judged at its end only for the bank's statement gap;
+  - payments and receipts are *done* only once every billable lease has its call;
+  - a receipt is *to do* once `receipt_delay_hours` have passed since the call's last match,
+    whether or not `billing.receipts` ran meanwhile (the hourly run makes the two the same);
+  - an exercise to regularise is an asset's exercise year with confirmed recoverable charges,
+    let during that year, without an issued or settled reconciliation. It ends on its
+    reconciliation's `exercise_end` once one is started, else on 31 December of the year;
+  - `diagnostic_expiring` and `deposit_deadline` are watched `expiring_days` ahead, and kept
+    once past (the calendar keeps them as overdue). A diagnostic counts only for an asset of
+    a running lease;
+  - a job run counts as failed as the scope sees it (`jobs.Visible`): a platform run only for
+    this scope's unit or its own platform unit. Dry runs never count.
 
