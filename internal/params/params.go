@@ -67,6 +67,9 @@ const (
 	KeyRecoveryPlan = "recovery.plan"
 	// KeyBank is the bank reconciliation (RENT-SPEC-013, Q-123).
 	KeyBank = "bank.reconciliation"
+	// KeyOverview is the thresholds of the month cockpit (RENT-FE-001 §4b,
+	// Q-139).
+	KeyOverview = "overview.cockpit"
 	// KeyBankMatching is how bank credits are matched to rent (Q-124).
 	KeyBankMatching = "bank.matching"
 	// KeyBankCharges is how bank debits are matched to charges (Q-125).
@@ -591,6 +594,29 @@ type Bank struct {
 func (s Set) Bank(asOf period.Date) (Bank, error) {
 	var r Bank
 	err := s.Decode(KeyBank, asOf, &r)
+	return r, err
+}
+
+// Overview is the thresholds of the month cockpit (RENT-FE-001 §4b, Q-139),
+// business rules without a legal basis: a paid call's receipt is missing
+// ReceiptDelayHours after the payment; the bank is behind when no line is
+// booked in the period's last StatementGapDays; a call is overdue
+// OverdueGraceDays after its due day; a failed job run is shown for
+// JobWindowDays; an exercise is to regularise RegularisationAfterDays after
+// its end; a diagnostic or a deposit deadline is watched ExpiringDays ahead.
+type Overview struct {
+	ReceiptDelayHours       int `json:"receipt_delay_hours"`
+	StatementGapDays        int `json:"statement_gap_days"`
+	OverdueGraceDays        int `json:"overdue_grace_days"`
+	JobWindowDays           int `json:"job_window_days"`
+	RegularisationAfterDays int `json:"regularisation_after_days"`
+	ExpiringDays            int `json:"expiring_days"`
+}
+
+// Overview returns the cockpit thresholds effective on asOf.
+func (s Set) Overview(asOf period.Date) (Overview, error) {
+	var r Overview
+	err := s.Decode(KeyOverview, asOf, &r)
 	return r, err
 }
 
