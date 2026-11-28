@@ -39,6 +39,7 @@ import (
 	"github.com/ovander/tenure-api/internal/ledger"
 	"github.com/ovander/tenure-api/internal/loan"
 	"github.com/ovander/tenure-api/internal/maintenance"
+	"github.com/ovander/tenure-api/internal/overview"
 	"github.com/ovander/tenure-api/internal/params"
 	"github.com/ovander/tenure-api/internal/payment"
 	"github.com/ovander/tenure-api/internal/portfolio"
@@ -69,6 +70,7 @@ type Deps struct {
 	Loans          loan.Handler
 	Ledger         ledger.Handler
 	Dashboard      dashboard.Handler
+	Overview       overview.Handler
 	Maintenance    maintenance.Handler
 	BIC            bic.Handler
 	SCI            sci.Handler
@@ -163,6 +165,7 @@ func Routes(d Deps) []Route {
 		{"POST", "/inventories/{id}/completions", GuardScopeOwnerW, false, h(d.Inventory.PostCompletion)},
 		{"PUT", "/completions/{id}", GuardScopeOwnerW, false, h(d.Inventory.PutCompletion)},
 		{"GET", "/calendar", GuardScopeOwnerW, false, h(d.Calendar.Get)},
+		{"GET", "/overview/month", GuardScopeOwnerW, false, h(d.Overview.Month)},
 		{"GET", "/vetuste-grids", GuardScopeOwnerW, false, h(d.Inventory.GetGrids)},
 		{"POST", "/vetuste-grids", GuardScopeOwnerW, false, h(d.Inventory.PostGrid)},
 		{"PUT", "/vetuste-grids/{id}", GuardScopeOwnerW, false, h(d.Inventory.PutGrid)},

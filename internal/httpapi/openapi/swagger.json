@@ -11563,6 +11563,63 @@
                 }
             }
         },
+        "/overview/month": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Where a period stands and what is wrong (RENT-FE-001 §4b, Q-139), read only, for every role of the scope. Five steps in order (rent_calls, payments, receipts, bank, recovery), each with its state and counts; the anomalies by severity (blocking, to_act, to_watch), then since when. The rent calls, payments and receipts are the period's; the bank, the recovery and the anomalies stand as of today, except the missing rent calls, which are the period's. The thresholds come from legal_params (overview.cockpit). The period is the current month in Europe/Paris by default.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "overview"
+                ],
+                "summary": "The month cockpit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "period, YYYY-MM",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "owner scope",
+                        "name": "X-Owner-Scope",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/overview.View"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/problem.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/params": {
             "get": {
                 "security": [
@@ -20672,6 +20729,118 @@
                 },
                 "notes": {
                     "type": "string"
+                }
+            }
+        },
+        "overview.Anomaly": {
+            "type": "object",
+            "properties": {
+                "amount_cents": {
+                    "type": "integer"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "days": {
+                    "type": "integer"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "rent_call_missing",
+                        "job_failed",
+                        "payment_overdue",
+                        "bank_line_stale",
+                        "receipt_missing",
+                        "irl_revision_due",
+                        "regularisation_due",
+                        "inventory_missing",
+                        "diagnostic_expiring",
+                        "deposit_deadline"
+                    ]
+                },
+                "lease_id": {
+                    "type": "string"
+                },
+                "ref": {
+                    "type": "string"
+                },
+                "severity": {
+                    "type": "string",
+                    "enum": [
+                        "blocking",
+                        "to_act",
+                        "to_watch"
+                    ]
+                },
+                "since": {
+                    "type": "string",
+                    "format": "date"
+                }
+            }
+        },
+        "overview.StepView": {
+            "type": "object",
+            "properties": {
+                "counts": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "key": {
+                    "type": "string",
+                    "enum": [
+                        "rent_calls",
+                        "payments",
+                        "receipts",
+                        "bank",
+                        "recovery"
+                    ]
+                },
+                "on": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "done",
+                        "to_do",
+                        "waiting",
+                        "nothing"
+                    ]
+                }
+            }
+        },
+        "overview.View": {
+            "type": "object",
+            "properties": {
+                "anomalies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/overview.Anomaly"
+                    }
+                },
+                "period": {
+                    "type": "string",
+                    "example": "2026-11"
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/overview.StepView"
+                    }
+                },
+                "today": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "up_to_date": {
+                    "type": "boolean"
                 }
             }
         },

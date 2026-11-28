@@ -1,0 +1,90 @@
+{
+  "case": "month-up-to-date",
+  "description": "November 2026 seen on the 28th: the only lease called, paid and receipted, no bank account, nothing in arrears and nothing to watch. Every step done or with nothing to do: the month is up to date.",
+  "facts": {
+    "period": "2026-11",
+    "today": "2026-11-28",
+    "now": "2026-11-28T09:00:00Z",
+    "monthly_ran": true,
+    "billable": [
+      {
+        "id": "l1",
+        "asset_id": "a1",
+        "called": true
+      }
+    ],
+    "calls": [
+      {
+        "id": "c1",
+        "lease_id": "l1",
+        "asset_id": "a1",
+        "period": "2026-11",
+        "due_on": "2026-11-05",
+        "total_cents": 90000,
+        "paid_cents": 90000,
+        "paid_at": "2026-11-04T16:00:00Z",
+        "receipted": true
+      }
+    ],
+    "bank": {
+      "accounts": 0
+    },
+    "reminders_sent": 0
+  },
+  "expected": {
+    "up_to_date": true,
+    "steps": [
+      {
+        "key": "rent_calls",
+        "state": "done",
+        "counts": {
+          "billable": 1,
+          "issued": 1,
+          "missing": 0
+        }
+      },
+      {
+        "key": "payments",
+        "state": "done",
+        "counts": {
+          "called_cents": 90000,
+          "late": 0,
+          "paid": 1,
+          "partly_paid": 0,
+          "received_cents": 90000,
+          "unpaid": 0
+        }
+      },
+      {
+        "key": "receipts",
+        "state": "done",
+        "counts": {
+          "issued": 1,
+          "missing": 0,
+          "paid": 1
+        }
+      },
+      {
+        "key": "bank",
+        "state": "nothing",
+        "counts": {
+          "accounts": 0,
+          "oldest_unmatched_days": 0,
+          "stale": 0,
+          "unmatched": 0
+        }
+      },
+      {
+        "key": "recovery",
+        "state": "done",
+        "counts": {
+          "due": 0,
+          "formal": 0,
+          "in_arrears": 0,
+          "reminders_sent": 0
+        }
+      }
+    ],
+    "anomalies": []
+  }
+}
