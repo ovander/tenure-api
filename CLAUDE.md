@@ -90,7 +90,7 @@ issuer, JWKS URL or client; the audience is the client id unless `SOCRATE_AUDIEN
 
 ```
 cmd/tenure            serve | migrate | job <name> subcommands
-internal/<module>     portfolio lease billing charge payment tax document params inventory calendar loan ledger dashboard maintenance bic sci
+internal/<module>     portfolio lease billing charge payment tax document params inventory calendar loan ledger dashboard overview maintenance bic sci
 internal/auth         the only package that reads a token (wraps backendkit)
 internal/bff          browser sessions (backendkit bff): /bff routes, session → bearer; stores tokens, never parses them
 internal/audit        audit.Record, hash chain, chain heads
